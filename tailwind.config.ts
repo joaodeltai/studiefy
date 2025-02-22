@@ -10,13 +10,16 @@ export default {
   theme: {
   	extend: {
   		colors: {
+  			primary: '#C8FF29',
+  			background: '#F5F3F5',
+  			foreground: '#282828',
+  			'dark-gray': '#373737',
+  			purple: '#9046CF',
   			studiefy: {
   				black: '#060200',
   				white: '#f5f1ee',
   				gray: '#696562'
   			},
-  			background: 'hsl(var(--background))',
-  			foreground: 'hsl(var(--foreground))',
   			card: {
   				DEFAULT: 'hsl(var(--card))',
   				foreground: 'hsl(var(--card-foreground))'
@@ -24,10 +27,6 @@ export default {
   			popover: {
   				DEFAULT: 'hsl(var(--popover))',
   				foreground: 'hsl(var(--popover-foreground))'
-  			},
-  			primary: {
-  				DEFAULT: 'hsl(var(--primary))',
-  				foreground: 'hsl(var(--primary-foreground))'
   			},
   			secondary: {
   				DEFAULT: 'hsl(var(--secondary))',
@@ -87,11 +86,31 @@ export default {
   				to: {
   					height: '0'
   				}
+  			},
+  			shimmer: {
+  				'0%': { backgroundPosition: '200% 0' },
+  				'100%': { backgroundPosition: '-200% 0' },
+  			},
+  			float: {
+  				'0%, 100%': { transform: 'translateY(0)' },
+  				'50%': { transform: 'translateY(-20px)' },
+  			},
+  			scrollText: {
+  				'0%': { transform: 'translateX(0)' },
+  				'100%': { transform: 'translateX(-50%)' },
+  			},
+  			pulse: {
+  				'0%, 100%': { transform: 'scale(1)' },
+  				'50%': { transform: 'scale(1.05)' },
   			}
   		},
   		animation: {
   			'accordion-down': 'accordion-down 0.2s ease-out',
-  			'accordion-up': 'accordion-up 0.2s ease-out'
+  			'accordion-up': 'accordion-up 0.2s ease-out',
+  			'shimmer': 'shimmer 3.5s linear infinite',
+  			'float': 'float 3s ease-in-out infinite',
+  			'scroll': 'scrollText 20s linear infinite',
+  			'pulse': 'pulse 3s ease-in-out infinite',
   		}
   	}
   },
