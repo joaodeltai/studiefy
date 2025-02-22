@@ -51,7 +51,7 @@ export function MobileHeader() {
 
   function getPageTitle() {
     if (pathname === "/dashboard") {
-      return "Dashboard"
+      return "Progresso"
     }
 
     if (pathname === "/dashboard/subjects") {

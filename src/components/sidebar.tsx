@@ -12,7 +12,7 @@ import { useState, useEffect } from 'react'
 
 const routes = [
   {
-    label: 'Dashboard',
+    label: 'Progresso',
     href: '/dashboard',
     icon: LayoutDashboard
   },
