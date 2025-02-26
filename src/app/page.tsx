@@ -349,7 +349,7 @@ export default function Home() {
               <p className="text-xl text-foreground/70">
                 O único App que transforma cada minuto de estudo em dados precisos de progresso
               </p>
-              <Link href="/register">
+              <Link href="/auth/register">
                 <Button size="lg" className="w-full bg-foreground text-background hover:bg-primary hover:text-foreground transition-colors mt-8">
                   COMECE AGORA GRATUITAMENTE
                 </Button>
@@ -805,7 +805,7 @@ export default function Home() {
             Mantenha sua motivação alta com nosso sistema de níveis e ofensivas
           </p>
           <div className="inline-flex items-center">
-            <Link href="/register">
+            <Link href="/auth/register">
               <span className="bg-[#282828] text-white px-4 py-2 rounded-xl inline-flex items-center gap-2">
                 Comece agora
                 <span className="text-2xl text-primary">→</span>
@@ -1090,7 +1090,7 @@ export default function Home() {
                   </div>
                 </div>
 
-                <Link href="/register">
+                <Link href="/auth/register">
                   <Button
                     className="w-full sm:w-auto bg-[#282828] hover:bg-[#383838] text-white font-bold py-4 sm:py-6 px-4 sm:px-8 rounded-xl text-sm sm:text-base md:text-lg whitespace-normal sm:whitespace-nowrap"
                   >
