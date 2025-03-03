@@ -3,7 +3,7 @@
 import Link from 'next/link'
 import { usePathname } from 'next/navigation'
 import { cn } from '@/lib/utils'
-import { LayoutDashboard, BookOpen, GraduationCap, ChevronUp } from 'lucide-react'
+import { LayoutDashboard, BookOpen, GraduationCap, ClipboardCheck, RotateCcw, LineChart, MessageCircle } from 'lucide-react'
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar"
 import { Button } from "@/components/ui/button"
 import { useProfile } from '@/hooks/useProfile'
@@ -29,7 +29,22 @@ const routes = [
   {
     label: 'Avaliações',
     href: '/dashboard/assessments',
-    icon: BookOpen
+    icon: ClipboardCheck
+  },
+  {
+    label: 'Revisão',
+    href: '/dashboard/review',
+    icon: RotateCcw
+  },
+  {
+    label: 'Notas',
+    href: '/dashboard/grades',
+    icon: LineChart
+  },
+  {
+    label: 'Feedback/Suporte',
+    href: '/dashboard/support',
+    icon: MessageCircle
   }
 ]
 

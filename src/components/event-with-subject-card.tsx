@@ -7,6 +7,7 @@ import { Trash2, Check } from "lucide-react"
 import { Button } from "./ui/button"
 import { toast } from "sonner"
 import { cn } from "@/lib/utils"
+import { useRouter } from "next/navigation"
 
 interface EventWithSubjectCardProps {
   event: EventWithSubject
@@ -18,9 +19,12 @@ const eventTypeLabels = {
   prova: "Prova",
   trabalho: "Trabalho",
   simulado: "Simulado",
+  redacao: "Redação",
 }
 
 export function EventWithSubjectCard({ event, onDelete, onToggleComplete }: EventWithSubjectCardProps) {
+  const router = useRouter()
+  
   const handleDelete = async () => {
     try {
       await onDelete(event.id)
@@ -40,10 +44,13 @@ export function EventWithSubjectCard({ event, onDelete, onToggleComplete }: Even
   }
 
   return (
-    <div className={cn(
-      "flex items-center justify-between p-4 rounded-lg border border-studiefy-black/10",
-      event.completed ? "bg-studiefy-black/5" : "bg-white"
-    )}>
+    <div 
+      className={cn(
+        "flex items-center justify-between p-4 rounded-lg border border-studiefy-black/10 cursor-pointer",
+        event.completed ? "bg-studiefy-black/5" : "bg-white hover:bg-studiefy-black/5"
+      )}
+      onClick={() => router.push(`/dashboard/subjects/${event.subject_id}/events/${event.id}`)}
+    >
       <div className="flex items-center gap-4">
         <div 
           className="w-2 h-12 rounded-full" 
@@ -66,7 +73,7 @@ export function EventWithSubjectCard({ event, onDelete, onToggleComplete }: Even
           </div>
         </div>
       </div>
-      <div className="flex items-center gap-2">
+      <div className="flex items-center gap-2" onClick={(e) => e.stopPropagation()}>
         <Button
           variant="ghost"
           size="icon"

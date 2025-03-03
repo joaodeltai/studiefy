@@ -6,18 +6,25 @@ import { Loader2, ChevronLeft } from "lucide-react"
 import { Button } from "@/components/ui/button"
 import { useRouter } from "next/navigation"
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"
-import { useMemo } from "react"
+import { useMemo, useState, useEffect } from "react"
 import { AddEventDialog } from "@/components/add-event-dialog"
 import { useSubjects } from "@/hooks/useSubjects"
+import { toast } from "sonner"
 
 export default function AssessmentsPage() {
   const router = useRouter()
-  const { events, loading, deleteEvent, toggleComplete } = useAllEvents()
-  const { subjects } = useSubjects()
+  const { events, loading, deleteEvent, toggleComplete, addEvent } = useAllEvents()
+  const { subjects, loading: loadingSubjects } = useSubjects()
+  
+  // Estado para armazenar a matéria selecionada
+  const [selectedSubjectId, setSelectedSubjectId] = useState<string | null>(null)
 
-  // Encontrar a primeira matéria para adicionar eventos
-  // Idealmente, isso seria uma seleção do usuário em um dropdown
-  const firstSubject = subjects?.[0]
+  // Atualizar a matéria selecionada quando os dados forem carregados
+  useEffect(() => {
+    if (subjects && subjects.length > 0 && !selectedSubjectId) {
+      setSelectedSubjectId(subjects[0].id);
+    }
+  }, [subjects, selectedSubjectId]);
 
   const pendingEvents = useMemo(() => {
     return events.filter(event => !event.completed)
@@ -27,7 +34,7 @@ export default function AssessmentsPage() {
     return events.filter(event => event.completed)
   }, [events])
 
-  if (loading) {
+  if (loading || loadingSubjects) {
     return (
       <div className="h-[calc(100vh-200px)] flex items-center justify-center">
         <Loader2 className="h-8 w-8 animate-spin text-studiefy-black/70" />
@@ -47,13 +54,24 @@ export default function AssessmentsPage() {
           <ChevronLeft className="h-6 w-6" />
         </Button>
         <h1 className="text-2xl font-semibold text-studiefy-black flex-1">Avaliações</h1>
-        {firstSubject && (
+        
+        {/* Verifica se há matérias disponíveis antes de renderizar o botão */}
+        {subjects && subjects.length > 0 && selectedSubjectId && (
           <div className="ml-auto">
-            <AddEventDialog onAddEvent={async (title, type, date) => {
-              // Redirecionar para a página da matéria após adicionar
-              const event = await firstSubject.addEvent(title, type, date)
-              router.push(`/dashboard/subjects/${firstSubject.id}/events/${event.id}`)
-            }} />
+            <AddEventDialog 
+              onAddEvent={async (title, type, date) => {
+                try {
+                  // Usar a nova função addEvent que atualiza a UI imediatamente
+                  await addEvent(selectedSubjectId, title, type, date);
+                  toast.success("Evento adicionado com sucesso");
+                  return;
+                } catch (error) {
+                  console.error("Error adding event:", error);
+                  toast.error("Erro ao adicionar evento");
+                  throw error;
+                }
+              }} 
+            />
           </div>
         )}
       </div>

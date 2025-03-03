@@ -11,29 +11,41 @@ import {
 import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
 import { Loader2, Plus } from "lucide-react"
-import { useState } from "react"
+import { useState, useEffect } from "react"
 import { toast } from "sonner"
-
-const SUBJECT_COLORS = [
-  "#FF5733", // Vermelho
-  "#33FF57", // Verde
-  "#3357FF", // Azul
-  "#FF33F6", // Rosa
-  "#33FFF6", // Ciano
-  "#F6FF33", // Amarelo
-  "#FF8333", // Laranja
-  "#8333FF", // Roxo
-]
+import { ColorPicker } from "./color-picker"
 
 interface AddSubjectDialogProps {
   onAddSubject: (name: string, color: string) => Promise<any>
+  isOpenExternal?: boolean;
+  onOpenChangeExternal?: (open: boolean) => void;
+  showTriggerButton?: boolean;
 }
 
-export function AddSubjectDialog({ onAddSubject }: AddSubjectDialogProps) {
+export function AddSubjectDialog({ 
+  onAddSubject, 
+  isOpenExternal, 
+  onOpenChangeExternal,
+  showTriggerButton = true
+}: AddSubjectDialogProps) {
   const [open, setOpen] = useState(false)
   const [loading, setLoading] = useState(false)
   const [subjectName, setSubjectName] = useState("")
-  const [selectedColor, setSelectedColor] = useState(SUBJECT_COLORS[0])
+  const [selectedColor, setSelectedColor] = useState("#FF5733")
+
+  // Sincroniza o estado interno com o controle externo
+  useEffect(() => {
+    if (isOpenExternal !== undefined) {
+      setOpen(isOpenExternal);
+    }
+  }, [isOpenExternal]);
+
+  const handleOpenChange = (newOpen: boolean) => {
+    setOpen(newOpen);
+    if (onOpenChangeExternal) {
+      onOpenChangeExternal(newOpen);
+    }
+  };
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault()
@@ -43,8 +55,8 @@ export function AddSubjectDialog({ onAddSubject }: AddSubjectDialogProps) {
         await onAddSubject(subjectName.trim(), selectedColor)
         toast.success("Matéria adicionada com sucesso!")
         setSubjectName("")
-        setSelectedColor(SUBJECT_COLORS[0])
-        setOpen(false)
+        setSelectedColor("#FF5733")
+        handleOpenChange(false)
       } catch (error) {
         toast.error("Erro ao adicionar matéria. Tente novamente.")
         console.error(error)
@@ -55,15 +67,17 @@ export function AddSubjectDialog({ onAddSubject }: AddSubjectDialogProps) {
   }
 
   return (
-    <Dialog open={open} onOpenChange={setOpen}>
-      <DialogTrigger asChild>
-        <Button
-          size="icon"
-          className="fixed bottom-6 right-6 h-14 w-14 rounded-full shadow-lg"
-        >
-          <Plus className="h-6 w-6" />
-        </Button>
-      </DialogTrigger>
+    <Dialog open={open} onOpenChange={handleOpenChange}>
+      {showTriggerButton && (
+        <DialogTrigger asChild>
+          <Button
+            size="icon"
+            className="fixed bottom-6 right-6 h-14 w-14 rounded-full shadow-lg bg-[#282828] hover:bg-[#c8ff29] hover:text-[#282828] transition-colors"
+          >
+            <Plus className="h-6 w-6 text-[#f5f3f5]" />
+          </Button>
+        </DialogTrigger>
+      )}
       <DialogContent>
         <DialogHeader>
           <DialogTitle>Adicionar Matéria</DialogTitle>
@@ -79,23 +93,14 @@ export function AddSubjectDialog({ onAddSubject }: AddSubjectDialogProps) {
               disabled={loading}
             />
           </div>
-          <div className="space-y-2">
-            <Label>Cor da Matéria</Label>
-            <div className="grid grid-cols-4 gap-2">
-              {SUBJECT_COLORS.map((color) => (
-                <button
-                  key={color}
-                  type="button"
-                  className={`h-8 w-8 rounded-full border-2 transition-all ${
-                    selectedColor === color ? "border-black scale-110" : "border-transparent scale-100"
-                  }`}
-                  style={{ backgroundColor: color }}
-                  onClick={() => setSelectedColor(color)}
-                  disabled={loading}
-                />
-              ))}
-            </div>
-          </div>
+          
+          <ColorPicker 
+            color={selectedColor}
+            onChange={setSelectedColor}
+            label="Cor da Matéria"
+            disabled={loading}
+          />
+          
           <Button type="submit" className="w-full" disabled={loading}>
             {loading ? (
               <>

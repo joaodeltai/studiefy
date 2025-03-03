@@ -19,6 +19,7 @@ export interface Content {
   tags: string[]
   due_date: string | null
   subject_id: string
+  category_id: string | null
   focus_time?: number // tempo em segundos
   created_at: string
   updated_at: string
@@ -29,6 +30,7 @@ interface ContentFilters {
   endDate: Date | null
   priority: PriorityLevel | 'all'
   tags: string[]
+  categoryId: string | null
 }
 
 export function useContents(subjectId: string) {
@@ -39,6 +41,7 @@ export function useContents(subjectId: string) {
     endDate: null,
     priority: 'all',
     tags: [],
+    categoryId: null
   })
   const { user } = useAuth()
   const { user: userStreak } = useAuth()
@@ -82,6 +85,11 @@ export function useContents(subjectId: string) {
         if (!content.tags.some(tag => filters.tags.includes(tag))) {
           return false
         }
+      }
+      
+      // Filtro de categoria
+      if (filters.categoryId && content.category_id !== filters.categoryId) {
+        return false
       }
 
       return true
@@ -158,11 +166,13 @@ export function useContents(subjectId: string) {
   const addContent = async ({
     title,
     priority = null,
-    dueDate = null
+    dueDate = null,
+    categoryId = null
   }: {
     title: string
     priority?: PriorityLevel
     dueDate?: Date | null
+    categoryId?: string | null
   }) => {
     if (!user) {
       toast.error("Usuário não autenticado")
@@ -186,6 +196,7 @@ export function useContents(subjectId: string) {
         title: title.trim(),
         priority: priority,
         subject_id: subjectId,
+        category_id: categoryId,
         completed: false,
         deleted: false,
         tags: tags,
@@ -308,13 +319,10 @@ export function useContents(subjectId: string) {
         return
       }
 
-      // Se o conteúdo foi marcado como concluído, adiciona 1 XP e atualiza a ofensiva
+      // Se o conteúdo foi marcado como concluído, adiciona 1 XP
       // Se foi desmarcado, remove 1 XP
       if (!content.completed) {
-        await Promise.all([
-          addXP(1),
-          updateStreak() // Atualiza a ofensiva quando um conteúdo é completado
-        ])
+        await addXP(1)
       } else {
         await removeXP(1)
       }

@@ -21,7 +21,7 @@ const getTotalXPForLevel = (level: number) => {
 export default function DashboardPage() {
   const { profile, loading: loadingProfile } = useProfile()
   const { streak, loading: loadingStreak } = useStreak()
-  const { totalContents, studiedContents, daysInPlatform, loading: loadingStats } = useStats()
+  const { totalContents, contentsInProgress, completedContents, loading: loadingStats } = useStats()
 
   if (loadingProfile || loadingStreak || loadingStats) {
     return (
@@ -92,19 +92,19 @@ export default function DashboardPage() {
 
             <div className="px-3 py-4 sm:px-6 sm:py-6 flex flex-col items-center justify-center">
               <span className="text-2xl sm:text-4xl font-bold tracking-tight">
-                {studiedContents}
+                {contentsInProgress}
               </span>
               <span className="text-xs sm:text-sm text-muted-foreground mt-1">
-                estudados
+                em progresso
               </span>
             </div>
 
             <div className="px-3 py-4 sm:px-6 sm:py-6 flex flex-col items-center justify-center">
               <span className="text-2xl sm:text-4xl font-bold tracking-tight">
-                {daysInPlatform}
+                {completedContents}
               </span>
               <span className="text-xs sm:text-sm text-muted-foreground mt-1">
-                dias
+                finalizados
               </span>
             </div>
           </div>

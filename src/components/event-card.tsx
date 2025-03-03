@@ -20,6 +20,7 @@ const eventTypeLabels = {
   prova: "Prova",
   trabalho: "Trabalho",
   simulado: "Simulado",
+  redacao: "Redação",
 }
 
 export function EventCard({ event, subjectId, onDelete, onToggleComplete }: EventCardProps) {

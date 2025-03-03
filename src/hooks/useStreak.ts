@@ -40,8 +40,8 @@ export function useStreak() {
 
   const updateStreak = async (focusTime?: number) => {
     if (!streak) return
-    // Se focusTime for fornecido, verifica o mínimo de 30 minutos
-    if (focusTime !== undefined && focusTime < 1800) return
+    // Garantir que apenas Pomodoros de pelo menos 30 minutos (1800 segundos) contem
+    if (focusTime === undefined || focusTime < 1800) return
 
     try {
       const now = new Date() // Data atual completa
@@ -54,14 +54,14 @@ export function useStreak() {
       
       // Se é a primeira vez estudando
       if (!lastStudyDate) {
-        newStreak = 1
+        newStreak = 0 // Inicia em 0
       } else {
         // Calcula a diferença em dias entre a última data de estudo e hoje
         const diffInDays = Math.floor((today.getTime() - lastStudyDate.getTime()) / (1000 * 60 * 60 * 24))
         
         // Se estudou hoje, mantém a ofensiva
         if (diffInDays === 0) {
-          newStreak = streak.streak
+          // Não faz nada, mantém o valor atual de newStreak
         }
         // Se estudou ontem, incrementa a ofensiva
         else if (diffInDays === 1) {
@@ -69,7 +69,7 @@ export function useStreak() {
         }
         // Se passou mais de um dia sem estudar, zera a ofensiva
         else {
-          newStreak = 1
+          newStreak = 0 // Zera para 0
         }
       }
 

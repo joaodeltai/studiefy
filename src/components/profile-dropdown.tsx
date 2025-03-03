@@ -91,7 +91,10 @@ export function ProfileDropdown({ user, className, side = "right", align = "end"
             <User className="mr-2 h-4 w-4" />
             <span>Perfil</span>
           </DropdownMenuItem>
-          <DropdownMenuItem className="focus:bg-studiefy-black/10 focus:text-studiefy-white">
+          <DropdownMenuItem 
+            className="focus:bg-studiefy-black/10 focus:text-studiefy-white cursor-pointer"
+            onClick={() => router.push("/dashboard/settings")}
+          >
             <Settings className="mr-2 h-4 w-4" />
             <span>Configurações</span>
           </DropdownMenuItem>

@@ -15,6 +15,11 @@ export interface EventWithSubject {
   completed: boolean
   created_at: string
   updated_at: string
+  notes?: string
+  total_questions?: number
+  correct_answers?: number
+  grade?: number
+  essay_grade?: number
   subject: {
     name: string
     color: string
@@ -56,6 +61,53 @@ export function useAllEvents() {
     }
   }
 
+  const addEvent = async (subjectId: string, title: string, type: EventType, date: Date) => {
+    try {
+      // Verificar se a matéria existe
+      const { data: subjectData, error: subjectError } = await supabase
+        .from("subjects")
+        .select("name, color")
+        .eq("id", subjectId)
+        .single()
+
+      if (subjectError) throw subjectError
+
+      // Inserir o evento
+      const { data, error } = await supabase
+        .from("events")
+        .insert([
+          {
+            subject_id: subjectId,
+            title,
+            type,
+            date: date.toISOString(),
+            completed: false,
+          },
+        ])
+        .select()
+        .single()
+
+      if (error) throw error
+
+      // Criar o objeto completo do evento para atualização imediata
+      const newEvent: EventWithSubject = { 
+        ...data, 
+        subject: {
+          name: subjectData.name,
+          color: subjectData.color
+        }
+      }
+      
+      // Atualizar o estado imediatamente
+      setEvents((prev) => [...prev, newEvent])
+      
+      return newEvent
+    } catch (error) {
+      console.error("Error adding event:", error)
+      throw error
+    }
+  }
+
   const deleteEvent = async (eventId: string) => {
     try {
       const event = events.find((e) => e.id === eventId)
@@ -76,9 +128,11 @@ export function useAllEvents() {
       if (event.completed) {
         const xpAmount = event.type === 'trabalho' 
           ? 2 
-          : event.type === 'prova' || event.type === 'simulado'
+          : event.type === 'prova'
           ? 3
-          : 1
+          : event.type === 'simulado'
+          ? 5
+          : 4 // Valor de XP para redação
         
         await removeXP(xpAmount)
       }
@@ -127,9 +181,11 @@ export function useAllEvents() {
       // Calcula o XP baseado no tipo do evento
       const xpAmount = event.type === 'trabalho' 
         ? 2 
-        : event.type === 'prova' || event.type === 'simulado'
+        : event.type === 'prova'
         ? 3
-        : 1
+        : event.type === 'simulado'
+        ? 5
+        : 4 // Valor de XP para redação
 
       // Se o evento foi marcado como concluído, adiciona XP
       // Se foi desmarcado, remove XP
@@ -152,5 +208,6 @@ export function useAllEvents() {
     loading,
     deleteEvent,
     toggleComplete,
+    addEvent,
   }
 }

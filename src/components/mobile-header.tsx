@@ -119,7 +119,7 @@ export function MobileHeader() {
               <div className="flex items-center gap-2">
                 <Flame className="h-5 w-5 text-red-500" />
                 <span className="text-sm font-semibold">
-                  {streak?.streak || 0}
+                  {streak?.streak}
                 </span>
               </div>
             </div>

@@ -8,10 +8,11 @@ import { cn } from "@/lib/utils"
 import { Button } from "@/components/ui/button"
 import { Calendar } from "@/components/ui/calendar"
 import {
-  Popover,
-  PopoverContent,
-  PopoverTrigger,
-} from "@/components/ui/popover"
+  Dialog,
+  DialogContent,
+  DialogTitle,
+  DialogTrigger,
+} from "@/components/ui/dialog"
 import { Input } from "@/components/ui/input"
 
 interface DateTimePickerProps {
@@ -21,6 +22,7 @@ interface DateTimePickerProps {
 
 export function DateTimePicker({ date, setDate }: DateTimePickerProps) {
   const [selectedTime, setSelectedTime] = React.useState<string>("")
+  const [dialogOpen, setDialogOpen] = React.useState(false)
 
   // Update time when date changes
   React.useEffect(() => {
@@ -36,6 +38,7 @@ export function DateTimePicker({ date, setDate }: DateTimePickerProps) {
       selectedDate.setHours(parseInt(hours))
       selectedDate.setMinutes(parseInt(minutes))
       setDate(selectedDate)
+      setDialogOpen(false)
     } else {
       setDate(undefined)
     }
@@ -54,13 +57,14 @@ export function DateTimePicker({ date, setDate }: DateTimePickerProps) {
   }
 
   return (
-    <div className="flex gap-2">
-      <Popover>
-        <PopoverTrigger asChild>
+    <div className="flex flex-row gap-2">
+      <Dialog open={dialogOpen} onOpenChange={setDialogOpen}>
+        <DialogTrigger asChild>
           <Button
+            type="button"
             variant={"outline"}
             className={cn(
-              "w-[240px] justify-start text-left font-normal",
+              "flex-1 sm:flex-none sm:w-[240px] justify-start text-left font-normal",
               !date && "text-muted-foreground"
             )}
           >
@@ -71,22 +75,26 @@ export function DateTimePicker({ date, setDate }: DateTimePickerProps) {
               <span>Selecione uma data</span>
             )}
           </Button>
-        </PopoverTrigger>
-        <PopoverContent className="w-auto p-0">
-          <Calendar
-            mode="single"
-            selected={date}
-            onSelect={handleDateSelect}
-            initialFocus
-            locale={ptBR}
-          />
-        </PopoverContent>
-      </Popover>
+        </DialogTrigger>
+        <DialogContent className="p-0 sm:max-w-[425px]">
+          <DialogTitle className="p-4 pb-0">Selecione uma data</DialogTitle>
+          <div className="px-4 pb-4 pt-2">
+            <Calendar
+              mode="single"
+              selected={date}
+              onSelect={handleDateSelect}
+              initialFocus
+              locale={ptBR}
+              className="mx-auto"
+            />
+          </div>
+        </DialogContent>
+      </Dialog>
       <Input
         type="time"
         value={selectedTime}
         onChange={handleTimeChange}
-        className="w-[120px]"
+        className="w-24 sm:w-[120px]"
       />
     </div>
   )

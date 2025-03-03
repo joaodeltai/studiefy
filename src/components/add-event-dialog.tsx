@@ -26,6 +26,7 @@ const eventTypeLabels = {
   prova: "Prova",
   trabalho: "Trabalho",
   simulado: "Simulado",
+  redacao: "Redação",
 }
 
 export function AddEventDialog({ onAddEvent }: AddEventDialogProps) {
@@ -43,9 +44,13 @@ export function AddEventDialog({ onAddEvent }: AddEventDialogProps) {
 
     try {
       setLoading(true)
+      // Chamar onAddEvent e esperar a resposta
       await onAddEvent(title, type, date)
+      
+      // Fechar o diálogo e limpar os campos apenas após sucesso
       toast.success("Evento adicionado com sucesso")
       setOpen(false)
+      
       // Reset form
       setTitle("")
       setType("prova")
@@ -60,19 +65,22 @@ export function AddEventDialog({ onAddEvent }: AddEventDialogProps) {
   return (
     <Dialog open={open} onOpenChange={setOpen}>
       <DialogTrigger asChild>
-        <Button variant="outline" className="gap-2">
+        <Button 
+          variant="outline" 
+          className="gap-2"
+        >
           <Plus className="h-4 w-4" />
           <span className="hidden sm:inline">Eventos</span>
         </Button>
       </DialogTrigger>
-      <DialogContent className="sm:max-w-[425px]">
+      <DialogContent className="w-[calc(100%-2rem)] max-w-[95vw] sm:max-w-[450px]">
         <DialogHeader>
           <DialogTitle>Adicionar Evento</DialogTitle>
           <DialogDescription>
-            Adicione uma prova, trabalho ou simulado à sua matéria.
+            Adicione uma prova, trabalho, simulado ou redação à sua matéria.
           </DialogDescription>
         </DialogHeader>
-        <div className="grid gap-4 py-4">
+        <div className="grid gap-4 py-2 sm:py-4">
           <div className="grid gap-2">
             <Label htmlFor="title">Título</Label>
             <Input
@@ -103,7 +111,11 @@ export function AddEventDialog({ onAddEvent }: AddEventDialogProps) {
           </div>
         </div>
         <DialogFooter>
-          <Button onClick={handleSubmit} disabled={loading}>
+          <Button 
+            onClick={handleSubmit} 
+            disabled={loading}
+            className="bg-[#282828] text-white hover:bg-[#c8ff29] hover:text-[#282828]"
+          >
             {loading ? "Adicionando..." : "Adicionar"}
           </Button>
         </DialogFooter>

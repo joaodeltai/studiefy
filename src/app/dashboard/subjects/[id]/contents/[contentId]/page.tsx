@@ -3,7 +3,7 @@
 import * as React from "react"
 import { useContents, PriorityLevel, Content } from "@/hooks/useContents"
 import { useSubjects } from "@/hooks/useSubjects"
-import { usePomodoro } from "@/hooks/usePomodoro"
+import { usePomodoro, POMODORO_DURATIONS } from "@/hooks/usePomodoro"
 import { Checkbox } from "@/components/ui/checkbox"
 import { PrioritySelector } from "@/components/priority-selector"
 import { DeleteContentDialog } from "@/components/delete-content-dialog"
@@ -21,6 +21,7 @@ import {
   PopoverTrigger,
 } from "@/components/ui/popover"
 import { cn } from "@/lib/utils"
+import { useState } from "react"
 
 interface TimerCircleProps {
   timeLeft: number
@@ -110,12 +111,13 @@ function DateText({ date, onDateChange }: DateTextProps) {
 }
 
 function PomodoroContent({ content, onUpdateFocusTime }: { content: Content, onUpdateFocusTime: (seconds: number) => Promise<void> }) {
-  const { timeLeft, isRunning, toggleTimer, resetTimer, getFocusedTime } = usePomodoro(content.id)
+  const { timeLeft, isRunning, duration, toggleTimer, resetTimer, setDuration, getFocusedTime } = usePomodoro(content.id)
+  const [showDurationOptions, setShowDurationOptions] = useState(false)
 
   // Salva o tempo focado quando o timer é pausado ou zerado
   const saveFocusTime = React.useCallback(async () => {
     const focusedTime = getFocusedTime()
-    if (focusedTime > 0 && focusedTime > content.focus_time) {
+    if (focusedTime > 0 && (!content.focus_time || focusedTime > content.focus_time)) {
       try {
         await onUpdateFocusTime(focusedTime)
       } catch (error) {
@@ -147,6 +149,14 @@ function PomodoroContent({ content, onUpdateFocusTime }: { content: Content, onU
     resetTimer()
   }
 
+  const handleChangeDuration = async (newDuration: number) => {
+    if (isRunning) {
+      await saveFocusTime()
+    }
+    setDuration(newDuration)
+    setShowDurationOptions(false)
+  }
+
   const formatTime = (seconds: number) => {
     const minutes = Math.floor(seconds / 60)
     const remainingSeconds = seconds % 60
@@ -163,22 +173,88 @@ function PomodoroContent({ content, onUpdateFocusTime }: { content: Content, onU
     return `${minutes}m em foco`
   }
 
+  // Format the current duration in minutes
+  const formatDuration = (seconds: number) => {
+    return `${Math.floor(seconds / 60)} min`
+  }
+
   return (
     <div className="w-full max-w-2xl mx-auto px-4 flex flex-col items-center justify-center gap-12">
       <div className="flex flex-col items-center gap-2">
-        <TimerCircle timeLeft={timeLeft} totalTime={45 * 60}>
-          <span className="text-5xl font-bold text-studiefy-black">
-            {formatTime(timeLeft)}
-          </span>
-          <span className="text-sm text-studiefy-gray mt-2">
-            Tempo restante
-          </span>
-          {typeof content.focus_time === 'number' && content.focus_time > 0 && (
-            <span className="text-xs text-studiefy-gray mt-1">
-              {formatTotalFocusTime(content.focus_time)}
-            </span>
+        <div className="relative">
+          <TimerCircle timeLeft={timeLeft} totalTime={duration}>
+            <button 
+              onClick={() => !isRunning && setShowDurationOptions(prev => !prev)}
+              className={cn(
+                "flex flex-col items-center", 
+                !isRunning && "cursor-pointer hover:text-blue-600 transition-colors"
+              )}
+              disabled={isRunning}
+            >
+              <span className="text-5xl font-bold text-studiefy-black">
+                {formatTime(timeLeft)}
+              </span>
+              <span className="text-sm text-studiefy-gray mt-2">
+                Tempo restante
+              </span>
+              {typeof content.focus_time === 'number' && content.focus_time > 0 && (
+                <span className="text-xs text-studiefy-gray mt-1">
+                  {formatTotalFocusTime(content.focus_time)}
+                </span>
+              )}
+              {!isRunning && (
+                <span className="text-xs text-blue-500 mt-1">
+                  Clique para alterar ({formatDuration(duration)})
+                </span>
+              )}
+            </button>
+          </TimerCircle>
+
+          {/* Duration Options Popover */}
+          {showDurationOptions && !isRunning && (
+            <div className="absolute top-1/2 left-1/2 transform -translate-x-1/2 -translate-y-1/2 bg-white shadow-lg rounded-lg p-4 z-10 border border-gray-200 min-w-[200px]">
+              <div className="flex flex-col gap-2">
+                <h3 className="text-sm font-semibold text-center mb-2">Selecione a duração</h3>
+                <button 
+                  onClick={() => handleChangeDuration(POMODORO_DURATIONS.SHORT)}
+                  className={cn(
+                    "px-4 py-2 text-sm rounded-md hover:bg-blue-50 transition-colors text-left",
+                    duration === POMODORO_DURATIONS.SHORT && "bg-blue-100 font-medium"
+                  )}
+                >
+                  25 minutos
+                </button>
+                <button 
+                  onClick={() => handleChangeDuration(POMODORO_DURATIONS.MEDIUM)}
+                  className={cn(
+                    "px-4 py-2 text-sm rounded-md hover:bg-blue-50 transition-colors text-left",
+                    duration === POMODORO_DURATIONS.MEDIUM && "bg-blue-100 font-medium"
+                  )}
+                >
+                  30 minutos
+                </button>
+                <button 
+                  onClick={() => handleChangeDuration(POMODORO_DURATIONS.LONG)}
+                  className={cn(
+                    "px-4 py-2 text-sm rounded-md hover:bg-blue-50 transition-colors text-left",
+                    duration === POMODORO_DURATIONS.LONG && "bg-blue-100 font-medium"
+                  )}
+                >
+                  45 minutos
+                </button>
+                <button 
+                  onClick={() => handleChangeDuration(POMODORO_DURATIONS.EXTENDED)}
+                  className={cn(
+                    "px-4 py-2 text-sm rounded-md hover:bg-blue-50 transition-colors text-left",
+                    duration === POMODORO_DURATIONS.EXTENDED && "bg-blue-100 font-medium"
+                  )}
+                >
+                  60 minutos
+                </button>
+              </div>
+            </div>
           )}
-        </TimerCircle>
+        </div>
       </div>
 
       <div className="flex items-center gap-4">
@@ -338,7 +414,7 @@ export default function ContentPage({ params }: PageProps) {
             priority={content.priority}
             onPriorityChange={handlePriorityChange}
           />
-          <DeleteContentDialog onDelete={handleDelete} />
+          <DeleteContentDialog onConfirm={handleDelete} />
         </div>
       </div>
       <div className="flex-1 flex items-center justify-center">

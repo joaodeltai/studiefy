@@ -3,9 +3,10 @@
 import * as React from "react"
 import { format } from "date-fns"
 import { ptBR } from "date-fns/locale"
-import { Calendar as CalendarIcon, Tag, Flag, X } from "lucide-react"
+import { Calendar as CalendarIcon, Tag, Flag, X, Layers, BookOpen } from "lucide-react"
 import { Button } from "@/components/ui/button"
 import { Calendar } from "@/components/ui/calendar"
+import { useSubjectCategories } from "@/hooks/useSubjectCategories"
 import {
   Popover,
   PopoverContent,
@@ -20,17 +21,21 @@ import {
 } from "@/components/ui/select"
 import { PriorityLevel } from "@/hooks/useContents"
 import { cn } from "@/lib/utils"
+import { CategorySelector } from "./category-selector"
 
 interface ContentFiltersProps {
+  subjectId: string
   startDate: Date | null
   endDate: Date | null
   priority: PriorityLevel | 'all'
   selectedTags: string[]
+  categoryId: string | null
   availableTags: string[]
   onStartDateChange: (date: Date | null) => void
   onEndDateChange: (date: Date | null) => void
   onPriorityChange: (priority: PriorityLevel | 'all') => void
   onTagsChange: (tags: string[]) => void
+  onCategoryChange: (categoryId: string | null) => void
   onClearFilters: () => void
 }
 
@@ -43,18 +48,22 @@ const priorityOptions = [
 ]
 
 export function ContentFilters({
+  subjectId,
   startDate,
   endDate,
   priority,
   selectedTags,
+  categoryId,
   availableTags,
   onStartDateChange,
   onEndDateChange,
   onPriorityChange,
   onTagsChange,
+  onCategoryChange,
   onClearFilters,
 }: ContentFiltersProps) {
-  const hasActiveFilters = startDate || endDate || priority !== 'all' || selectedTags.length > 0
+  const { categories, loading } = useSubjectCategories(subjectId)
+  const hasActiveFilters = startDate || endDate || priority !== 'all' || selectedTags.length > 0 || categoryId
 
   return (
     <div className="flex items-stretch justify-between">
@@ -126,6 +135,27 @@ export function ContentFilters({
               {priorityOptions.map((option) => (
                 <SelectItem key={option.value} value={option.value}>
                   {option.label}
+                </SelectItem>
+              ))}
+            </SelectContent>
+          </Select>
+        </div>
+
+        <div className="flex items-center gap-2 flex-1 px-4">
+          <Layers className="h-4 w-4 text-studiefy-gray shrink-0" />
+          <Select
+            value={categoryId || "none"}
+            onValueChange={(value) => onCategoryChange(value === "none" ? null : value)}
+            disabled={loading || categories.length === 0}
+          >
+            <SelectTrigger className="h-8 border-none bg-transparent flex-1">
+              <SelectValue placeholder="Categoria" />
+            </SelectTrigger>
+            <SelectContent>
+              <SelectItem value="none">Todas as categorias</SelectItem>
+              {categories.map((category) => (
+                <SelectItem key={category.id} value={category.id}>
+                  {category.name}
                 </SelectItem>
               ))}
             </SelectContent>
@@ -216,6 +246,44 @@ export function ContentFilters({
                   onClick={() => onPriorityChange(option.value as PriorityLevel | 'all')}
                 >
                   {option.label}
+                </Button>
+              ))}
+            </div>
+          </PopoverContent>
+        </Popover>
+
+        <Popover>
+          <PopoverTrigger asChild>
+            <Button
+              variant="ghost"
+              size="sm"
+              className={cn(
+                "h-8 w-8 p-0",
+                categoryId && "text-blue-500"
+              )}
+            >
+              <Layers className="h-4 w-4" />
+            </Button>
+          </PopoverTrigger>
+          <PopoverContent className="w-48 p-0" align="center">
+            <div className="space-y-2 p-2">
+              <Button
+                variant="ghost"
+                size="sm"
+                className="w-full justify-start"
+                onClick={() => onCategoryChange(null)}
+              >
+                Todas as categorias
+              </Button>
+              {categories.map((category) => (
+                <Button
+                  key={category.id}
+                  variant="ghost"
+                  size="sm"
+                  className="w-full justify-start"
+                  onClick={() => onCategoryChange(category.id)}
+                >
+                  {category.name}
                 </Button>
               ))}
             </div>

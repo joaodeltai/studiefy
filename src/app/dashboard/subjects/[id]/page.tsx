@@ -20,6 +20,7 @@ import { EventCard } from "@/components/event-card"
 import { Button } from "@/components/ui/button"
 import { cn } from "@/lib/utils"
 import { Calendar } from "@/components/ui/calendar"
+import { CategorySelector } from "@/components/category-selector"
 import {
   Popover,
   PopoverContent,
@@ -76,6 +77,7 @@ interface ContentCardProps {
   completed: boolean
   priority: PriorityLevel
   dueDate: string | null
+  categoryId: string | null
   tags?: string[]
   onToggleComplete: (id: string) => Promise<void>
   onMoveToTrash: (id: string) => Promise<void>
@@ -90,6 +92,7 @@ function ContentCard({
   completed, 
   priority,
   dueDate,
+  categoryId,
   tags = [], 
   onToggleComplete,
   onMoveToTrash,
@@ -200,6 +203,7 @@ export default function SubjectPage() {
   const [newContentTitle, setNewContentTitle] = useState("")
   const [newContentPriority, setNewContentPriority] = useState<PriorityLevel>(null)
   const [newContentDueDate, setNewContentDueDate] = useState<Date | null>(null)
+  const [newContentCategoryId, setNewContentCategoryId] = useState<string | null>(null)
 
   const subject = subjects?.find((s) => s.id === subjectId)
 
@@ -210,10 +214,12 @@ export default function SubjectPage() {
           title: newContentTitle,
           priority: newContentPriority,
           dueDate: newContentDueDate,
+          categoryId: newContentCategoryId
         })
         setNewContentTitle("")
         setNewContentPriority(null)
         setNewContentDueDate(null)
+        setNewContentCategoryId(null)
         toast.success("Conteúdo adicionado com sucesso")
       } catch (error) {
         toast.error("Erro ao adicionar conteúdo")
@@ -258,8 +264,20 @@ export default function SubjectPage() {
             {subject.name}
           </h1>
         </div>
-        <div className="md:ml-auto">
-          <AddEventDialog onAddEvent={addEvent} />
+        <div className="md:ml-auto flex items-center gap-2">
+          <AddEventDialog
+            onAddEvent={async (title, type, date) => {
+              try {
+                // addEvent retorna o evento já atualizado no hook useEvents,
+                // então não precisamos fazer nada mais aqui para atualizar a UI
+                await addEvent(title, type, date);
+                return;
+              } catch (error) {
+                console.error("Error adding event:", error);
+                throw error;
+              }
+            }}
+          />
         </div>
       </div>
 
@@ -271,12 +289,17 @@ export default function SubjectPage() {
             value={newContentTitle}
             onChange={(e) => setNewContentTitle(e.target.value)}
             onKeyDown={handleKeyDown}
-            className="w-full pr-24 h-12"
+            className="w-full pr-40 h-12"
           />
           <div className="absolute right-2 top-1/2 -translate-y-1/2 flex items-center gap-1">
             <DatePicker
               date={newContentDueDate}
               onDateChange={setNewContentDueDate}
+            />
+            <CategorySelector
+              subjectId={subjectId}
+              selectedCategoryId={newContentCategoryId}
+              onCategoryChange={setNewContentCategoryId}
             />
             <PrioritySelector
               priority={newContentPriority}
@@ -286,20 +309,24 @@ export default function SubjectPage() {
         </div>
 
         <ContentFilters
+          subjectId={subjectId}
           startDate={filters.startDate}
           endDate={filters.endDate}
           priority={filters.priority}
           selectedTags={filters.tags}
+          categoryId={filters.categoryId}
           availableTags={availableTags}
           onStartDateChange={(date) => updateFilters({ ...filters, startDate: date })}
           onEndDateChange={(date) => updateFilters({ ...filters, endDate: date })}
           onPriorityChange={(priority) => updateFilters({ ...filters, priority })}
           onTagsChange={(tags) => updateFilters({ ...filters, tags })}
+          onCategoryChange={(categoryId) => updateFilters({ ...filters, categoryId })}
           onClearFilters={() => updateFilters({
             startDate: null,
             endDate: null,
             priority: 'all',
-            tags: []
+            tags: [],
+            categoryId: null
           })}
         />
 
@@ -334,6 +361,7 @@ export default function SubjectPage() {
                 completed={content.completed}
                 priority={content.priority}
                 dueDate={content.due_date}
+                categoryId={content.category_id}
                 tags={content.tags}
                 onToggleComplete={toggleContentComplete}
                 onMoveToTrash={moveToTrash}
@@ -366,6 +394,7 @@ export default function SubjectPage() {
                           completed={content.completed}
                           priority={content.priority}
                           dueDate={content.due_date}
+                          categoryId={content.category_id}
                           tags={content.tags}
                           onToggleComplete={toggleContentComplete}
                           onMoveToTrash={moveToTrash}

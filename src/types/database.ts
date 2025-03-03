@@ -26,6 +26,7 @@ export type Content = {
   updated_at: string
 }
 
+
 export type Database = {
   public: {
     Tables: {

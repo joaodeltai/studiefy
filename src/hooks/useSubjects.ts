@@ -89,11 +89,38 @@ export function useSubjects() {
     }
   }
 
+  const updateSubject = async (id: string, name: string, color: string) => {
+    try {
+      const { data, error } = await supabase
+        .from("subjects")
+        .update({ name, color })
+        .eq("id", id)
+        .eq("user_id", user?.id)
+        .select()
+        .single()
+
+      if (error) {
+        throw error
+      }
+
+      setSubjects((prev) =>
+        prev.map((subject) => 
+          subject.id === id ? { ...subject, name, color } : subject
+        )
+      )
+      return data
+    } catch (error) {
+      console.error("Error updating subject:", error)
+      throw error
+    }
+  }
+
   return {
     subjects,
     loading,
     addSubject,
     deleteSubject,
+    updateSubject,
     refreshSubjects: fetchSubjects,
   }
 }

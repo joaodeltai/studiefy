@@ -7,14 +7,15 @@ import { differenceInDays } from "date-fns"
 
 interface Stats {
   totalContents: number
-  studiedContents: number
-  daysInPlatform: number
+  contentsInProgress: number
+  completedContents: number
   loading: boolean
 }
 
 interface Content {
   id: string
   completed: boolean
+  focus_time?: number
   subject?: {
     user_id: string
   }
@@ -23,8 +24,8 @@ interface Content {
 export function useStats() {
   const [stats, setStats] = useState<Stats>({
     totalContents: 0,
-    studiedContents: 0,
-    daysInPlatform: 0,
+    contentsInProgress: 0,
+    completedContents: 0,
     loading: true,
   })
   const { user } = useAuth()
@@ -43,6 +44,7 @@ export function useStats() {
           .select(`
             id,
             completed,
+            focus_time,
             subject:subjects (
               user_id
             )
@@ -60,28 +62,13 @@ export function useStats() {
         ) || []
 
         const totalContents = userContents.length
-        const studiedContents = userContents.filter(c => c.completed).length
-
-        // Buscar data de criação do usuário
-        const { data: profile, error: profileError } = await supabase
-          .from("profiles")
-          .select("created_at")
-          .eq("user_id", user.id)
-          .single()
-
-        if (profileError) {
-          console.error("Error fetching profile:", profileError)
-          throw profileError
-        }
-
-        // Calcular dias na plataforma
-        const createdAt = profile?.created_at ? new Date(profile.created_at) : new Date()
-        const daysInPlatform = Math.max(0, differenceInDays(new Date(), createdAt))
+        const completedContents = userContents.filter(c => c.completed).length
+        const contentsInProgress = userContents.filter(c => !c.completed && (c.focus_time || 0) > 0).length
 
         setStats({
           totalContents,
-          studiedContents,
-          daysInPlatform,
+          contentsInProgress,
+          completedContents,
           loading: false,
         })
       } catch (error: any) {
@@ -89,8 +76,8 @@ export function useStats() {
         // Em caso de erro, mantém os valores zerados mas marca como não carregando
         setStats({
           totalContents: 0,
-          studiedContents: 0,
-          daysInPlatform: 0,
+          contentsInProgress: 0,
+          completedContents: 0,
           loading: false,
         })
       }

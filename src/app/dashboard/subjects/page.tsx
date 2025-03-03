@@ -1,12 +1,11 @@
 "use client"
 
-import { AddSubjectDialog } from "@/components/add-subject-dialog"
 import { SubjectCard } from "@/components/subject-card"
 import { useSubjects } from "@/hooks/useSubjects"
 import { Loader2 } from "lucide-react"
 
 export default function SubjectsPage() {
-  const { subjects, loading, addSubject } = useSubjects()
+  const { subjects, loading } = useSubjects()
 
   if (loading) {
     return (
@@ -25,22 +24,22 @@ export default function SubjectsPage() {
       {subjects.length === 0 ? (
         <div className="flex flex-col items-center justify-center h-[calc(100vh-200px)] text-studiefy-gray">
           <p>Nenhuma matéria cadastrada</p>
-          <p className="text-sm">Clique no botão + para adicionar uma matéria</p>
+          <p className="text-sm">Adicione matérias na página de Configurações</p>
         </div>
       ) : (
-        <div className="grid grid-cols-2 gap-3 sm:gap-4 md:grid-cols-2 lg:grid-cols-3">
-          {subjects.map((subject) => (
-            <SubjectCard
-              key={subject.id}
-              id={subject.id}
-              name={subject.name}
-              color={subject.color}
-            />
-          ))}
+        <div className="px-1 sm:px-0">
+          <div className="grid grid-cols-2 gap-3 sm:gap-4 md:grid-cols-2 lg:grid-cols-3">
+            {subjects.map((subject) => (
+              <SubjectCard
+                key={subject.id}
+                id={subject.id}
+                name={subject.name}
+                color={subject.color}
+              />
+            ))}
+          </div>
         </div>
       )}
-
-      <AddSubjectDialog onAddSubject={addSubject} />
     </div>
   )
 }

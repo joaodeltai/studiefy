@@ -6,9 +6,11 @@ import { ContentFilters } from "@/components/content-filters"
 import { Loader2, ChevronLeft } from "lucide-react"
 import { Button } from "@/components/ui/button"
 import { useRouter } from "next/navigation"
+import { useState } from "react"
 
 export default function StudyPage() {
   const router = useRouter()
+  const [categoryId, setCategoryId] = useState<string | null>(null)
   const {
     contents,
     loading,
@@ -45,6 +47,8 @@ export default function StudyPage() {
 
       <div className="space-y-4">
         <ContentFilters
+          subjectId=""
+          categoryId={categoryId}
           startDate={filters.startDate}
           endDate={filters.endDate}
           priority={filters.priority}
@@ -54,12 +58,16 @@ export default function StudyPage() {
           onEndDateChange={(date) => updateFilters({ endDate: date })}
           onPriorityChange={(priority) => updateFilters({ priority })}
           onTagsChange={(tags) => updateFilters({ tags })}
-          onClearFilters={() => updateFilters({
-            startDate: null,
-            endDate: null,
-            priority: 'all',
-            tags: []
-          })}
+          onCategoryChange={(newCategoryId) => setCategoryId(newCategoryId)}
+          onClearFilters={() => {
+            updateFilters({
+              startDate: null,
+              endDate: null,
+              priority: 'all',
+              tags: []
+            });
+            setCategoryId(null);
+          }}
         />
 
         {contents.length > 0 ? (

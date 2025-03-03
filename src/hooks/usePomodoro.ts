@@ -8,10 +8,20 @@ interface PomodoroState {
   timeLeft: number
   isRunning: boolean
   sessionStartTime: number | null
+  duration: number
 }
 
 const STORAGE_KEY = '@studiefy/pomodoro-state'
-const TOTAL_TIME = 45 * 60 // 45 minutos em segundos
+
+// Available Pomodoro durations in minutes
+export const POMODORO_DURATIONS = {
+  SHORT: 25 * 60, // 25 minutes
+  MEDIUM: 30 * 60, // 30 minutes
+  LONG: 45 * 60, // 45 minutes
+  EXTENDED: 60 * 60, // 60 minutes
+}
+
+const DEFAULT_DURATION = POMODORO_DURATIONS.MEDIUM // Default to 30 minutes
 
 // Verifica se existe algum pomodoro ativo
 const hasActivePomodoro = (): { active: boolean, contentId: string | null } => {
@@ -45,21 +55,28 @@ const hasActivePomodoro = (): { active: boolean, contentId: string | null } => {
 const loadState = (): PomodoroState => {
   if (typeof window === 'undefined') return {
     contentId: null,
-    timeLeft: TOTAL_TIME,
+    timeLeft: DEFAULT_DURATION,
     isRunning: false,
-    sessionStartTime: null
+    sessionStartTime: null,
+    duration: DEFAULT_DURATION
   }
 
   const saved = localStorage.getItem(STORAGE_KEY)
   if (!saved) return {
     contentId: null,
-    timeLeft: TOTAL_TIME,
+    timeLeft: DEFAULT_DURATION,
     isRunning: false,
-    sessionStartTime: null
+    sessionStartTime: null,
+    duration: DEFAULT_DURATION
   }
 
   try {
     const state = JSON.parse(saved)
+    
+    // Set default duration if not present in saved state (for backward compatibility)
+    if (!state.duration) {
+      state.duration = DEFAULT_DURATION
+    }
     
     // Se estava rodando, calcula o tempo decorrido desde a última atualização
     if (state.isRunning && state.sessionStartTime) {
@@ -82,9 +99,10 @@ const loadState = (): PomodoroState => {
     console.error('Erro ao carregar estado do pomodoro:', error)
     return {
       contentId: null,
-      timeLeft: TOTAL_TIME,
+      timeLeft: DEFAULT_DURATION,
       isRunning: false,
-      sessionStartTime: null
+      sessionStartTime: null,
+      duration: DEFAULT_DURATION
     }
   }
 }
@@ -111,9 +129,10 @@ export const usePomodoro = (contentId: string) => {
     if (savedState.contentId !== contentId) {
       return {
         contentId,
-        timeLeft: TOTAL_TIME,
+        timeLeft: savedState.duration || DEFAULT_DURATION,
         isRunning: false,
-        sessionStartTime: null
+        sessionStartTime: null,
+        duration: savedState.duration || DEFAULT_DURATION
       }
     }
 
@@ -183,7 +202,7 @@ export const usePomodoro = (contentId: string) => {
         const newTimeLeft = Math.max(0, prev.timeLeft - 1)
         // Atualiza o tempo total de foco apenas quando o timer chega a zero
         if (prev.isRunning && prev.timeLeft === 1) {
-          setTotalFocusTime(prev => prev + TOTAL_TIME)
+          setTotalFocusTime(focusTime => focusTime + prev.duration)
         }
         return {
           ...prev,
@@ -208,9 +227,9 @@ export const usePomodoro = (contentId: string) => {
       }
     } else {
       // Se está parando o timer, adiciona apenas o tempo proporcional ao que foi focado
-      const timeSpent = TOTAL_TIME - state.timeLeft
+      const timeSpent = state.duration - state.timeLeft
       if (timeSpent > 0) {
-        setTotalFocusTime(prev => prev + Math.floor(timeSpent))
+        setTotalFocusTime(focusTime => focusTime + Math.floor(timeSpent))
       }
     }
 
@@ -219,44 +238,66 @@ export const usePomodoro = (contentId: string) => {
       isRunning: !prev.isRunning,
       sessionStartTime: !prev.isRunning ? Date.now() : null
     }))
-  }, [contentId, state.timeLeft])
+  }, [contentId, state.timeLeft, state.duration])
 
   const resetTimer = useCallback(() => {
     // Se o timer estava rodando, adiciona apenas o tempo proporcional ao que foi focado
     if (state.isRunning) {
-      const timeSpent = TOTAL_TIME - state.timeLeft
+      const timeSpent = state.duration - state.timeLeft
       if (timeSpent > 0) {
-        setTotalFocusTime(prev => prev + Math.floor(timeSpent))
+        setTotalFocusTime(focusTime => focusTime + Math.floor(timeSpent))
       }
     }
 
     setState(prev => ({
       ...prev,
-      timeLeft: TOTAL_TIME,
+      timeLeft: prev.duration,
       isRunning: false,
       sessionStartTime: null
     }))
-  }, [state.isRunning, state.timeLeft])
+  }, [state.isRunning, state.timeLeft, state.duration])
+
+  const setDuration = useCallback((newDuration: number) => {
+    setState(prevState => {
+      // Se o timer estava rodando, salva o tempo proporcional
+      if (prevState.isRunning) {
+        const timeSpent = prevState.duration - prevState.timeLeft
+        if (timeSpent > 0) {
+          setTotalFocusTime(focusTime => focusTime + Math.floor(timeSpent))
+        }
+      }
+      
+      return {
+        ...prevState,
+        timeLeft: newDuration,
+        duration: newDuration,
+        isRunning: false,
+        sessionStartTime: null
+      }
+    })
+  }, [])
 
   const getFocusedTime = useCallback(() => {
     let focusedTime = totalFocusTime
 
     // Adiciona o tempo da sessão atual se estiver rodando
     if (state.isRunning && state.sessionStartTime) {
-      const currentSessionTime = Math.floor(TOTAL_TIME - state.timeLeft)
+      const currentSessionTime = Math.floor(state.duration - state.timeLeft)
       if (currentSessionTime > 0) {
         focusedTime += currentSessionTime
       }
     }
 
     return focusedTime
-  }, [totalFocusTime, state.isRunning, state.timeLeft])
+  }, [totalFocusTime, state.isRunning, state.timeLeft, state.duration])
 
   return {
     timeLeft: state.timeLeft,
     isRunning: state.isRunning,
+    duration: state.duration,
     toggleTimer,
     resetTimer,
+    setDuration,
     getFocusedTime
   }
 }
