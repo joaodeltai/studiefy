@@ -1,6 +1,6 @@
 'use client';
 
-import { useEffect, useState } from 'react';
+import { useEffect, useState, Suspense } from 'react';
 import { useRouter, useSearchParams } from 'next/navigation';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardFooter, CardHeader, CardTitle } from '@/components/ui/card';
@@ -8,7 +8,8 @@ import { CheckCircle, Loader2 } from 'lucide-react';
 import { useSubscription } from '@/hooks/useSubscription';
 import { toast } from 'sonner';
 
-export default function SubscriptionSuccessPage() {
+// Componente que usa useSearchParams
+function SubscriptionSuccessContent() {
   const router = useRouter();
   const searchParams = useSearchParams();
   const { fetchSubscription, subscription } = useSubscription();
@@ -157,5 +158,30 @@ export default function SubscriptionSuccessPage() {
         </CardFooter>
       </Card>
     </div>
+  );
+}
+
+// Componente principal com Suspense
+export default function SubscriptionSuccessPage() {
+  return (
+    <Suspense fallback={
+      <div className="container mx-auto py-10 flex items-center justify-center min-h-[calc(100vh-200px)]">
+        <Card className="w-full max-w-md mx-auto text-center">
+          <CardHeader>
+            <div className="flex justify-center mb-4">
+              <Loader2 className="h-16 w-16 text-primary animate-spin" />
+            </div>
+            <CardTitle className="text-2xl">Carregando...</CardTitle>
+          </CardHeader>
+          <CardContent>
+            <p className="text-muted-foreground">
+              Estamos preparando a página de confirmação da sua assinatura...
+            </p>
+          </CardContent>
+        </Card>
+      </div>
+    }>
+      <SubscriptionSuccessContent />
+    </Suspense>
   );
 }
