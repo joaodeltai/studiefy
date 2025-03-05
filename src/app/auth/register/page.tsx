@@ -38,7 +38,12 @@ export default function RegisterPage() {
       return
     }
 
-    await signUp(email, password, name)
+    try {
+      await signUp(email, password, name)
+      // Não é necessário redirecionar aqui, pois o redirecionamento agora é feito no hook useAuth
+    } catch (error) {
+      // O erro já é tratado no hook useAuth
+    }
   }
 
   return (

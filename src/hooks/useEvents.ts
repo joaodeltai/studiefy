@@ -3,7 +3,9 @@
 import { supabase } from "@/lib/supabase"
 import { useAuth } from "./useAuth"
 import { useXP } from "./useXP"
+import { usePlanLimits, FREE_PLAN_LIMITS } from "./usePlanLimits"
 import { useEffect, useState } from "react"
+import { toast } from "sonner"
 
 export type EventType = 'prova' | 'trabalho' | 'simulado' | 'redacao'
 
@@ -23,7 +25,7 @@ export interface ErrorEntry {
 
 export interface Event {
   id: string
-  subject_id: string
+  subject_id?: string
   title: string
   type: EventType
   date: string
@@ -39,11 +41,37 @@ export interface Event {
   error_entries?: ErrorEntry[]
 }
 
+export interface EventError extends Error {
+  code: string;
+}
+
 export function useEvents(subjectId: string) {
   const [events, setEvents] = useState<Event[]>([])
+  const [allEvents, setAllEvents] = useState<Event[]>([])
   const [loading, setLoading] = useState(true)
   const { user } = useAuth()
   const { addXP, removeXP } = useXP()
+  const { isPremium, hasReachedSubjectEventsLimit, remainingSubjectEvents } = usePlanLimits()
+
+  // Fetch all events (across all subjects) to check limits
+  const fetchAllEvents = async () => {
+    try {
+      if (!user) {
+        setAllEvents([]);
+        return;
+      }
+      
+      const { data, error } = await supabase
+        .from("events")
+        .select("*")
+        .eq("user_id", user.id);
+        
+      if (error) throw error;
+      setAllEvents(data || []);
+    } catch (error) {
+      console.error("Error fetching all events:", error);
+    }
+  };
 
   const fetchEvents = async () => {
     try {
@@ -63,34 +91,10 @@ export function useEvents(subjectId: string) {
 
       if (eventsError) throw eventsError
 
-      // Buscar relacionamentos event_contents
-      const { data: eventContentsData, error: eventContentsError } = await supabase
-        .from("event_contents")
-        .select("event_id, content_id")
-        .in("event_id", eventsData.map(e => e.id))
-
-      if (eventContentsError) throw eventContentsError
+      // Buscar eventos de todos os assuntos para validar limites
+      await fetchAllEvents();
       
-      // Buscar entradas do caderno de erros
-      const { data: errorEntriesData, error: errorEntriesError } = await supabase
-        .from("error_entries")
-        .select("*")
-        .in("event_id", eventsData.map(e => e.id))
-        
-      if (errorEntriesError) throw errorEntriesError
-
-      // Mapear content_ids e error_entries para cada evento
-      const eventsWithContents = eventsData.map(event => ({
-        ...event,
-        content_ids: eventContentsData
-          .filter(ec => ec.event_id === event.id)
-          .map(ec => ec.content_id),
-        error_entries: errorEntriesData
-          ? errorEntriesData.filter(ee => ee.event_id === event.id)
-          : []
-      }))
-
-      setEvents(eventsWithContents)
+      setEvents(eventsData || [])
     } catch (error) {
       console.error("Error fetching events:", error)
     } finally {
@@ -98,12 +102,31 @@ export function useEvents(subjectId: string) {
     }
   }
 
-  useEffect(() => {
-    fetchEvents()
-  }, [user, subjectId])
-
   const addEvent = async (title: string, type: EventType, date: Date) => {
     try {
+      if (!user) throw new Error("User not authenticated")
+
+      // Verificar se o usuário atingiu o limite do plano gratuito
+      if (!isPremium) {
+        // Filtrar todos os eventos da matéria atual
+        const subjectEvents = allEvents.filter(event => event.subject_id === subjectId)
+        
+        // Verificar se o usuário atingiu o limite para esta matéria
+        if (hasReachedSubjectEventsLimit(subjectEvents.length)) {
+          const error = new Error(`Você atingiu o limite de ${FREE_PLAN_LIMITS.MAX_EVENTS_PER_SUBJECT} eventos para esta matéria no plano Free`) as EventError;
+          error.code = 'PLAN_LIMIT_REACHED';
+          toast.error(error.message, {
+            description: "Faça upgrade para adicionar mais eventos.",
+            action: {
+              label: "Fazer upgrade",
+              onClick: () => window.location.href = "/dashboard/subscription"
+            }
+          });
+          throw error;
+        }
+      }
+      
+      // Inserir o evento
       const { data, error } = await supabase
         .from("events")
         .insert([
@@ -113,69 +136,39 @@ export function useEvents(subjectId: string) {
             type,
             date: date.toISOString(),
             completed: false,
+            user_id: user.id,
           },
         ])
         .select()
         .single()
 
-      if (error) throw error
-
-      // Criar o objeto completo do evento para atualização imediata
-      const newEvent: Event = { 
-        ...data, 
-        content_ids: [] 
+      if (error) {
+        throw error
       }
+
+      // Atualizar estado com o novo evento
+      setEvents((prev) => [...prev, data])
       
-      // Atualizar o estado imediatamente
-      setEvents((prev) => [...prev, newEvent])
+      // Atualizar a lista de todos os eventos para manter o controle de limites
+      setAllEvents((prev) => [...prev, data]);
       
-      return newEvent
+      return data
     } catch (error) {
       console.error("Error adding event:", error)
       throw error
     }
   }
 
-  const deleteEvent = async (eventId: string) => {
+  const toggleComplete = async (id: string, isComplete: boolean) => {
     try {
-      const event = events.find((e) => e.id === eventId)
-      if (!event) throw new Error(`Event not found: ${eventId}`)
+      const event = events.find((e) => e.id === id)
+      if (!event) throw new Error(`Event not found: ${id}`)
 
-      const { error } = await supabase
-        .from("events")
-        .delete()
-        .match({ id: eventId })
-
-      if (error) throw error
-
-      if (event.completed) {
-        const xpAmount = event.type === 'trabalho' 
-          ? 2 
-          : event.type === 'prova'
-          ? 3
-          : event.type === 'simulado'
-          ? 5
-          : 0
-        await removeXP(xpAmount)
-      }
-
-      setEvents((prev) => prev.filter((e) => e.id !== eventId))
-    } catch (error) {
-      console.error("Error deleting event:", error)
-      throw error
-    }
-  }
-
-  const toggleComplete = async (eventId: string) => {
-    try {
-      const event = events.find((e) => e.id === eventId)
-      if (!event) throw new Error(`Event not found: ${eventId}`)
-
-      const newCompletedState = !event.completed
+      const newCompletedState = isComplete
       const { error } = await supabase
         .from("events")
         .update({ completed: newCompletedState })
-        .match({ id: eventId })
+        .match({ id: id })
 
       if (error) throw error
 
@@ -195,7 +188,7 @@ export function useEvents(subjectId: string) {
 
       setEvents((prev) =>
         prev.map((e) =>
-          e.id === eventId ? { ...e, completed: newCompletedState } : e
+          e.id === id ? { ...e, completed: newCompletedState } : e
         )
       )
     } catch (error) {
@@ -204,133 +197,127 @@ export function useEvents(subjectId: string) {
     }
   }
 
-  const linkContent = async (eventId: string, contentId: string) => {
+  const deleteEvent = async (id: string) => {
     try {
-      const { error } = await supabase
-        .from("event_contents")
-        .insert([{ event_id: eventId, content_id: contentId }])
-
-      if (error) throw error
-
-      setEvents((prev) =>
-        prev.map((e) =>
-          e.id === eventId
-            ? { ...e, content_ids: [...(e.content_ids || []), contentId] }
-            : e
-        )
-      )
-    } catch (error) {
-      console.error("Error linking content to event:", error)
-      throw error
-    }
-  }
-
-  const unlinkContent = async (eventId: string, contentId: string) => {
-    try {
-      const { error } = await supabase
-        .from("event_contents")
-        .delete()
-        .match({ event_id: eventId, content_id: contentId })
-
-      if (error) throw error
-
-      setEvents((prev) =>
-        prev.map((e) =>
-          e.id === eventId
-            ? { ...e, content_ids: e.content_ids?.filter(id => id !== contentId) || [] }
-            : e
-        )
-      )
-    } catch (error) {
-      console.error("Error unlinking content from event:", error)
-      throw error
-    }
-  }
-
-  const updateEventNotes = async (eventId: string, notes: string) => {
-    try {
-      const event = events.find((e) => e.id === eventId)
-      if (!event) throw new Error(`Event not found: ${eventId}`)
+      const event = events.find((e) => e.id === id)
+      if (!event) throw new Error(`Event not found: ${id}`)
 
       const { error } = await supabase
         .from("events")
-        .update({ 
-          notes,
-          updated_at: new Date().toISOString()
-        })
-        .match({ id: eventId })
+        .delete()
+        .match({ id: id })
 
       if (error) throw error
 
-      setEvents((prev) =>
-        prev.map((e) =>
-          e.id === eventId ? { ...e, notes } : e
-        )
-      )
+      if (event.completed) {
+        const xpAmount = event.type === 'trabalho' 
+          ? 2 
+          : event.type === 'prova'
+          ? 3
+          : event.type === 'simulado'
+          ? 5
+          : 0
+        await removeXP(xpAmount)
+      }
+
+      setEvents((prev) => prev.filter((e) => e.id !== id))
+      setAllEvents((prev) => prev.filter((e) => e.id !== id))
     } catch (error) {
-      console.error("Error updating event notes:", error)
+      console.error("Error deleting event:", error)
       throw error
     }
   }
 
-  const updateEventQuestions = async (
-    eventId: string,
-    totalQuestions?: number,
-    correctAnswers?: number | null,
-    grade?: number | null,
-    essayGrade?: number | null
+  const updateEvent = async (
+    id: string,
+    updates: {
+      title?: string
+      date?: Date
+      notes?: string
+      content_ids?: string[]
+      total_questions?: number
+      correct_answers?: number
+      grade?: number
+    }
   ) => {
     try {
+      const event = events.find((e) => e.id === id)
+      if (!event) throw new Error(`Event not found: ${id}`)
+
       const { error } = await supabase
         .from("events")
         .update({
-          total_questions: totalQuestions,
-          correct_answers: correctAnswers,
-          grade: grade,
+          ...updates,
+          updated_at: new Date().toISOString(),
+        })
+        .eq("id", id)
+
+      if (error) throw error
+
+      setEvents((prev) =>
+        prev.map((e) =>
+          e.id === id ? { ...e, ...updates } : e
+        )
+      )
+    } catch (error) {
+      console.error("Error updating event:", error)
+      throw error
+    }
+  }
+
+  const updateEssayGrade = async (id: string, essayGrade: number) => {
+    try {
+      const event = events.find((e) => e.id === id)
+      if (!event) throw new Error(`Event not found: ${id}`)
+
+      const { error } = await supabase
+        .from("events")
+        .update({
           essay_grade: essayGrade,
           updated_at: new Date().toISOString(),
         })
-        .eq("id", eventId)
+        .eq("id", id)
 
       if (error) throw error
-      
-      // Atualiza o estado local
-      setEvents((prevEvents) =>
-        prevEvents.map((event) =>
-          event.id === eventId
-            ? {
-                ...event,
-                total_questions: totalQuestions,
-                correct_answers: correctAnswers,
-                grade: grade,
-                essay_grade: essayGrade,
-                updated_at: new Date().toISOString(),
-              }
-            : event
+
+      setEvents((prev) =>
+        prev.map((e) =>
+          e.id === id ? { ...e, essay_grade: essayGrade } : e
         )
       )
-
-      return { success: true }
     } catch (error) {
-      console.error("Erro ao atualizar questões do evento:", error)
-      return { success: false, error }
+      console.error("Error updating essay grade:", error)
+      throw error
     }
   }
-  const addErrorEntry = async (eventId: string, question: string, subjectId?: string, categoryId?: string, sourceId?: string, difficulty?: string, notes?: string) => {
+
+  // Função para adicionar uma entrada no caderno de erros
+  const addErrorEntry = async (
+    eventId: string,
+    question: string,
+    subjectId?: string,
+    categoryId?: string,
+    sourceId?: string,
+    difficulty?: string,
+    notes?: string
+  ) => {
     try {
+      // Criar objeto de entrada com campos obrigatórios
+      const entryData: any = {
+        event_id: eventId,
+        question,
+      };
+      
+      // Adicionar campos opcionais apenas se estiverem definidos
+      if (subjectId) entryData.subject_id = subjectId;
+      if (categoryId) entryData.category_id = categoryId;
+      if (sourceId) entryData.source_id = sourceId;
+      if (difficulty) entryData.difficulty = difficulty;
+      if (notes) entryData.notes = notes;
+      
       const { data, error } = await supabase
         .from("error_entries")
-        .insert([
-          {
-            event_id: eventId,
-            question,
-            subject_id: subjectId,
-            category_id: categoryId,
-            source_id: sourceId,
-            difficulty,
-            notes,
-          },
-        ])
+        .insert([entryData])
         .select()
         .single()
 
@@ -355,10 +342,17 @@ export function useEvents(subjectId: string) {
     }
   }
 
+  // Função para atualizar uma entrada no caderno de erros
   const updateErrorEntry = async (
     errorEntryId: string,
-    eventId: string,
-    updates: { question?: string; subject_id?: string; category_id?: string; source_id?: string; difficulty?: string; notes?: string }
+    updates: {
+      question?: string
+      subject_id?: string
+      category_id?: string
+      source_id?: string
+      difficulty?: string
+      notes?: string
+    }
   ) => {
     try {
       const { data, error } = await supabase
@@ -376,7 +370,7 @@ export function useEvents(subjectId: string) {
       // Atualizar o estado imediatamente
       setEvents((prev) =>
         prev.map((e) =>
-          e.id === eventId
+          e.id === errorEntryId
             ? {
                 ...e,
                 error_entries: e.error_entries?.map((ee) =>
@@ -394,7 +388,8 @@ export function useEvents(subjectId: string) {
     }
   }
 
-  const deleteErrorEntry = async (errorEntryId: string, eventId: string) => {
+  // Função para deletar uma entrada no caderno de erros
+  const deleteErrorEntry = async (errorEntryId: string) => {
     try {
       const { error } = await supabase
         .from("error_entries")
@@ -406,7 +401,7 @@ export function useEvents(subjectId: string) {
       // Atualizar o estado imediatamente
       setEvents((prev) =>
         prev.map((e) =>
-          e.id === eventId
+          e.id === errorEntryId
             ? {
                 ...e,
                 error_entries: e.error_entries?.filter(
@@ -422,49 +417,36 @@ export function useEvents(subjectId: string) {
     }
   }
 
-  const toggleErrorReviewed = async (errorId: string, reviewed: boolean) => {
-    try {
-      const { error } = await supabase
-        .from("error_entries")
-        .update({ reviewed })
-        .eq("id", errorId)
-      
-      if (error) {
-        throw error
-      }
-      
-      // Atualizar o estado local
-      setEvents((prev) =>
-        prev.map((e) => ({
-          ...e,
-          error_entries: e.error_entries?.map((ee) =>
-            ee.id === errorId ? { ...ee, reviewed } : ee
-          )
-        }))
-      )
-      
-      return true
-    } catch (error) {
-      console.error("Erro ao atualizar status de revisão:", error)
-      throw error
+  // Iniciar a busca por eventos quando o componente for montado ou o subject_id mudar
+  useEffect(() => {
+    if (user && subjectId) {
+      fetchEvents()
     }
-  }
+  }, [user, subjectId])
+
+  // Verificar se o usuário atingiu o limite do plano gratuito
+  const hasReachedLimit = !isPremium && hasReachedSubjectEventsLimit(events.length);
+
+  // Calcular o número de eventos restantes
+  const remainingEventsCount = isPremium 
+    ? Infinity 
+    : remainingSubjectEvents(events.length);
 
   return {
     events,
+    allEvents,
     loading,
-    fetchEvents,
+    hasReachedLimit,
+    remainingEventsCount,
     addEvent,
-    deleteEvent,
     toggleComplete,
-    linkContent,
-    unlinkContent,
-    updateEventNotes,
-    updateEventQuestions,
+    deleteEvent,
+    updateEvent,
+    updateEssayGrade,
     addErrorEntry,
     updateErrorEntry,
     deleteErrorEntry,
-    toggleErrorReviewed
+    fetchEvents,
   }
 }
 
@@ -478,10 +460,10 @@ export async function getAllErrorEntries() {
   
   try {
     // Primeiro, buscar todos os eventos do usuário
-    // Nota: events não tem user_id diretamente, precisamos buscar todos os eventos
     const { data: events, error: eventsError } = await supabase
       .from("events")
       .select("id, subject_id, title, type")
+      .eq("user_id", user.id)
     
     if (eventsError) {
       throw eventsError

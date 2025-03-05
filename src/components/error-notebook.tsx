@@ -28,6 +28,7 @@ interface ErrorNotebookProps {
   categories: SubjectCategory[]
   eventSources?: EventSource[]
   isQuestionType: boolean
+  isGeneralEvent?: boolean
   onAddEntry: (
     question: string, 
     subjectId?: string, 
@@ -57,6 +58,7 @@ export function ErrorNotebook({
   categories,
   eventSources = [],
   isQuestionType,
+  isGeneralEvent = false,
   onAddEntry,
   onUpdateEntry,
   onDeleteEntry
@@ -84,7 +86,31 @@ export function ErrorNotebook({
     if (!newQuestion.trim()) return
 
     try {
-      await onAddEntry(newQuestion, newSubjectId === "none" ? undefined : newSubjectId, newCategoryId === "none" ? undefined : newCategoryId, newSourceId === "none" ? undefined : newSourceId, newDifficulty === "none" ? undefined : newDifficulty, newNotes)
+      let subjectIdToUse = newSubjectId;
+      
+      // Para eventos gerais, precisamos ter certeza que temos um subject_id válido
+      if (isGeneralEvent) {
+        if (newSubjectId === "none" || !newSubjectId) {
+          // Se não há matéria selecionada, usamos a primeira matéria disponível
+          if (subjects.length > 0) {
+            subjectIdToUse = subjects[0].id;
+          } else {
+            // Se não há matérias disponíveis, exibimos um erro
+            console.error("No subject available for error entry");
+            alert("Por favor, selecione uma matéria para adicionar a questão.");
+            return;
+          }
+        }
+      }
+      
+      await onAddEntry(
+        newQuestion, 
+        subjectIdToUse === "none" ? undefined : subjectIdToUse, 
+        newCategoryId === "none" ? undefined : newCategoryId, 
+        newSourceId === "none" ? undefined : newSourceId, 
+        newDifficulty === "none" ? undefined : newDifficulty, 
+        newNotes
+      )
       
       // Resetar o formulário
       resetForm()

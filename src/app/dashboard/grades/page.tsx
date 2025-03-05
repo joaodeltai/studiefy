@@ -25,6 +25,7 @@ import { ptBR } from "date-fns/locale"
 import { Card, CardContent } from "@/components/ui/card"
 import { Badge } from "@/components/ui/badge"
 import { GradeStatistics } from "@/components/grade-statistics"
+import { PremiumGradesPage } from "@/components/premium-grades-page"
 
 export default function GradesPage() {
   const router = useRouter()
@@ -81,7 +82,8 @@ export default function GradesPage() {
     )
   }
   
-  return (
+  // Conteúdo da página
+  const content = (
     <div className="h-full p-4 md:p-8 pt-6">
       {/* Header */}
       <div className="flex items-center mb-8">
@@ -177,7 +179,13 @@ export default function GradesPage() {
             <Card 
               key={event.id} 
               className="overflow-hidden cursor-pointer hover:shadow-md transition-shadow"
-              onClick={() => router.push(`/dashboard/subjects/${event.subject_id}/events/${event.id}`)}
+              onClick={() => {
+                if (event.subject_id) {
+                  router.push(`/dashboard/subjects/${event.subject_id}/events/${event.id}`)
+                } else {
+                  router.push(`/dashboard/events/${event.id}`)
+                }
+              }}
             >
               <CardContent className="p-4">
                 <div className="flex flex-col md:flex-row md:items-center gap-3">
@@ -203,9 +211,9 @@ export default function GradesPage() {
                       <BookOpen className="h-4 w-4 text-gray-500" />
                       <span 
                         className="font-medium" 
-                        style={{ color: event.subject.color }}
+                        style={{ color: event.subject?.color }}
                       >
-                        {event.subject.name}
+                        {event.subject?.name || "Evento Geral"}
                       </span>
                     </div>
                   </div>
@@ -252,5 +260,10 @@ export default function GradesPage() {
         )}
       </div>
     </div>
-  )
+  );
+  
+  // Envolve o conteúdo com o PremiumGradesPage
+  // O componente PremiumGradesPage já controla o que deve ser exibido com base
+  // no status premium do usuário
+  return <PremiumGradesPage>{content}</PremiumGradesPage>;
 }

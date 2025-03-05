@@ -5,10 +5,12 @@ import { useAuth } from "./useAuth"
 import { useEffect, useState } from "react"
 import { EventType } from "./useEvents"
 import { useXP } from "./useXP"
+import { usePlanLimits, FREE_PLAN_LIMITS } from "./usePlanLimits"
+import { toast } from "sonner"
 
 export interface EventWithSubject {
   id: string
-  subject_id: string
+  subject_id: string | null
   title: string
   type: EventType
   date: string
@@ -23,7 +25,12 @@ export interface EventWithSubject {
   subject: {
     name: string
     color: string
-  }
+  } | null
+}
+
+// Interface para erros específicos com código
+export interface EventLimitError extends Error {
+  code: string;
 }
 
 export function useAllEvents() {
@@ -31,6 +38,11 @@ export function useAllEvents() {
   const [loading, setLoading] = useState(true)
   const { user } = useAuth()
   const { addXP, removeXP } = useXP()
+  const { 
+    isPremium, 
+    hasReachedSubjectEventsLimit, 
+    hasReachedGeneralEventsLimit
+  } = usePlanLimits()
 
   useEffect(() => {
     if (user) {
@@ -61,142 +73,221 @@ export function useAllEvents() {
     }
   }
 
-  const addEvent = async (subjectId: string, title: string, type: EventType, date: Date) => {
+  const addEvent = async (title: string, type: EventType, date: Date, subjectId?: string) => {
     try {
-      // Verificar se a matéria existe
-      const { data: subjectData, error: subjectError } = await supabase
-        .from("subjects")
-        .select("name, color")
-        .eq("id", subjectId)
-        .single()
+      if (!user) throw new Error("User not authenticated");
+      
+      // Verificar limites para usuários do plano Free
+      if (!isPremium) {
+        if (subjectId) {
+          // Contagem de eventos para esta matéria específica
+          const subjectEvents = events.filter(event => event.subject_id === subjectId);
+          
+          if (hasReachedSubjectEventsLimit(subjectEvents.length)) {
+            const error = new Error(`Você atingiu o limite de ${FREE_PLAN_LIMITS.MAX_EVENTS_PER_SUBJECT} eventos para esta matéria no plano Free.`) as EventLimitError;
+            error.code = 'PLAN_LIMIT_REACHED';
+            toast.error(error.message, {
+              description: "Faça upgrade para adicionar mais eventos.",
+              action: {
+                label: "Fazer upgrade",
+                onClick: () => window.location.href = "/dashboard/subscription"
+              }
+            });
+            throw error;
+          }
+        } else {
+          // Contagem de eventos sem matéria (eventos gerais)
+          const generalEvents = events.filter(event => event.subject_id === null);
+          
+          if (hasReachedGeneralEventsLimit(generalEvents.length)) {
+            const error = new Error(`Você atingiu o limite de ${FREE_PLAN_LIMITS.MAX_GENERAL_EVENTS} eventos sem matéria no plano Free.`) as EventLimitError;
+            error.code = 'PLAN_LIMIT_REACHED';
+            toast.error(error.message, {
+              description: "Faça upgrade para adicionar mais eventos.",
+              action: {
+                label: "Fazer upgrade",
+                onClick: () => window.location.href = "/dashboard/subscription"
+              }
+            });
+            throw error;
+          }
+        }
+      }
+      
+      let subjectData = null;
+      
+      // Verificar se a matéria existe, apenas se um subjectId foi fornecido
+      if (subjectId) {
+        const { data, error: subjectError } = await supabase
+          .from("subjects")
+          .select("name, color")
+          .eq("id", subjectId)
+          .single()
 
-      if (subjectError) throw subjectError
+        if (subjectError) throw subjectError
+        subjectData = data;
+      }
 
-      // Inserir o evento
+      // Inserir o evento com o user_id
       const { data, error } = await supabase
         .from("events")
         .insert([
           {
-            subject_id: subjectId,
+            subject_id: subjectId || null,
             title,
             type,
             date: date.toISOString(),
             completed: false,
+            user_id: user.id, // Adicionar o user_id ao criar o evento
           },
         ])
         .select()
         .single()
 
-      if (error) throw error
-
-      // Criar o objeto completo do evento para atualização imediata
-      const newEvent: EventWithSubject = { 
-        ...data, 
-        subject: {
-          name: subjectData.name,
-          color: subjectData.color
-        }
-      }
-      
-      // Atualizar o estado imediatamente
-      setEvents((prev) => [...prev, newEvent])
-      
-      return newEvent
-    } catch (error) {
-      console.error("Error adding event:", error)
-      throw error
-    }
-  }
-
-  const deleteEvent = async (eventId: string) => {
-    try {
-      const event = events.find((e) => e.id === eventId)
-      if (!event) {
-        throw new Error(`Event not found: ${eventId}`)
-      }
-
-      const { error } = await supabase
-        .from("events")
-        .delete()
-        .eq("id", eventId)
-
       if (error) {
         throw error
       }
 
-      // Se o evento estava concluído, remove o XP correspondente
-      if (event.completed) {
-        const xpAmount = event.type === 'trabalho' 
-          ? 2 
-          : event.type === 'prova'
-          ? 3
-          : event.type === 'simulado'
-          ? 5
-          : 4 // Valor de XP para redação
-        
-        await removeXP(xpAmount)
+      // Formatar o novo evento para incluir o objeto subject
+      const newEvent: EventWithSubject = {
+        ...data,
+        subject: subjectData ? {
+          name: subjectData.name,
+          color: subjectData.color
+        } : null
       }
 
-      setEvents((prev) => prev.filter((event) => event.id !== eventId))
+      // Atualizar o estado
+      setEvents(prev => [...prev, newEvent])
+      
+      return newEvent
+    } catch (error: any) {
+      console.error("Error adding event:", error)
+      // Não exibir o toast se já foi exibido pela verificação de limite
+      if (!error.code || error.code !== 'PLAN_LIMIT_REACHED') {
+        toast.error("Erro ao adicionar evento");
+      }
+      throw error
+    }
+  }
+
+  const deleteEvent = async (id: string) => {
+    try {
+      const event = events.find((e) => e.id === id)
+      if (!event) throw new Error(`Event not found: ${id}`)
+
+      const { error } = await supabase
+        .from("events")
+        .delete()
+        .match({ id })
+
+      if (error) throw error
+
+      // Remover XP se o evento estava completo
+      if (event.completed) {
+        let xpAmount = 0;
+        
+        // Determinação do XP baseado no tipo de evento
+        switch (event.type) {
+          case 'trabalho':
+            xpAmount = 2;
+            break;
+          case 'prova':
+            xpAmount = 3;
+            break;
+          case 'simulado':
+            xpAmount = 5;
+            break;
+          case 'redacao':
+            xpAmount = 4;
+            break;
+          default:
+            xpAmount = 0;
+        }
+        
+        if (xpAmount > 0) {
+          await removeXP(xpAmount);
+        }
+      }
+
+      // Atualizar o estado
+      setEvents(prev => prev.filter(e => e.id !== id))
     } catch (error) {
       console.error("Error deleting event:", error)
       throw error
     }
   }
 
-  const toggleComplete = async (eventId: string) => {
+  const toggleComplete = async (id: string, isComplete: boolean) => {
     try {
-      const event = events.find((e) => e.id === eventId)
-      if (!event) {
-        throw new Error(`Event not found: ${eventId}`)
-      }
+      const event = events.find((e) => e.id === id)
+      if (!event) throw new Error(`Event not found: ${id}`)
 
-      // Atualiza o estado local para feedback imediato
-      setEvents((prev) =>
-        prev.map((e) =>
-          e.id === eventId ? { ...e, completed: !e.completed } : e
-        )
-      )
-
-      // Atualiza no Supabase
       const { error } = await supabase
         .from("events")
-        .update({ 
-          completed: !event.completed,
-          updated_at: new Date().toISOString()
-        })
-        .eq("id", eventId)
-        .select()
+        .update({ completed: isComplete })
+        .match({ id })
 
-      if (error) {
-        // Se houver erro, reverte o estado local
-        setEvents((prev) =>
-          prev.map((e) =>
-            e.id === eventId ? { ...e, completed: event.completed } : e
-          )
+      if (error) throw error
+
+      // Adicionar ou remover XP baseado na conclusão
+      if (isComplete) {
+        let xpAmount = 0;
+        
+        // Determinação do XP baseado no tipo de evento
+        switch (event.type) {
+          case 'trabalho':
+            xpAmount = 2;
+            break;
+          case 'prova':
+            xpAmount = 3;
+            break;
+          case 'simulado':
+            xpAmount = 5;
+            break;
+          case 'redacao':
+            xpAmount = 4;
+            break;
+          default:
+            xpAmount = 0;
+        }
+        
+        if (xpAmount > 0) {
+          await addXP(xpAmount);
+        }
+      } else if (event.completed) {
+        // Se estava completo e agora não está mais, remover XP
+        let xpAmount = 0;
+        
+        // Determinação do XP baseado no tipo de evento
+        switch (event.type) {
+          case 'trabalho':
+            xpAmount = 2;
+            break;
+          case 'prova':
+            xpAmount = 3;
+            break;
+          case 'simulado':
+            xpAmount = 5;
+            break;
+          case 'redacao':
+            xpAmount = 4;
+            break;
+          default:
+            xpAmount = 0;
+        }
+        
+        if (xpAmount > 0) {
+          await removeXP(xpAmount);
+        }
+      }
+
+      // Atualizar o estado
+      setEvents(prev =>
+        prev.map(e =>
+          e.id === id ? { ...e, completed: isComplete } : e
         )
-        throw error
-      }
-
-      // Calcula o XP baseado no tipo do evento
-      const xpAmount = event.type === 'trabalho' 
-        ? 2 
-        : event.type === 'prova'
-        ? 3
-        : event.type === 'simulado'
-        ? 5
-        : 4 // Valor de XP para redação
-
-      // Se o evento foi marcado como concluído, adiciona XP
-      // Se foi desmarcado, remove XP
-      if (!event.completed) {
-        await addXP(xpAmount)
-      } else {
-        await removeXP(xpAmount)
-      }
-
-      // Atualiza os dados locais
-      await fetchEvents()
+      )
     } catch (error) {
       console.error("Error toggling event completion:", error)
       throw error
@@ -209,5 +300,6 @@ export function useAllEvents() {
     deleteEvent,
     toggleComplete,
     addEvent,
+    fetchEvents
   }
 }

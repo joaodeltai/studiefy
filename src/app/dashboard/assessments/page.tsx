@@ -16,16 +16,6 @@ export default function AssessmentsPage() {
   const { events, loading, deleteEvent, toggleComplete, addEvent } = useAllEvents()
   const { subjects, loading: loadingSubjects } = useSubjects()
   
-  // Estado para armazenar a matéria selecionada
-  const [selectedSubjectId, setSelectedSubjectId] = useState<string | null>(null)
-
-  // Atualizar a matéria selecionada quando os dados forem carregados
-  useEffect(() => {
-    if (subjects && subjects.length > 0 && !selectedSubjectId) {
-      setSelectedSubjectId(subjects[0].id);
-    }
-  }, [subjects, selectedSubjectId]);
-
   const pendingEvents = useMemo(() => {
     return events.filter(event => !event.completed)
   }, [events])
@@ -55,25 +45,27 @@ export default function AssessmentsPage() {
         </Button>
         <h1 className="text-2xl font-semibold text-studiefy-black flex-1">Avaliações</h1>
         
-        {/* Verifica se há matérias disponíveis antes de renderizar o botão */}
-        {subjects && subjects.length > 0 && selectedSubjectId && (
-          <div className="ml-auto">
-            <AddEventDialog 
-              onAddEvent={async (title, type, date) => {
-                try {
-                  // Usar a nova função addEvent que atualiza a UI imediatamente
-                  await addEvent(selectedSubjectId, title, type, date);
-                  toast.success("Evento adicionado com sucesso");
-                  return;
-                } catch (error) {
-                  console.error("Error adding event:", error);
+        <div className="ml-auto">
+          <AddEventDialog 
+            showSubjectSelector={true}
+            onAddEvent={async (title, type, date, subjectId) => {
+              try {
+                // Usar a função addEvent com o parâmetro subjectId opcional
+                const result = await addEvent(title, type, date, subjectId);
+                // Só exibir mensagem de sucesso se o evento foi realmente adicionado
+                toast.success("Evento adicionado com sucesso");
+                return result;
+              } catch (error: any) {
+                // Não exibir toast de erro se já foi exibido pelo hook de eventos
+                if (!error.code || error.code !== 'PLAN_LIMIT_REACHED') {
                   toast.error("Erro ao adicionar evento");
-                  throw error;
                 }
-              }} 
-            />
-          </div>
-        )}
+                // Propagar o erro para que o componente AddEventDialog possa tratá-lo
+                throw error;
+              }
+            }} 
+          />
+        </div>
       </div>
 
       {events.length > 0 ? (

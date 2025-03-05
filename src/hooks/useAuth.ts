@@ -66,6 +66,9 @@ export function useAuth() {
 
       if (signUpError) throw signUpError
 
+      // Redirecionar para a página de verificação de email após registro bem-sucedido
+      router.push('/auth/verify-email')
+      
       return data
     } catch (error) {
       console.error('Erro de cadastro:', error)
@@ -83,7 +86,7 @@ export function useAuth() {
       if (error) throw error
       
       router.refresh()
-      router.push('/login')
+      router.push('/auth/login')
     } catch (error) {
       console.error('Erro ao sair:', error)
       setError(error instanceof Error ? error.message : 'Erro ao sair')

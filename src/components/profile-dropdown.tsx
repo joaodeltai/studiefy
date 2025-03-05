@@ -1,111 +1,129 @@
-"use client"
+'use client'
 
-import { ChevronsUpDown, LogOut, Settings, User } from "lucide-react"
+import React from 'react'
+import Link from 'next/link'
+import { cn } from '@/lib/utils'
+import { LogOut, Settings, User } from 'lucide-react'
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar"
 import {
   DropdownMenu,
   DropdownMenuContent,
-  DropdownMenuGroup,
   DropdownMenuItem,
   DropdownMenuLabel,
   DropdownMenuSeparator,
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu"
-import { Button } from "@/components/ui/button"
-import { signOut } from "@/lib/supabase"
-import { useRouter } from "next/navigation"
-import { toast } from "sonner"
-import { cn } from "@/lib/utils"
+import { useAuth } from '@/hooks/useAuth'
 
-interface ProfileDropdownProps {
-  user: {
-    email: string | undefined
-    name: string | undefined
-    avatar_url?: string
-    username?: string
-  }
-  className?: string
-  side?: "top" | "right" | "bottom" | "left"
-  align?: "start" | "center" | "end"
+interface User {
+  name?: string
+  email?: string
+  avatar_url?: string
+  username?: string
 }
 
-export function ProfileDropdown({ user, className, side = "right", align = "end" }: ProfileDropdownProps) {
-  const router = useRouter()
+interface ProfileDropdownProps {
+  user: User
+  side?: 'right' | 'top'
+  className?: string
+  isCollapsed?: boolean
+}
 
-  const handleSignOut = async () => {
-    try {
-      await signOut()
-      router.refresh()
-    } catch (error) {
-      toast.error("Erro ao sair")
-    }
-  }
+function getInitials(name: string): string {
+  if (!name) return ''
+  
+  return name
+    .split(' ')
+    .map(word => word[0])
+    .filter(Boolean)
+    .join('')
+    .toUpperCase()
+    .slice(0, 2)
+}
+
+export function ProfileDropdown({ 
+  user, 
+  side = 'right', 
+  className,
+  isCollapsed = false
+}: ProfileDropdownProps) {
+  const userInitials = user.name ? getInitials(user.name) : '?'
+  const { signOut } = useAuth()
 
   return (
     <DropdownMenu>
       <DropdownMenuTrigger asChild>
-        <Button 
-          variant="ghost" 
-          className="relative h-16 w-full justify-start gap-2 px-4 hover:bg-studiefy-black/5 rounded-none"
-        >
+        <button className={cn(
+          "flex w-full items-center gap-3 px-4 py-3 transition-colors hover:bg-studiefy-black/5",
+          className
+        )}>
           <Avatar className="h-8 w-8">
-            <AvatarImage 
-              src={user.avatar_url} 
-              alt={user.name} 
-              className="object-cover"
-            />
-            <AvatarFallback className="bg-studiefy-black text-studiefy-white">
-              {user.name?.charAt(0).toUpperCase()}
-            </AvatarFallback>
+            {user.avatar_url ? (
+              <AvatarImage src={user.avatar_url} alt={user.name || 'Avatar'} />
+            ) : (
+              <AvatarFallback className="bg-studiefy-black/20 text-studiefy-white text-sm">
+                {userInitials}
+              </AvatarFallback>
+            )}
           </Avatar>
-          <div className="flex flex-1 flex-col items-start text-left">
-            <span className="text-sm font-medium text-studiefy-white">{user.name}</span>
-            <span className="text-xs text-studiefy-gray">{user.email}</span>
-          </div>
-          <ChevronsUpDown className="h-4 w-4 text-studiefy-gray" />
-        </Button>
+          
+          {!isCollapsed && (
+            <div className="flex flex-1 flex-col justify-center overflow-hidden text-left">
+              {user.name && (
+                <p className="truncate text-sm font-medium text-studiefy-white">
+                  {user.name}
+                </p>
+              )}
+              {user.email && (
+                <p className="truncate text-xs text-studiefy-gray">
+                  {user.email}
+                </p>
+              )}
+            </div>
+          )}
+        </button>
       </DropdownMenuTrigger>
-      <DropdownMenuContent 
-        className={cn("w-56 bg-studiefy-black text-studiefy-white border border-studiefy-gray/20", className)}
+      <DropdownMenuContent
+        align="end"
         side={side}
-        align={align}
-        sideOffset={side === 'top' ? 4 : 8}
-        alignOffset={side === 'top' ? 8 : 0}
+        className="w-56 bg-white"
       >
-        <DropdownMenuLabel className="font-normal" asChild>
-          <div className="flex flex-col space-y-1">
-            <p className="text-sm font-medium leading-none text-studiefy-white">
-              {user.name}
-            </p>
-            <p className="text-xs leading-none text-studiefy-white/80">
-              {user.email}
-            </p>
+        <DropdownMenuLabel>
+          <div className="flex flex-col gap-1">
+            {user.name && (
+              <p className="text-sm font-medium leading-none">
+                {user.name}
+              </p>
+            )}
+            {user.email && (
+              <p className="text-xs text-studiefy-gray">
+                {user.email}
+              </p>
+            )}
           </div>
         </DropdownMenuLabel>
-        <DropdownMenuSeparator className="bg-studiefy-gray/20" />
-        <DropdownMenuGroup>
-          <DropdownMenuItem 
-            className="focus:bg-studiefy-black/10 focus:text-studiefy-white cursor-pointer"
-            onClick={() => router.push("/dashboard/profile")}
-          >
+        <DropdownMenuSeparator />
+        <DropdownMenuItem asChild>
+          <Link href="/dashboard/profile" className="cursor-pointer">
             <User className="mr-2 h-4 w-4" />
-            <span>Perfil</span>
-          </DropdownMenuItem>
-          <DropdownMenuItem 
-            className="focus:bg-studiefy-black/10 focus:text-studiefy-white cursor-pointer"
-            onClick={() => router.push("/dashboard/settings")}
-          >
+            Minha Conta
+          </Link>
+        </DropdownMenuItem>
+        <DropdownMenuItem asChild>
+          <Link href="/dashboard/settings" className="cursor-pointer">
             <Settings className="mr-2 h-4 w-4" />
-            <span>Configurações</span>
-          </DropdownMenuItem>
-        </DropdownMenuGroup>
-        <DropdownMenuSeparator className="bg-studiefy-gray/20" />
+            Configurações
+          </Link>
+        </DropdownMenuItem>
+        <DropdownMenuSeparator />
         <DropdownMenuItem 
-          className="focus:bg-studiefy-black/10 focus:text-studiefy-white cursor-pointer" 
-          onClick={handleSignOut}
+          className="cursor-pointer text-red-500 focus:text-red-500"
+          onClick={async () => {
+            await signOut()
+          }}
         >
           <LogOut className="mr-2 h-4 w-4" />
-          <span>Sair</span>
+          Sair
         </DropdownMenuItem>
       </DropdownMenuContent>
     </DropdownMenu>

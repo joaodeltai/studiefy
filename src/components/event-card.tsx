@@ -54,7 +54,15 @@ export function EventCard({ event, subjectId, onDelete, onToggleComplete }: Even
         "flex items-center justify-between p-4 rounded-lg border border-studiefy-black/10 cursor-pointer",
         event.completed ? "bg-studiefy-black/5" : "bg-white hover:bg-studiefy-black/5"
       )}
-      onClick={() => router.push(`/dashboard/subjects/${subjectId}/events/${event.id}`)}
+      onClick={() => {
+        // Verificar se o evento está associado a uma matéria específica
+        if (event.subject_id) {
+          router.push(`/dashboard/subjects/${subjectId}/events/${event.id}`)
+        } else {
+          // Para eventos gerais
+          router.push(`/dashboard/events/${event.id}`)
+        }
+      }}
     >
       <div className="flex flex-col gap-1">
         <div className="flex items-center gap-2">

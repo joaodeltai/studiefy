@@ -8,7 +8,7 @@ import { PrioritySelector } from "@/components/priority-selector"
 import { DeleteContentDialog } from "@/components/delete-content-dialog"
 import { DatePicker } from "@/components/date-picker"
 import { ContentFilters } from "@/components/content-filters"
-import { Loader2, ChevronLeft, ChevronDown } from "lucide-react"
+import { Loader2, ChevronLeft, ChevronDown, AlertTriangle, CreditCard } from "lucide-react"
 import { notFound, useRouter, useParams } from "next/navigation"
 import { KeyboardEvent, useState } from "react"
 import { toast } from "sonner"
@@ -21,6 +21,8 @@ import { Button } from "@/components/ui/button"
 import { cn } from "@/lib/utils"
 import { Calendar } from "@/components/ui/calendar"
 import { CategorySelector } from "@/components/category-selector"
+import { Alert, AlertDescription } from "@/components/ui/alert"
+import { FREE_PLAN_LIMITS } from "@/hooks/usePlanLimits"
 import {
   Popover,
   PopoverContent,
@@ -190,6 +192,7 @@ export default function SubjectPage() {
   const { events, loading: eventsLoading, addEvent, deleteEvent, toggleComplete } = useEvents(subjectId)
   const {
     contents,
+    allContents,
     loading: loadingContents,
     filters,
     availableTags,
@@ -199,6 +202,8 @@ export default function SubjectPage() {
     updatePriority,
     updateDueDate,
     updateFilters,
+    hasReachedLimit,
+    remainingContents
   } = useContents(subjectId)
   const [newContentTitle, setNewContentTitle] = useState("")
   const [newContentPriority, setNewContentPriority] = useState<PriorityLevel>(null)
@@ -221,8 +226,9 @@ export default function SubjectPage() {
         setNewContentDueDate(null)
         setNewContentCategoryId(null)
         toast.success("Conteúdo adicionado com sucesso")
-      } catch (error) {
-        toast.error("Erro ao adicionar conteúdo")
+      } catch (error: any) {
+        // Não exibe toast de erro aqui, pois o erro já é tratado no hook de useContents
+        console.error("Erro ao adicionar conteúdo:", error)
       }
     }
   }
@@ -266,14 +272,19 @@ export default function SubjectPage() {
         </div>
         <div className="md:ml-auto flex items-center gap-2">
           <AddEventDialog
-            onAddEvent={async (title, type, date) => {
+            subjectId={subjectId}
+            onAddEvent={async (title, type, date, subjectId) => {
               try {
-                // addEvent retorna o evento já atualizado no hook useEvents,
-                // então não precisamos fazer nada mais aqui para atualizar a UI
-                await addEvent(title, type, date);
-                return;
-              } catch (error) {
-                console.error("Error adding event:", error);
+                // Usar o subjectId passado como parâmetro
+                const result = await addEvent(title, type, date);
+                toast.success("Evento adicionado com sucesso");
+                return result;
+              } catch (error: any) {
+                // Não exibir toast de erro se já foi exibido pelo hook de eventos
+                if (!error.code || error.code !== 'PLAN_LIMIT_REACHED') {
+                  toast.error("Erro ao adicionar evento");
+                }
+                // Propagar o erro para que o componente AddEventDialog possa tratá-lo
                 throw error;
               }
             }}
@@ -282,6 +293,36 @@ export default function SubjectPage() {
       </div>
 
       <div className="space-y-2">
+        {hasReachedLimit ? (
+          <Alert variant="destructive" className="mb-4">
+            <AlertTriangle className="h-4 w-4" />
+            <AlertDescription className="flex justify-between items-center">
+              <span>
+                Você atingiu o limite de {FREE_PLAN_LIMITS.MAX_CONTENTS_PER_SUBJECT} conteúdos por matéria no plano Free.
+              </span>
+              <Button 
+                size="sm"
+                className="ml-2 flex items-center gap-1"
+                onClick={() => router.push('/dashboard/subscription')}
+              >
+                <CreditCard className="h-4 w-4" />
+                <span>Fazer Upgrade</span>
+              </Button>
+            </AlertDescription>
+          </Alert>
+        ) : (
+          typeof remainingContents === 'number' && 
+          remainingContents <= 3 && 
+          remainingContents > 0 && (
+            <Alert variant="warning" className="mb-4 border-amber-300 bg-amber-50 dark:bg-amber-900/20">
+              <AlertTriangle className="h-4 w-4 text-amber-600 dark:text-amber-400" />
+              <AlertDescription className="text-amber-600 dark:text-amber-400">
+                Você pode adicionar mais {remainingContents} {remainingContents === 1 ? 'conteúdo' : 'conteúdos'} nesta matéria no plano Free.
+              </AlertDescription>
+            </Alert>
+          )
+        )}
+        
         <div className="relative flex-1">
           <Input
             type="text"
@@ -290,20 +331,24 @@ export default function SubjectPage() {
             onChange={(e) => setNewContentTitle(e.target.value)}
             onKeyDown={handleKeyDown}
             className="w-full pr-40 h-12"
+            disabled={hasReachedLimit}
           />
           <div className="absolute right-2 top-1/2 -translate-y-1/2 flex items-center gap-1">
             <DatePicker
               date={newContentDueDate}
               onDateChange={setNewContentDueDate}
+              disabled={hasReachedLimit}
             />
             <CategorySelector
               subjectId={subjectId}
               selectedCategoryId={newContentCategoryId}
               onCategoryChange={setNewContentCategoryId}
+              disabled={hasReachedLimit}
             />
             <PrioritySelector
               priority={newContentPriority}
               onPriorityChange={setNewContentPriority}
+              disabled={hasReachedLimit}
             />
           </div>
         </div>

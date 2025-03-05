@@ -102,7 +102,7 @@ export function MobileHeader() {
               <SheetHeader className="sr-only">
                 <SheetTitle>Menu de Navegação</SheetTitle>
               </SheetHeader>
-              <Sidebar />
+              <Sidebar isCollapsed={false} />
             </SheetContent>
           </Sheet>
         )}

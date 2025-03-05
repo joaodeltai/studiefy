@@ -7,6 +7,7 @@ import { Progress } from "@/components/ui/progress"
 import { Loader2, Medal, Flame } from "lucide-react"
 import { cn } from "@/lib/utils"
 import { StudyHoursChart } from "@/components/study-hours-chart"
+import { SubscriptionStatus } from "@/components/subscription-status"
 
 // Funções para cálculo de XP
 const getXPForLevel = (level: number) => level * 10
@@ -42,6 +43,9 @@ export default function DashboardPage() {
   return (
     <div className="h-full p-4 space-y-4">
       <div className="max-w-3xl mx-auto space-y-4">
+        {/* Status da assinatura */}
+        <SubscriptionStatus />
+        
         {/* Linha superior com nível e ofensiva - visível apenas em desktop */}
         <div className="hidden md:flex flex-col space-y-2">
           <div className="flex items-center justify-between">

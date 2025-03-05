@@ -1,7 +1,6 @@
 "use client"
 
-import { useEvents } from "@/hooks/useEvents"
-import { useContents } from "@/hooks/useContents"
+import { useEvent } from "@/hooks/useEvent"
 import { useParams, useRouter } from "next/navigation"
 import { ChevronLeft, X } from "lucide-react"
 import { Button } from "@/components/ui/button"
@@ -17,23 +16,25 @@ import { Badge } from "@/components/ui/badge"
 import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
 import { useSubjects } from "@/hooks/useSubjects"
-import { useSubjectCategories } from "@/hooks/useSubjectCategories"
+import { useContents } from "@/hooks/useContents"
 import { PremiumErrorNotebook } from "@/components/premium-error-notebook"
 import { useEventSources } from "@/hooks/useEventSources"
+import { useSubjectCategories } from "@/hooks/useSubjectCategories"
 
 export default function EventPage() {
   const router = useRouter()
   const params = useParams()
-  const subjectId = params?.id as string
-  const eventId = params?.eventId as string
+  const eventId = params?.id as string
 
-  const { events, unlinkContent, updateEventNotes, updateEventQuestions, addErrorEntry, updateErrorEntry, deleteErrorEntry } = useEvents(subjectId)
-  const { contents } = useContents(subjectId)
+  const { event, loading, updateEventNotes, updateEventQuestions, linkContent, unlinkContent, addErrorEntry, updateErrorEntry, deleteErrorEntry } = useEvent(eventId)
   const { subjects } = useSubjects()
-  const { categories } = useSubjectCategories(subjectId)
   const { sources } = useEventSources()
+  
+  // Carregamos os conteúdos apenas se o evento estiver associado a uma matéria
+  const subjectId = event?.subject_id || ""
+  const { contents } = useContents(subjectId)
+  const { categories } = useSubjectCategories(subjectId)
 
-  const event = events.find(e => e.id === eventId)
   const linkedContents = contents.filter(content => 
     event?.content_ids?.includes(content.id)
   )
@@ -86,16 +87,31 @@ export default function EventPage() {
     }
   }, [])
 
+  if (loading) {
+    return (
+      <div className="flex items-center justify-center h-full">
+        <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-studiefy-black"></div>
+      </div>
+    )
+  }
+
   if (!event) {
-    return null
+    return (
+      <div className="p-6 md:p-8">
+        <div className="flex items-center justify-center h-full">
+          <p className="text-studiefy-black/70">Evento não encontrado</p>
+        </div>
+      </div>
+    )
   }
 
   const isQuestionType = event.type === 'prova' || event.type === 'simulado'
   const isEssayType = event.type === 'redacao'
+  const isGeneralEvent = !event.subject_id
 
   const handleUnlink = async (contentId: string) => {
     try {
-      await unlinkContent(eventId, contentId)
+      await unlinkContent(contentId)
       toast.success("Conteúdo desassociado com sucesso!")
     } catch (error) {
       toast.error("Erro ao desassociar conteúdo")
@@ -115,7 +131,7 @@ export default function EventPage() {
     setIsSaving(true)
     saveTimeoutRef.current = setTimeout(async () => {
       try {
-        await updateEventNotes(eventId, newNotes)
+        await updateEventNotes(newNotes)
         setIsSaving(false)
       } catch (error) {
         console.error("Erro ao salvar anotações:", error)
@@ -131,7 +147,7 @@ export default function EventPage() {
     }
     
     try {
-      await updateEventQuestions(eventId, totalQuestions, correctAnswers, grade, essayGrade)
+      await updateEventQuestions(totalQuestions, correctAnswers, grade, essayGrade)
     } catch (error) {
       console.error("Erro ao salvar dados de questões:", error)
       toast.error("Erro ao salvar dados de questões")
@@ -239,7 +255,7 @@ export default function EventPage() {
 
   const handleDeleteEntry = async (errorEntryId: string) => {
     try {
-      await deleteErrorEntry(errorEntryId, eventId)
+      await deleteErrorEntry(errorEntryId)
       toast.success("Entrada removida com sucesso!")
     } catch (error) {
       toast.error("Erro ao remover entrada")
@@ -248,15 +264,34 @@ export default function EventPage() {
 
   const handleAddEntry = async (question: string, subjectId?: string, categoryId?: string, sourceId?: string, difficulty?: string, notes?: string) => {
     try {
-      await addErrorEntry(eventId, question, subjectId, categoryId, sourceId, difficulty, notes)
-    } catch (error) {
-      toast.error("Erro ao adicionar entrada")
+      console.log("Adding error entry with:", { question, subjectId, categoryId, sourceId, difficulty, notes });
+      
+      // Verifica se temos ao menos um subject_id válido para eventos gerais
+      if (isGeneralEvent && !subjectId) {
+        console.warn("Attempting to add error entry without subject_id to a general event");
+      }
+      
+      const result = await addErrorEntry(question, subjectId, categoryId, sourceId, difficulty, notes);
+      if (result) {
+        toast.success("Questão adicionada com sucesso!");
+      }
+    } catch (error: any) {
+      console.error("Error adding error entry:", error);
+      
+      // Mensagem de erro mais detalhada
+      if (error?.message) {
+        toast.error(`Erro ao adicionar entrada: ${error.message}`);
+      } else if (error?.details) {
+        toast.error(`Erro ao adicionar entrada: ${error.details}`);
+      } else {
+        toast.error("Erro ao adicionar entrada no caderno de erros");
+      }
     }
   }
 
   const handleUpdateEntry = async (errorEntryId: string, updates: { question?: string; subject_id?: string; category_id?: string; source_id?: string; difficulty?: string; notes?: string }) => {
     try {
-      await updateErrorEntry(errorEntryId, eventId, updates)
+      await updateErrorEntry(errorEntryId, updates)
     } catch (error) {
       toast.error("Erro ao atualizar entrada")
     }
@@ -270,13 +305,18 @@ export default function EventPage() {
         <Button
           variant="ghost"
           size="icon"
-          onClick={() => router.back()}
+          onClick={() => router.push('/dashboard/assessments')}
           className="mr-2"
         >
           <ChevronLeft className="h-6 w-6" />
         </Button>
         <div className="flex-1">
-          <h1 className="text-2xl font-semibold text-studiefy-black">{event.title}</h1>
+          <div className="flex items-center gap-2">
+            <h1 className="text-2xl font-semibold text-studiefy-black">{event.title}</h1>
+            {isGeneralEvent && (
+              <Badge variant="outline" className="ml-1">Evento Geral</Badge>
+            )}
+          </div>
           <p className="text-sm text-studiefy-black/70">
             {formattedDate} • {event.type}
           </p>
@@ -378,59 +418,62 @@ export default function EventPage() {
         </div>
       </div>
 
-      <div className="space-y-2">
-        <h2 className="text-xl font-semibold mb-4">Conteúdos Relacionados</h2>
-        {linkedContents.length === 0 ? (
-          <p className="text-studiefy-black/70">
-            Nenhum conteúdo associado a este evento ainda.
-          </p>
-        ) : (
-          <div className="space-y-2">
-            {linkedContents.map((content) => (
-              <div
-                key={content.id}
-                className="flex items-center space-x-4 py-4 px-4 rounded-lg border border-studiefy-black/10 hover:bg-studiefy-black/5 transition-colors"
-              >
-                <Checkbox 
-                  checked={content.completed}
-                  className="ml-2"
-                  disabled
-                />
-                <div 
-                  className="flex-1 cursor-pointer"
-                  onClick={() => router.push(`/dashboard/subjects/${subjectId}/contents/${content.id}`)}
+      {/* Exibir conteúdos relacionados apenas se o evento estiver associado a uma matéria */}
+      {event.subject_id && (
+        <div className="space-y-2">
+          <h2 className="text-xl font-semibold mb-4">Conteúdos Relacionados</h2>
+          {linkedContents.length === 0 ? (
+            <p className="text-studiefy-black/70">
+              Nenhum conteúdo associado a este evento ainda.
+            </p>
+          ) : (
+            <div className="space-y-2">
+              {linkedContents.map((content) => (
+                <div
+                  key={content.id}
+                  className="flex items-center space-x-4 py-4 px-4 rounded-lg border border-studiefy-black/10 hover:bg-studiefy-black/5 transition-colors"
                 >
-                  <div className="flex items-center gap-2">
-                    <span className={cn(
-                      "text-lg",
-                      content.completed && "line-through text-studiefy-black/50"
-                    )}>
-                      {content.title}
-                    </span>
-                  </div>
-                </div>
-                <div className="flex items-center gap-2 mr-4">
-                  <span className="text-sm text-studiefy-black/70">
-                    {content.due_date ? format(new Date(content.due_date), "dd/MM", { locale: ptBR }) : "--/--"}
-                  </span>
-                  <PrioritySelector
-                    priority={content.priority}
+                  <Checkbox 
+                    checked={content.completed}
+                    className="ml-2"
                     disabled
                   />
-                  <Button
-                    variant="ghost"
-                    size="icon"
-                    className="text-red-500 hover:text-red-600 hover:bg-red-50"
-                    onClick={() => handleUnlink(content.id)}
+                  <div 
+                    className="flex-1 cursor-pointer"
+                    onClick={() => router.push(`/dashboard/subjects/${subjectId}/contents/${content.id}`)}
                   >
-                    <X className="h-4 w-4" />
-                  </Button>
+                    <div className="flex items-center gap-2">
+                      <span className={cn(
+                        "text-lg",
+                        content.completed && "line-through text-studiefy-black/50"
+                      )}>
+                        {content.title}
+                      </span>
+                    </div>
+                  </div>
+                  <div className="flex items-center gap-2 mr-4">
+                    <span className="text-sm text-studiefy-black/70">
+                      {content.due_date ? format(new Date(content.due_date), "dd/MM", { locale: ptBR }) : "--/--"}
+                    </span>
+                    <PrioritySelector
+                      priority={content.priority}
+                      disabled
+                    />
+                    <Button
+                      variant="ghost"
+                      size="icon"
+                      className="text-red-500 hover:text-red-600 hover:bg-red-50"
+                      onClick={() => handleUnlink(content.id)}
+                    >
+                      <X className="h-4 w-4" />
+                    </Button>
+                  </div>
                 </div>
-              </div>
-            ))}
-          </div>
-        )}
-      </div>
+              ))}
+            </div>
+          )}
+        </div>
+      )}
 
       {/* Caderno de Erros */}
       <div className="mt-8">
@@ -442,7 +485,7 @@ export default function EventPage() {
           categories={categories}
           eventSources={sources}
           isQuestionType={isQuestionType}
-          isGeneralEvent={false}
+          isGeneralEvent={isGeneralEvent}
           onAddEntry={handleAddEntry}
           onUpdateEntry={handleUpdateEntry}
           onDeleteEntry={handleDeleteEntry}

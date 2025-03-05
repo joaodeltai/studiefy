@@ -4,9 +4,15 @@ import { supabase } from "@/lib/supabase"
 import { useAuth } from "./useAuth"
 import { useXP } from "./useXP"
 import { useStreak } from "./useStreak"
+import { usePlanLimits, FREE_PLAN_LIMITS } from "./usePlanLimits"
 import { useEffect, useState, useMemo } from "react"
 import { toast } from "sonner"
 import { isAfter, isBefore, startOfDay } from "date-fns"
+
+// Chave para o cache de conteúdos no localStorage
+const CONTENTS_CACHE_KEY = 'studiefy:contents:cache';
+// Tempo de expiração do cache em milissegundos (15 minutos)
+const CACHE_EXPIRATION_TIME = 15 * 60 * 1000;
 
 export type PriorityLevel = 'Alta' | 'Média' | 'Baixa' | null
 
@@ -25,12 +31,24 @@ export interface Content {
   updated_at: string
 }
 
+// Interface para o objeto de cache
+interface ContentsCache {
+  contents: Content[];
+  timestamp: number;
+  userId: string;
+  subjectId: string;
+}
+
 interface ContentFilters {
   startDate: Date | null
   endDate: Date | null
   priority: PriorityLevel | 'all'
   tags: string[]
   categoryId: string | null
+}
+
+export interface ContentError extends Error {
+  code: string
 }
 
 export function useContents(subjectId: string) {
@@ -47,6 +65,71 @@ export function useContents(subjectId: string) {
   const { user: userStreak } = useAuth()
   const { addXP, removeXP } = useXP()
   const { updateStreak } = useStreak()
+  const { isPremium, hasReachedContentsLimit } = usePlanLimits()
+
+  // Função para salvar o cache no localStorage
+  const saveContentsCache = (contentsData: Content[]) => {
+    try {
+      if (!user || !subjectId) return;
+      
+      const cacheData: ContentsCache = {
+        contents: contentsData,
+        timestamp: Date.now(),
+        userId: user.id,
+        subjectId: subjectId
+      };
+      
+      // Usar o subjectId como parte da chave para criar um cache por matéria
+      const cacheKey = `${CONTENTS_CACHE_KEY}:${subjectId}`;
+      localStorage.setItem(cacheKey, JSON.stringify(cacheData));
+    } catch (error) {
+      console.error('Erro ao salvar cache de conteúdos:', error);
+    }
+  };
+
+  // Função para carregar o cache do localStorage
+  const loadContentsCache = (): ContentsCache | null => {
+    try {
+      if (!user || !subjectId) return null;
+      
+      // Usar o subjectId como parte da chave para recuperar o cache específico da matéria
+      const cacheKey = `${CONTENTS_CACHE_KEY}:${subjectId}`;
+      const cachedData = localStorage.getItem(cacheKey);
+      
+      if (!cachedData) return null;
+      
+      const parsedCache = JSON.parse(cachedData) as ContentsCache;
+      
+      // Verificar se o cache pertence ao usuário atual e à matéria atual
+      if (parsedCache.userId !== user.id || parsedCache.subjectId !== subjectId) {
+        localStorage.removeItem(cacheKey);
+        return null;
+      }
+      
+      // Verificar se o cache está expirado
+      if (Date.now() - parsedCache.timestamp > CACHE_EXPIRATION_TIME) {
+        localStorage.removeItem(cacheKey);
+        return null;
+      }
+      
+      return parsedCache;
+    } catch (error) {
+      console.error('Erro ao carregar cache de conteúdos:', error);
+      return null;
+    }
+  };
+
+  // Função para limpar o cache de conteúdos
+  const clearContentsCache = () => {
+    try {
+      if (!subjectId) return;
+      
+      const cacheKey = `${CONTENTS_CACHE_KEY}:${subjectId}`;
+      localStorage.removeItem(cacheKey);
+    } catch (error) {
+      console.error('Erro ao remover cache de conteúdos:', error);
+    }
+  };
 
   // Extrair todas as tags únicas dos conteúdos
   const availableTags = useMemo(() => {
@@ -132,11 +215,24 @@ export function useContents(subjectId: string) {
     return { tags }
   }
 
-  const fetchContents = async () => {
-    if (!user) {
+  const fetchContents = async (forceRefresh = false) => {
+    if (!user || !subjectId) {
       setContents([])
       setLoading(false)
       return
+    }
+
+    // Se não for forçado a atualizar, verifique o cache primeiro
+    if (!forceRefresh) {
+      const cachedData = loadContentsCache();
+      if (cachedData) {
+        setContents(cachedData.contents);
+        setLoading(false);
+        return;
+      }
+    } else {
+      // Se forçar atualização, limpe o cache atual
+      clearContentsCache();
     }
 
     try {
@@ -154,7 +250,9 @@ export function useContents(subjectId: string) {
         return
       }
 
-      setContents(data || [])
+      const contentsData = data || [];
+      setContents(contentsData)
+      saveContentsCache(contentsData);
     } catch (error) {
       console.error("Error fetching contents:", error)
       toast.error("Erro ao carregar conteúdos")
@@ -189,6 +287,22 @@ export function useContents(subjectId: string) {
       return
     }
 
+    // Verifica se o usuário atingiu o limite de conteúdos no plano Free
+    if (!isPremium && contents.length >= FREE_PLAN_LIMITS.MAX_CONTENTS_PER_SUBJECT) {
+      const error = new Error(`Você atingiu o limite de ${FREE_PLAN_LIMITS.MAX_CONTENTS_PER_SUBJECT} conteúdos por matéria no plano Free. Faça upgrade para o plano Premium para adicionar mais conteúdos.`) as ContentError;
+      error.code = 'PLAN_LIMIT_REACHED';
+      
+      toast.error(error.message, {
+        description: "Acesse a página de assinatura para fazer upgrade.",
+        action: {
+          label: "Ver planos",
+          onClick: () => window.location.href = "/dashboard/subscription"
+        }
+      });
+      
+      throw error;
+    }
+
     try {
       const { tags } = extractTags(title)
       
@@ -219,15 +333,25 @@ export function useContents(subjectId: string) {
         return
       }
 
-      setContents(prev => [data, ...prev])
+      const updatedContents = [data, ...contents];
+      setContents(updatedContents)
+      saveContentsCache(updatedContents);
+
+      toast.success("Conteúdo adicionado com sucesso!")
       return data
-    } catch (error) {
+    } catch (error: any) {
       console.error("Error adding content:", error)
-      toast.error("Erro ao adicionar conteúdo")
+      
+      // Não exibe mensagem de erro caso já tenha sido exibida pelo verificador de limite
+      if (!error.code || error.code !== 'PLAN_LIMIT_REACHED') {
+        toast.error("Erro ao adicionar conteúdo")
+      }
+      
+      throw error;
     }
   }
 
-  const updatePriority = async (id: string, priority: PriorityLevel) => {
+  const updateContent = async (id: string, updatedData: Partial<Content>) => {
     if (!user) {
       toast.error("Usuário não autenticado")
       return
@@ -241,57 +365,68 @@ export function useContents(subjectId: string) {
     try {
       const { error } = await supabase
         .from("contents")
-        .update({ priority: priority })
+        .update(updatedData)
         .eq("id", id)
 
       if (error) {
-        console.error("Error updating priority:", error)
-        toast.error("Erro ao atualizar prioridade")
+        console.error("Error updating content:", error)
+        toast.error("Erro ao atualizar conteúdo")
         return
       }
 
-      setContents((prev) =>
-        prev.map((c) =>
-          c.id === id ? { ...c, priority } : c
-        )
-      )
+      const updatedContents = contents.map((content) =>
+        content.id === id ? { ...content, ...updatedData } : content
+      );
+      setContents(updatedContents);
+      saveContentsCache(updatedContents);
+
+      toast.success("Conteúdo atualizado com sucesso!")
+      return updatedData
     } catch (error) {
-      console.error("Error updating priority:", error)
-      toast.error("Erro ao atualizar prioridade")
+      console.error("Error updating content:", error)
+      toast.error("Erro ao atualizar conteúdo")
+      throw error
     }
   }
 
-  const updateDueDate = async (id: string, dueDate: Date | null) => {
+  const deleteContent = async (id: string) => {
     if (!user) {
       toast.error("Usuário não autenticado")
       return
     }
 
-    if (!id) {
-      toast.error("Conteúdo não encontrado")
-      return
-    }
-
     try {
-      const { error } = await supabase
-        .from("contents")
-        .update({ due_date: dueDate?.toISOString() || null })
-        .eq("id", id)
-
-      if (error) {
-        console.error("Error updating due date:", error)
-        toast.error("Erro ao atualizar data")
+      const content = contents.find(c => c.id === id)
+      if (!content) {
+        toast.error("Conteúdo não encontrado")
         return
       }
 
-      setContents((prev) =>
-        prev.map((c) =>
-          c.id === id ? { ...c, due_date: dueDate?.toISOString() || null } : c
-        )
-      )
+      const { error } = await supabase
+        .from("contents")
+        .delete()
+        .eq("id", id)
+
+      if (error) {
+        console.error("Error deleting content:", error)
+        toast.error("Erro ao excluir conteúdo")
+        return
+      }
+
+      // Se o conteúdo estava concluído, remove 1 XP
+      if (content.completed) {
+        await removeXP(1)
+      }
+
+      const updatedContents = contents.filter((content) => content.id !== id);
+      setContents(updatedContents);
+      saveContentsCache(updatedContents);
+
+      toast.success("Conteúdo excluído com sucesso!")
     } catch (error) {
-      console.error("Error updating due date:", error)
-      toast.error("Erro ao atualizar data")
+      console.error("Error deleting content:", error)
+      toast.error("Erro ao excluir conteúdo")
+      throw error
     }
   }
 
@@ -327,55 +462,92 @@ export function useContents(subjectId: string) {
         await removeXP(1)
       }
 
-      setContents((prev) =>
-        prev.map((c) =>
-          c.id === id ? { ...c, completed: !c.completed } : c
-        )
-      )
+      const updatedContents = contents.map((content) =>
+        content.id === id ? { ...content, completed: !content.completed } : content
+      );
+      setContents(updatedContents);
+      saveContentsCache(updatedContents);
+
+      toast.success("Conteúdo atualizado com sucesso!")
     } catch (error) {
       console.error("Error toggling content completion:", error)
       toast.error("Erro ao atualizar conteúdo")
+      throw error
     }
   }
 
-  const moveToTrash = async (id: string) => {
+  const updatePriority = async (id: string, priority: PriorityLevel) => {
     if (!user) {
       toast.error("Usuário não autenticado")
       return
     }
 
-    try {
-      const content = contents.find(c => c.id === id)
-      if (!content) {
-        toast.error("Conteúdo não encontrado")
-        return
-      }
+    if (!id) {
+      toast.error("Conteúdo não encontrado")
+      return
+    }
 
+    try {
       const { error } = await supabase
         .from("contents")
-        .update({ deleted: true })
+        .update({ priority: priority })
         .eq("id", id)
 
       if (error) {
-        console.error("Error moving content to trash:", error)
-        toast.error("Erro ao mover para a lixeira")
+        console.error("Error updating priority:", error)
+        toast.error("Erro ao atualizar prioridade")
         return
       }
 
-      // Se o conteúdo estava concluído, remove 1 XP
-      if (content.completed) {
-        await removeXP(1)
-      }
+      const updatedContents = contents.map((content) =>
+        content.id === id ? { ...content, priority } : content
+      );
+      setContents(updatedContents);
+      saveContentsCache(updatedContents);
 
-      setContents((prev) => prev.filter((content) => content.id !== id))
+      toast.success("Prioridade atualizada com sucesso!")
     } catch (error) {
-      console.error("Error moving content to trash:", error)
-      toast.error("Erro ao mover para a lixeira")
+      console.error("Error updating priority:", error)
+      toast.error("Erro ao atualizar prioridade")
+      throw error
     }
   }
 
-  const updateFilters = (newFilters: Partial<ContentFilters>) => {
-    setFilters(prev => ({ ...prev, ...newFilters }))
+  const updateDueDate = async (id: string, dueDate: Date | null) => {
+    if (!user) {
+      toast.error("Usuário não autenticado")
+      return
+    }
+
+    if (!id) {
+      toast.error("Conteúdo não encontrado")
+      return
+    }
+
+    try {
+      const { error } = await supabase
+        .from("contents")
+        .update({ due_date: dueDate?.toISOString() || null })
+        .eq("id", id)
+
+      if (error) {
+        console.error("Error updating due date:", error)
+        toast.error("Erro ao atualizar data")
+        return
+      }
+
+      const updatedContents = contents.map((content) =>
+        content.id === id ? { ...content, due_date: dueDate?.toISOString() || null } : content
+      );
+      setContents(updatedContents);
+      saveContentsCache(updatedContents);
+
+      toast.success("Data atualizada com sucesso!")
+    } catch (error) {
+      console.error("Error updating due date:", error)
+      toast.error("Erro ao atualizar data")
+      throw error
+    }
   }
 
   const updateFocusTime = async (contentId: string, focusTime: number) => {
@@ -399,13 +571,13 @@ export function useContents(subjectId: string) {
       }
 
       // Atualiza o estado local primeiro
-      setContents((prev) =>
-        prev.map((c) =>
-          c.id === contentId
-            ? { ...c, focus_time: newFocusTime }
-            : c
-        )
-      )
+      const updatedContents = contents.map((c) =>
+        c.id === contentId
+          ? { ...c, focus_time: newFocusTime }
+          : c
+      );
+      setContents(updatedContents);
+      saveContentsCache(updatedContents);
 
       // Atualiza a ofensiva se o tempo de foco for maior que 30 minutos
       // Importante: passamos o focusTime (tempo da sessão) e não newFocusTime (tempo total)
@@ -453,30 +625,83 @@ export function useContents(subjectId: string) {
         return
       }
 
-      setContents((prev) =>
-        prev.map((c) =>
-          c.id === id ? { ...c, title: title.trim() } : c
-        )
-      )
+      const updatedContents = contents.map((content) =>
+        content.id === id ? { ...content, title: title.trim() } : content
+      );
+      setContents(updatedContents);
+      saveContentsCache(updatedContents);
+
+      toast.success("Título atualizado com sucesso!")
     } catch (error) {
       console.error("Error updating title:", error)
       toast.error("Erro ao atualizar título")
+      throw error
     }
   }
 
+  const updateCategory = async (id: string, categoryId: string | null) => {
+    if (!user) {
+      toast.error("Usuário não autenticado")
+      return
+    }
+
+    if (!id) {
+      toast.error("Conteúdo não encontrado")
+      return
+    }
+
+    try {
+      const { error } = await supabase
+        .from("contents")
+        .update({ category_id: categoryId })
+        .eq("id", id)
+
+      if (error) {
+        console.error("Error updating category:", error)
+        toast.error("Erro ao atualizar categoria")
+        return
+      }
+
+      const updatedContents = contents.map((content) =>
+        content.id === id ? { ...content, category_id: categoryId } : content
+      );
+      setContents(updatedContents);
+      saveContentsCache(updatedContents);
+
+      toast.success("Categoria atualizada com sucesso!")
+    } catch (error) {
+      console.error("Error updating category:", error)
+      toast.error("Erro ao atualizar categoria")
+      throw error
+    }
+  }
+
+  // Verificar se o usuário atingiu o limite de conteúdos
+  const hasReachedLimit = hasReachedContentsLimit(contents.length)
+  
+  // Calcular quantos conteúdos ainda podem ser adicionados
+  const remainingContents = isPremium 
+    ? Infinity 
+    : Math.max(0, FREE_PLAN_LIMITS.MAX_CONTENTS_PER_SUBJECT - contents.length)
+
   return {
     contents: filteredContents,
-    availableTags,
-    filters,
+    allContents: contents,
     loading,
+    filters,
+    setFilters,
     addContent,
+    updateContent,
+    deleteContent,
     toggleComplete,
-    moveToTrash,
     updatePriority,
     updateDueDate,
-    updateFilters,
     updateFocusTime,
+    updateCategory,
     updateTitle,
-    refreshContents: fetchContents,
+    availableTags,
+    hasReachedLimit,
+    remainingContents,
+    refreshContents: (force = false) => fetchContents(force)
   }
 }

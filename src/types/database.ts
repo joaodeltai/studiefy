@@ -6,6 +6,14 @@ export type Profile = {
   points: number
   created_at: string
   updated_at: string
+  subscription_plan?: 'free' | 'premium'
+  email?: string
+  username?: string
+  avatar_url?: string
+  role?: string
+  streak?: number
+  last_study_date?: string
+  xp?: number
 }
 
 export type Subject = {
@@ -26,6 +34,21 @@ export type Content = {
   updated_at: string
 }
 
+export type Subscription = {
+  id: string
+  user_id: string
+  profile_id?: string
+  plan: 'free' | 'premium'
+  current_period_start?: string
+  current_period_end?: string
+  cancel_at_period_end?: boolean
+  created_at: string
+  updated_at: string
+  stripe_price_id?: string
+  status: string
+  stripe_customer_id?: string
+  stripe_subscription_id?: string
+}
 
 export type Database = {
   public: {
@@ -44,6 +67,11 @@ export type Database = {
         Row: Content
         Insert: Omit<Content, 'id' | 'created_at' | 'updated_at'>
         Update: Partial<Omit<Content, 'id'>>
+      }
+      subscriptions: {
+        Row: Subscription
+        Insert: Omit<Subscription, 'id' | 'created_at' | 'updated_at'>
+        Update: Partial<Omit<Subscription, 'id'>>
       }
     }
   }

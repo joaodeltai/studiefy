@@ -18,9 +18,10 @@ import { Input } from "@/components/ui/input"
 interface DateTimePickerProps {
   date?: Date
   setDate: (date: Date | undefined) => void
+  disabled?: boolean
 }
 
-export function DateTimePicker({ date, setDate }: DateTimePickerProps) {
+export function DateTimePicker({ date, setDate, disabled = false }: DateTimePickerProps) {
   const [selectedTime, setSelectedTime] = React.useState<string>("")
   const [dialogOpen, setDialogOpen] = React.useState(false)
 
@@ -56,46 +57,46 @@ export function DateTimePicker({ date, setDate }: DateTimePickerProps) {
     }
   }
 
+  // Format for display
+  const formattedDate = date
+    ? format(date, "PPP", { locale: ptBR })
+    : "Selecione uma data"
+
   return (
-    <div className="flex flex-row gap-2">
-      <Dialog open={dialogOpen} onOpenChange={setDialogOpen}>
+    <Dialog open={dialogOpen} onOpenChange={setDialogOpen}>
+      <div className="flex gap-2">
         <DialogTrigger asChild>
           <Button
-            type="button"
             variant={"outline"}
             className={cn(
-              "flex-1 sm:flex-none sm:w-[240px] justify-start text-left font-normal",
-              !date && "text-muted-foreground"
+              "w-full justify-start text-left font-normal",
+              !date && "text-muted-foreground",
+              disabled && "opacity-50 cursor-not-allowed"
             )}
+            disabled={disabled}
           >
             <CalendarIcon className="mr-2 h-4 w-4" />
-            {date ? (
-              format(date, "PPP", { locale: ptBR })
-            ) : (
-              <span>Selecione uma data</span>
-            )}
+            {formattedDate}
           </Button>
         </DialogTrigger>
-        <DialogContent className="p-0 sm:max-w-[425px]">
-          <DialogTitle className="p-4 pb-0">Selecione uma data</DialogTitle>
-          <div className="px-4 pb-4 pt-2">
-            <Calendar
-              mode="single"
-              selected={date}
-              onSelect={handleDateSelect}
-              initialFocus
-              locale={ptBR}
-              className="mx-auto"
-            />
-          </div>
-        </DialogContent>
-      </Dialog>
-      <Input
-        type="time"
-        value={selectedTime}
-        onChange={handleTimeChange}
-        className="w-24 sm:w-[120px]"
-      />
-    </div>
+        <Input
+          type="time"
+          value={selectedTime}
+          onChange={handleTimeChange}
+          className="w-24"
+          disabled={disabled}
+        />
+      </div>
+      <DialogContent className="max-h-[95vh] overflow-auto">
+        <DialogTitle>Selecione uma data</DialogTitle>
+        <Calendar
+          mode="single"
+          selected={date}
+          onSelect={handleDateSelect}
+          initialFocus
+          locale={ptBR}
+        />
+      </DialogContent>
+    </Dialog>
   )
 }
