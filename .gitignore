@@ -11,7 +11,7 @@ dist/
 downloads/
 eggs/
 .eggs/
-lib/
+# lib/  # Comentado para permitir que os arquivos lib/stripe.ts e lib/supabase/server.ts sejam incluídos no repositório
 lib64/
 parts/
 sdist/
