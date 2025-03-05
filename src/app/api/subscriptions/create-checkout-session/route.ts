@@ -1,7 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { createServerClientWithCookies } from '@/lib/supabase/server';
-import { stripe, createCheckoutSession } from '@/lib/stripe';
-import { SubscriptionPlan } from '@/types/subscription';
+import { createServerClientWithCookies } from '../../../../lib/supabase/server';
+import { stripe, createCheckoutSession } from '../../../../lib/stripe';
+import { SubscriptionPlan } from '../../../../types/subscription';
 
 export async function POST(req: NextRequest) {
   try {

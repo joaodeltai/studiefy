@@ -1,10 +1,10 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { headers } from 'next/headers';
-import { createServerClientWithCookies } from '@/lib/supabase/server';
-import { stripe, determinePlan } from '@/lib/stripe';
+import { createServerClientWithCookies } from '../../../../lib/supabase/server';
+import { stripe, determinePlan } from '../../../../lib/stripe';
 import Stripe from 'stripe';
-import { SubscriptionPlan, SubscriptionStatus } from '@/types/subscription';
-import { stripeWebhookLogger as logger } from '@/lib/logger';
+import { SubscriptionPlan, SubscriptionStatus } from '../../../../types/subscription';
+import { stripeWebhookLogger as logger } from '../../../../lib/logger';
 
 // Esta função é responsável por processar os webhooks do Stripe
 export async function POST(req: NextRequest) {
