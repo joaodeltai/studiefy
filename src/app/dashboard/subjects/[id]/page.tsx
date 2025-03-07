@@ -8,9 +8,9 @@ import { PrioritySelector } from "@/components/priority-selector"
 import { DeleteContentDialog } from "@/components/delete-content-dialog"
 import { DatePicker } from "@/components/date-picker"
 import { ContentFilters } from "@/components/content-filters"
-import { Loader2, ChevronLeft, ChevronDown, AlertTriangle, CreditCard } from "lucide-react"
+import { Loader2, ChevronLeft, ChevronDown, AlertTriangle, CreditCard, PanelLeft } from "lucide-react"
 import { notFound, useRouter, useParams } from "next/navigation"
-import { KeyboardEvent, useState } from "react"
+import { KeyboardEvent, useState, useCallback } from "react"
 import { toast } from "sonner"
 import { format } from "date-fns"
 import { ptBR } from "date-fns/locale"
@@ -35,6 +35,14 @@ import {
   AccordionTrigger,
 } from "@/components/ui/accordion"
 import { LinkContentDialog } from "@/components/link-content-dialog"
+import { 
+  Sheet, 
+  SheetContent, 
+  SheetHeader,
+  SheetTitle,
+  SheetTrigger 
+} from "@/components/ui/sheet"
+import { Sidebar } from "@/components/sidebar"
 
 interface DateTextProps {
   date: string | null
@@ -209,6 +217,15 @@ export default function SubjectPage() {
   const [newContentPriority, setNewContentPriority] = useState<PriorityLevel>(null)
   const [newContentDueDate, setNewContentDueDate] = useState<Date | null>(null)
   const [newContentCategoryId, setNewContentCategoryId] = useState<string | null>(null)
+  const [localCategoryId, setLocalCategoryId] = useState<string | null>(null)
+
+  // Função adaptadora para toggleComplete
+  const handleToggleEventComplete = async (id: string) => {
+    const event = events.find(e => e.id === id);
+    if (event) {
+      await toggleComplete(id, !event.completed);
+    }
+  }
 
   const subject = subjects?.find((s) => s.id === subjectId)
 
@@ -233,6 +250,49 @@ export default function SubjectPage() {
     }
   }
 
+  const handleStartDateChange = useCallback((date: Date | null) => {
+    if (typeof updateFilters === 'function') {
+      updateFilters({ ...filters, startDate: date })
+    }
+  }, [filters, updateFilters])
+
+  const handleEndDateChange = useCallback((date: Date | null) => {
+    if (typeof updateFilters === 'function') {
+      updateFilters({ ...filters, endDate: date })
+    }
+  }, [filters, updateFilters])
+
+  const handlePriorityChange = useCallback((priority: PriorityLevel | 'all') => {
+    if (typeof updateFilters === 'function') {
+      updateFilters({ ...filters, priority })
+    }
+  }, [filters, updateFilters])
+
+  const handleTagsChange = useCallback((tags: string[]) => {
+    if (typeof updateFilters === 'function') {
+      updateFilters({ ...filters, tags })
+    }
+  }, [filters, updateFilters])
+
+  const handleCategoryChange = useCallback((categoryId: string | null) => {
+    setLocalCategoryId(categoryId);
+    if (typeof updateFilters === 'function') {
+      updateFilters({ ...filters, categoryId })
+    }
+  }, [filters, updateFilters])
+
+  const handleClearFilters = useCallback(() => {
+    if (typeof updateFilters === 'function') {
+      updateFilters({
+        startDate: null,
+        endDate: null,
+        priority: 'all',
+        tags: [],
+        categoryId: null
+      })
+    }
+  }, [updateFilters])
+
   if (loadingSubject || loadingContents || eventsLoading) {
     return (
       <div className="h-[calc(100vh-200px)] flex items-center justify-center">
@@ -252,18 +312,11 @@ export default function SubjectPage() {
 
   return (
     <div className="h-full p-4">
+      {/* Header para telas médias e grandes */}
       <div className="hidden md:flex flex-col md:flex-row md:items-center md:gap-3 mb-4">
         <div className="flex items-center gap-3">
-          <Button
-            variant="ghost"
-            size="icon"
-            onClick={() => router.back()}
-            className="mr-2"
-          >
-            <ChevronLeft className="h-6 w-6" />
-          </Button>
           <div 
-            className="w-4 h-8 rounded-full" 
+            className="w-4 h-8 rounded-full ml-12" 
             style={{ backgroundColor: subject.color }}
           />
           <h1 className="text-3xl font-bold text-studiefy-black">
@@ -290,6 +343,47 @@ export default function SubjectPage() {
             }}
           />
         </div>
+      </div>
+
+      {/* Header para telas pequenas */}
+      <div className="flex items-center justify-between md:hidden mb-4">
+        <div className="flex items-center gap-2">
+          <Sheet>
+            <SheetTrigger asChild>
+              <Button variant="ghost" size="icon" className="p-2">
+                <PanelLeft className="w-5 h-5" />
+              </Button>
+            </SheetTrigger>
+            <SheetContent side="left" className="p-0 w-72">
+              <SheetHeader className="sr-only">
+                <SheetTitle>Menu de Navegação</SheetTitle>
+              </SheetHeader>
+              <Sidebar isCollapsed={false} onCollapseChange={() => {}} showToggle={false} />
+            </SheetContent>
+          </Sheet>
+          <div 
+            className="w-3 h-6 rounded-full" 
+            style={{ backgroundColor: subject.color }}
+          />
+          <h1 className="text-2xl font-bold text-studiefy-black">
+            {subject.name}
+          </h1>
+        </div>
+        <AddEventDialog
+          subjectId={subjectId}
+          onAddEvent={async (title, type, date, subjectId) => {
+            try {
+              const result = await addEvent(title, type, date);
+              toast.success("Evento adicionado com sucesso");
+              return result;
+            } catch (error: any) {
+              if (!error.code || error.code !== 'PLAN_LIMIT_REACHED') {
+                toast.error("Erro ao adicionar evento");
+              }
+              throw error;
+            }
+          }}
+        />
       </div>
 
       <div className="space-y-2">
@@ -359,20 +453,14 @@ export default function SubjectPage() {
           endDate={filters.endDate}
           priority={filters.priority}
           selectedTags={filters.tags}
-          categoryId={filters.categoryId}
+          categoryId={filters.categoryId || localCategoryId}
           availableTags={availableTags}
-          onStartDateChange={(date) => updateFilters({ ...filters, startDate: date })}
-          onEndDateChange={(date) => updateFilters({ ...filters, endDate: date })}
-          onPriorityChange={(priority) => updateFilters({ ...filters, priority })}
-          onTagsChange={(tags) => updateFilters({ ...filters, tags })}
-          onCategoryChange={(categoryId) => updateFilters({ ...filters, categoryId })}
-          onClearFilters={() => updateFilters({
-            startDate: null,
-            endDate: null,
-            priority: 'all',
-            tags: [],
-            categoryId: null
-          })}
+          onStartDateChange={handleStartDateChange}
+          onEndDateChange={handleEndDateChange}
+          onPriorityChange={handlePriorityChange}
+          onTagsChange={handleTagsChange}
+          onCategoryChange={handleCategoryChange}
+          onClearFilters={handleClearFilters}
         />
 
         {/* Lista de eventos */}
@@ -386,7 +474,7 @@ export default function SubjectPage() {
                   event={event}
                   subjectId={subjectId}
                   onDelete={deleteEvent}
-                  onToggleComplete={toggleComplete}
+                  onToggleComplete={handleToggleEventComplete}
                 />
               ))
             }

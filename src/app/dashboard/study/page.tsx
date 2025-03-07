@@ -3,14 +3,11 @@
 import { useAllContents } from "@/hooks/useAllContents"
 import { ContentWithSubjectCard } from "@/components/content-with-subject-card"
 import { ContentFilters } from "@/components/content-filters"
-import { Loader2, ChevronLeft } from "lucide-react"
-import { Button } from "@/components/ui/button"
-import { useRouter } from "next/navigation"
-import { useState } from "react"
+import { Loader2 } from "lucide-react"
+import { useState, useEffect, useCallback } from "react"
 
 export default function StudyPage() {
-  const router = useRouter()
-  const [categoryId, setCategoryId] = useState<string | null>(null)
+  const [localCategoryId, setLocalCategoryId] = useState<string | null>(null)
   const {
     contents,
     loading,
@@ -23,6 +20,60 @@ export default function StudyPage() {
     updateFilters,
   } = useAllContents()
 
+  // Função para atualizar o categoryId e os filtros de uma só vez
+  const handleCategoryChange = useCallback((newCategoryId: string | null) => {
+    setLocalCategoryId(newCategoryId);
+    if (typeof updateFilters === 'function') {
+      updateFilters({ categoryId: newCategoryId });
+    }
+  }, [updateFilters]);
+
+  // Função para limpar os filtros
+  const handleClearFilters = useCallback(() => {
+    if (typeof updateFilters === 'function') {
+      updateFilters({
+        startDate: null,
+        endDate: null,
+        priority: 'all',
+        tags: [],
+        categoryId: null
+      });
+    }
+    setLocalCategoryId(null);
+  }, [updateFilters]);
+
+  // Handlers para os outros filtros
+  const handleStartDateChange = useCallback((date: Date | null) => {
+    if (typeof updateFilters === 'function') {
+      updateFilters({ startDate: date });
+    }
+  }, [updateFilters]);
+
+  const handleEndDateChange = useCallback((date: Date | null) => {
+    if (typeof updateFilters === 'function') {
+      updateFilters({ endDate: date });
+    }
+  }, [updateFilters]);
+
+  const handlePriorityChange = useCallback((priority: any) => {
+    if (typeof updateFilters === 'function') {
+      updateFilters({ priority });
+    }
+  }, [updateFilters]);
+
+  const handleTagsChange = useCallback((tags: string[]) => {
+    if (typeof updateFilters === 'function') {
+      updateFilters({ tags });
+    }
+  }, [updateFilters]);
+
+  // Remover log para evitar possíveis problemas
+  // useEffect(() => {
+  //   if (!loading) {
+  //     console.log("Conteúdos filtrados:", contents);
+  //   }
+  // }, [contents, loading]);
+
   if (loading) {
     return (
       <div className="h-[calc(100vh-200px)] flex items-center justify-center">
@@ -33,41 +84,25 @@ export default function StudyPage() {
 
   return (
     <div className="h-full p-4">
-      <div className="flex items-center gap-3 mb-6">
-        <Button
-          variant="ghost"
-          size="icon"
-          onClick={() => router.back()}
-          className="mr-2"
-        >
-          <ChevronLeft className="h-6 w-6" />
-        </Button>
+      <div className="flex items-center gap-3 mb-6 md:pl-12">
         <h1 className="text-2xl font-semibold text-studiefy-black">Estudo</h1>
       </div>
 
       <div className="space-y-4">
         <ContentFilters
           subjectId=""
-          categoryId={categoryId}
+          categoryId={filters.categoryId || localCategoryId}
           startDate={filters.startDate}
           endDate={filters.endDate}
           priority={filters.priority}
           selectedTags={filters.tags}
           availableTags={availableTags}
-          onStartDateChange={(date) => updateFilters({ startDate: date })}
-          onEndDateChange={(date) => updateFilters({ endDate: date })}
-          onPriorityChange={(priority) => updateFilters({ priority })}
-          onTagsChange={(tags) => updateFilters({ tags })}
-          onCategoryChange={(newCategoryId) => setCategoryId(newCategoryId)}
-          onClearFilters={() => {
-            updateFilters({
-              startDate: null,
-              endDate: null,
-              priority: 'all',
-              tags: []
-            });
-            setCategoryId(null);
-          }}
+          onStartDateChange={handleStartDateChange}
+          onEndDateChange={handleEndDateChange}
+          onPriorityChange={handlePriorityChange}
+          onTagsChange={handleTagsChange}
+          onCategoryChange={handleCategoryChange}
+          onClearFilters={handleClearFilters}
         />
 
         {contents.length > 0 ? (

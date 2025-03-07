@@ -29,6 +29,7 @@ interface ErrorNotebookProps {
   eventSources?: EventSource[]
   isQuestionType: boolean
   isGeneralEvent?: boolean
+  showTitle?: boolean
   onAddEntry: (
     question: string, 
     subjectId?: string, 
@@ -59,6 +60,7 @@ export function ErrorNotebook({
   eventSources = [],
   isQuestionType,
   isGeneralEvent = false,
+  showTitle = true,
   onAddEntry,
   onUpdateEntry,
   onDeleteEntry
@@ -178,7 +180,7 @@ export function ErrorNotebook({
 
   return (
     <div className="mt-8">
-      <h2 className="text-xl font-semibold mb-4">Caderno de Erros</h2>
+      {showTitle && <h2 className="text-xl font-semibold mb-4">Caderno de Erros</h2>}
       
       <div className="relative">
         <div className="w-full overflow-auto scrollbar-hide" style={{ scrollbarWidth: 'none', msOverflowStyle: 'none' }}>

@@ -1,7 +1,6 @@
 'use client';
 
 import { useState } from 'react';
-import { useRouter } from 'next/navigation';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from '@/components/ui/card';
 import { Check, Loader2, AlertTriangle } from 'lucide-react';
@@ -21,7 +20,6 @@ import {
 } from "@/components/ui/alert-dialog";
 
 export default function SubscriptionPage() {
-  const router = useRouter();
   const [isLoading, setIsLoading] = useState<boolean>(false);
   const { subscription, isPremium, willCancel, isCanceling, createCheckoutSession, cancelSubscription } = useSubscription();
 
@@ -51,13 +49,26 @@ export default function SubscriptionPage() {
   };
 
   const handleCancelSubscription = async () => {
-    await cancelSubscription();
+    try {
+      setIsLoading(true);
+      await cancelSubscription();
+      toast.success('Sua assinatura foi cancelada com sucesso');
+    } catch (error: any) {
+      console.error('Erro ao cancelar assinatura:', error);
+      toast.error(error.message || 'Ocorreu um erro ao cancelar sua assinatura');
+    } finally {
+      setIsLoading(false);
+    }
   };
 
   return (
-    <div className="container mx-auto py-10">
-      <h1 className="text-3xl font-bold mb-8 text-center">Planos de Assinatura</h1>
-      
+    <div className="h-full p-4">
+      {/* Header */}
+      <div className="flex items-center mb-6 md:pl-12">
+        <h1 className="text-2xl font-bold">Planos de Assinatura</h1>
+      </div>
+
+      {/* Conteúdo */}
       {isPremium && (
         <div className="max-w-4xl mx-auto mb-8 p-4 border rounded-lg bg-green-50 dark:bg-green-900/20">
           <div className="flex items-center justify-between flex-wrap gap-4">
@@ -82,10 +93,6 @@ export default function SubscriptionPage() {
               )}
             </div>
             <div className="flex gap-2">
-              <Button variant="outline" onClick={() => router.push('/dashboard')}>
-                Voltar ao Dashboard
-              </Button>
-              
               {isPremium && !willCancel && (
                 <AlertDialog>
                   <AlertDialogTrigger asChild>

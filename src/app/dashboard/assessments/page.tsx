@@ -2,9 +2,7 @@
 
 import { useAllEvents } from "@/hooks/useAllEvents"
 import { EventWithSubjectCard } from "@/components/event-with-subject-card"
-import { Loader2, ChevronLeft } from "lucide-react"
-import { Button } from "@/components/ui/button"
-import { useRouter } from "next/navigation"
+import { Loader2 } from "lucide-react"
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"
 import { useMemo, useState, useEffect } from "react"
 import { AddEventDialog } from "@/components/add-event-dialog"
@@ -12,7 +10,6 @@ import { useSubjects } from "@/hooks/useSubjects"
 import { toast } from "sonner"
 
 export default function AssessmentsPage() {
-  const router = useRouter()
   const { events, loading, deleteEvent, toggleComplete, addEvent } = useAllEvents()
   const { subjects, loading: loadingSubjects } = useSubjects()
   
@@ -34,15 +31,7 @@ export default function AssessmentsPage() {
 
   return (
     <div className="h-full p-4">
-      <div className="flex items-center gap-3 mb-6">
-        <Button
-          variant="ghost"
-          size="icon"
-          onClick={() => router.back()}
-          className="mr-2"
-        >
-          <ChevronLeft className="h-6 w-6" />
-        </Button>
+      <div className="flex items-center gap-3 mb-6 md:pl-12">
         <h1 className="text-2xl font-semibold text-studiefy-black flex-1">Avaliações</h1>
         
         <div className="ml-auto">

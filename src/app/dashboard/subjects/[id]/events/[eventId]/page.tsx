@@ -1,9 +1,9 @@
 "use client"
 
-import { useEvents } from "@/hooks/useEvents"
+import { useEvent } from "@/hooks/useEvent"
 import { useContents } from "@/hooks/useContents"
 import { useParams, useRouter } from "next/navigation"
-import { ChevronLeft, X } from "lucide-react"
+import { ChevronLeft, X, PanelLeft } from "lucide-react"
 import { Button } from "@/components/ui/button"
 import { format } from "date-fns"
 import { ptBR } from "date-fns/locale"
@@ -20,6 +20,14 @@ import { useSubjects } from "@/hooks/useSubjects"
 import { useSubjectCategories } from "@/hooks/useSubjectCategories"
 import { PremiumErrorNotebook } from "@/components/premium-error-notebook"
 import { useEventSources } from "@/hooks/useEventSources"
+import { 
+  Sheet, 
+  SheetContent, 
+  SheetHeader,
+  SheetTitle,
+  SheetTrigger 
+} from "@/components/ui/sheet"
+import { Sidebar } from "@/components/sidebar"
 
 export default function EventPage() {
   const router = useRouter()
@@ -27,13 +35,12 @@ export default function EventPage() {
   const subjectId = params?.id as string
   const eventId = params?.eventId as string
 
-  const { events, unlinkContent, updateEventNotes, updateEventQuestions, addErrorEntry, updateErrorEntry, deleteErrorEntry } = useEvents(subjectId)
+  const { event, unlinkContent, updateEventNotes, updateEventQuestions, addErrorEntry, updateErrorEntry, deleteErrorEntry } = useEvent(eventId)
   const { contents } = useContents(subjectId)
   const { subjects } = useSubjects()
   const { categories } = useSubjectCategories(subjectId)
   const { sources } = useEventSources()
 
-  const event = events.find(e => e.id === eventId)
   const linkedContents = contents.filter(content => 
     event?.content_ids?.includes(content.id)
   )
@@ -95,7 +102,7 @@ export default function EventPage() {
 
   const handleUnlink = async (contentId: string) => {
     try {
-      await unlinkContent(eventId, contentId)
+      await unlinkContent(contentId)
       toast.success("Conteúdo desassociado com sucesso!")
     } catch (error) {
       toast.error("Erro ao desassociar conteúdo")
@@ -115,7 +122,7 @@ export default function EventPage() {
     setIsSaving(true)
     saveTimeoutRef.current = setTimeout(async () => {
       try {
-        await updateEventNotes(eventId, newNotes)
+        await updateEventNotes(newNotes)
         setIsSaving(false)
       } catch (error) {
         console.error("Erro ao salvar anotações:", error)
@@ -131,7 +138,7 @@ export default function EventPage() {
     }
     
     try {
-      await updateEventQuestions(eventId, totalQuestions, correctAnswers, grade, essayGrade)
+      await updateEventQuestions(totalQuestions, correctAnswers, grade, essayGrade)
     } catch (error) {
       console.error("Erro ao salvar dados de questões:", error)
       toast.error("Erro ao salvar dados de questões")
@@ -239,7 +246,7 @@ export default function EventPage() {
 
   const handleDeleteEntry = async (errorEntryId: string) => {
     try {
-      await deleteErrorEntry(errorEntryId, eventId)
+      await deleteErrorEntry(errorEntryId)
       toast.success("Entrada removida com sucesso!")
     } catch (error) {
       toast.error("Erro ao remover entrada")
@@ -248,7 +255,7 @@ export default function EventPage() {
 
   const handleAddEntry = async (question: string, subjectId?: string, categoryId?: string, sourceId?: string, difficulty?: string, notes?: string) => {
     try {
-      await addErrorEntry(eventId, question, subjectId, categoryId, sourceId, difficulty, notes)
+      await addErrorEntry(question, subjectId, categoryId, sourceId, difficulty, notes)
     } catch (error) {
       toast.error("Erro ao adicionar entrada")
     }
@@ -256,7 +263,7 @@ export default function EventPage() {
 
   const handleUpdateEntry = async (errorEntryId: string, updates: { question?: string; subject_id?: string; category_id?: string; source_id?: string; difficulty?: string; notes?: string }) => {
     try {
-      await updateErrorEntry(errorEntryId, eventId, updates)
+      await updateErrorEntry(errorEntryId, updates)
     } catch (error) {
       toast.error("Erro ao atualizar entrada")
     }
@@ -266,17 +273,49 @@ export default function EventPage() {
 
   return (
     <div className="p-6 md:p-8">
-      <div className="flex items-start gap-3 mb-6">
-        <Button
-          variant="ghost"
-          size="icon"
-          onClick={() => router.back()}
-          className="mr-2"
-        >
-          <ChevronLeft className="h-6 w-6" />
-        </Button>
+      {/* Cabeçalho para mobile */}
+      <div className="flex md:hidden items-start gap-3 mb-6">
+        <Sheet>
+          <SheetTrigger asChild>
+            <Button variant="ghost" size="icon" className="mr-2">
+              <PanelLeft className="h-6 w-6" />
+            </Button>
+          </SheetTrigger>
+          <SheetContent side="left" className="p-0 w-72">
+            <SheetHeader className="sr-only">
+              <SheetTitle>Menu de Navegação</SheetTitle>
+            </SheetHeader>
+            <Sidebar isCollapsed={false} onCollapseChange={() => {}} showToggle={false} />
+          </SheetContent>
+        </Sheet>
         <div className="flex-1">
-          <h1 className="text-2xl font-semibold text-studiefy-black">{event.title}</h1>
+          <div className="flex items-center gap-2">
+            {subjects && subjects.find(subject => subject.id === subjectId) && (
+              <div 
+                className="w-3 h-6 rounded-full" 
+                style={{ backgroundColor: subjects.find(subject => subject.id === subjectId)?.color }}
+              />
+            )}
+            <h1 className="text-2xl font-semibold text-studiefy-black">{event.title}</h1>
+          </div>
+          <p className="text-sm text-studiefy-black/70">
+            {formattedDate} • {event.type}
+          </p>
+        </div>
+      </div>
+
+      {/* Cabeçalho para desktop */}
+      <div className="hidden md:flex items-start mb-6 md:pl-12 mt-4">
+        <div className="flex-1">
+          <div className="flex items-center gap-2">
+            {subjects && subjects.find(subject => subject.id === subjectId) && (
+              <div 
+                className="w-3 h-6 rounded-full" 
+                style={{ backgroundColor: subjects.find(subject => subject.id === subjectId)?.color }}
+              />
+            )}
+            <h1 className="text-2xl font-semibold text-studiefy-black">{event.title}</h1>
+          </div>
           <p className="text-sm text-studiefy-black/70">
             {formattedDate} • {event.type}
           </p>
@@ -434,7 +473,6 @@ export default function EventPage() {
 
       {/* Caderno de Erros */}
       <div className="mt-8">
-        <h2 className="text-xl font-semibold mb-4">Caderno de Erros</h2>
         <PremiumErrorNotebook
           eventId={eventId}
           errorEntries={event.error_entries || []}

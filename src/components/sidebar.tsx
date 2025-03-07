@@ -3,54 +3,82 @@
 import Link from 'next/link'
 import { usePathname } from 'next/navigation'
 import { cn } from '@/lib/utils'
-import { LayoutDashboard, BookOpen, GraduationCap, ClipboardCheck, RotateCcw, LineChart, MessageCircle, CreditCard, PanelLeft } from 'lucide-react'
+import { LayoutDashboard, BookOpen, GraduationCap, ClipboardCheck, RotateCcw, LineChart, MessageCircle, CreditCard, PanelLeft, Info, BarChart3, Calendar, Target, Layers } from 'lucide-react'
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar"
 import { Button } from "@/components/ui/button"
 import { useProfile } from '@/hooks/useProfile'
 import { ProfileDropdown } from "./profile-dropdown"
 import { useState, useEffect } from 'react'
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip"
+import { ComingSoonDialog } from './coming-soon-dialog'
 
 const routes = [
   {
+    id: "dashboard",
     label: 'Progresso',
     href: '/dashboard',
     icon: LayoutDashboard
   },
   {
+    id: "subjects",
     label: 'Matérias',
     href: '/dashboard/subjects',
     icon: GraduationCap
   },
   {
+    id: "study",
     label: 'Estudo',
     href: '/dashboard/study',
     icon: BookOpen
   },
   {
+    id: "assessments",
     label: 'Avaliações',
     href: '/dashboard/assessments',
     icon: ClipboardCheck
   },
   {
+    id: "review",
     label: 'Revisão',
     href: '/dashboard/review',
     icon: RotateCcw
   },
   {
+    id: "grades",
     label: 'Notas',
     href: '/dashboard/grades',
     icon: LineChart
   },
   {
-    label: 'Feedback/Suporte',
-    href: '/dashboard/support',
-    icon: MessageCircle
+    id: "advanced-analysis",
+    label: 'Análise avançada',
+    href: '#',
+    icon: BarChart3,
+    comingSoon: true,
+    ai: true
   },
   {
-    label: 'Assinatura',
-    href: '/dashboard/subscription',
-    icon: CreditCard
+    id: "smart-planning",
+    label: 'Planejamento Inteligente',
+    href: '#',
+    icon: Calendar,
+    comingSoon: true,
+    ai: true
+  },
+  {
+    id: "blind-spots",
+    label: 'Meus pontos cegos',
+    href: '#',
+    icon: Target,
+    comingSoon: true,
+    ai: true
+  },
+  {
+    id: "flashcards",
+    label: 'Flashcards',
+    href: '#',
+    icon: Layers,
+    comingSoon: true
   }
 ]
 
@@ -78,6 +106,8 @@ export function Sidebar({ isCollapsed = false, onCollapseChange, showToggle = tr
   const isSmallScreen = typeof window !== 'undefined' ? window.innerWidth <= 768 : false
   const [dropdownSide, setDropdownSide] = useState<'right' | 'top'>(isSmallScreen ? 'top' : 'right')
   const [innerCollapsed, setInnerCollapsed] = useState(isCollapsed)
+  const [comingSoonOpen, setComingSoonOpen] = useState(false)
+  const [selectedFeature, setSelectedFeature] = useState("")
 
   useEffect(() => {
     const handleResize = () => {
@@ -102,6 +132,12 @@ export function Sidebar({ isCollapsed = false, onCollapseChange, showToggle = tr
     if (onCollapseChange) {
       onCollapseChange(newState)
     }
+  }
+
+  // Função para abrir o diálogo de "em breve"
+  const handleComingSoonClick = (featureName: string) => {
+    setSelectedFeature(featureName)
+    setComingSoonOpen(true)
   }
 
   return (
@@ -140,38 +176,56 @@ export function Sidebar({ isCollapsed = false, onCollapseChange, showToggle = tr
             <div className="flex flex-1 flex-col gap-1">
               {routes.map((route) => (
                 innerCollapsed ? (
-                  <Tooltip key={route.href} delayDuration={0}>
+                  <Tooltip key={route.id} delayDuration={0}>
                     <TooltipTrigger asChild>
-                      <Link
-                        href={route.href}
+                      <div
+                        onClick={() => route.comingSoon ? handleComingSoonClick(route.label) : null}
                         className={cn(
-                          "flex items-center justify-center rounded-lg p-2 text-base font-medium transition-colors hover:bg-studiefy-black/5",
+                          "flex items-center justify-center rounded-lg p-2 text-base font-medium transition-colors hover:bg-studiefy-black/5 cursor-pointer",
                           pathname === route.href
                             ? "bg-studiefy-black/10 text-studiefy-white"
                             : "text-studiefy-gray hover:text-studiefy-white"
                         )}
                       >
-                        <route.icon className="h-5 w-5" />
-                      </Link>
+                        {route.comingSoon ? (
+                          <route.icon className="h-5 w-5" />
+                        ) : (
+                          <Link href={route.href} className="flex items-center justify-center">
+                            <route.icon className="h-5 w-5" />
+                          </Link>
+                        )}
+                      </div>
                     </TooltipTrigger>
                     <TooltipContent side="right" className="border-studiefy-black bg-studiefy-black/90 text-studiefy-white">
                       {route.label}
+                      {route.ai && <span className="text-xs ml-1 text-studiefy-primary align-top">IA</span>}
                     </TooltipContent>
                   </Tooltip>
                 ) : (
-                  <Link
-                    key={route.href}
-                    href={route.href}
+                  <div
+                    key={route.id}
+                    onClick={() => route.comingSoon ? handleComingSoonClick(route.label) : null}
                     className={cn(
-                      "flex items-center gap-3 rounded-lg px-3 py-2 text-base font-medium transition-colors hover:bg-studiefy-black/5",
+                      "flex items-center gap-3 rounded-lg px-3 py-2 text-base font-medium transition-colors hover:bg-studiefy-black/5 cursor-pointer",
                       pathname === route.href
                         ? "bg-studiefy-black/10 text-studiefy-white"
                         : "text-studiefy-gray hover:text-studiefy-white"
                     )}
                   >
-                    <route.icon className="h-5 w-5" />
-                    {route.label}
-                  </Link>
+                    {route.comingSoon ? (
+                      <>
+                        <route.icon className="h-5 w-5" />
+                        <span>{route.label}</span>
+                        {route.ai && <span className="text-xs text-studiefy-primary align-top">IA</span>}
+                      </>
+                    ) : (
+                      <Link href={route.href} className="flex items-center gap-3 w-full">
+                        <route.icon className="h-5 w-5" />
+                        <span>{route.label}</span>
+                        {route.ai && <span className="text-xs text-studiefy-primary align-top">IA</span>}
+                      </Link>
+                    )}
+                  </div>
                 )
               ))}
             </div>
@@ -179,6 +233,59 @@ export function Sidebar({ isCollapsed = false, onCollapseChange, showToggle = tr
         </div>
 
         <div className="mt-auto">
+          {/* Links de Feedback e Suporte e Assinatura lado a lado */}
+          <div className="flex items-center justify-between px-3 py-2 mb-2 border-t border-studiefy-black/10 pt-2">
+            {/* Link de Feedback e Suporte */}
+            {innerCollapsed ? (
+              <Tooltip delayDuration={0}>
+                <TooltipTrigger asChild>
+                  <Link
+                    href="/dashboard/feedback"
+                    className="flex items-center justify-center p-2 text-studiefy-gray hover:text-studiefy-white"
+                  >
+                    <Info className="h-4 w-4" />
+                  </Link>
+                </TooltipTrigger>
+                <TooltipContent side="right" className="border-studiefy-black bg-studiefy-black/90 text-studiefy-white">
+                  Feedback e Suporte
+                </TooltipContent>
+              </Tooltip>
+            ) : (
+              <Link
+                href="/dashboard/feedback"
+                className="flex items-center justify-start gap-2 text-sm text-studiefy-gray hover:text-studiefy-white"
+              >
+                <Info className="h-4 w-4" />
+                Feedback e Suporte
+              </Link>
+            )}
+            
+            {/* Link de Assinatura */}
+            {innerCollapsed ? (
+              <Tooltip delayDuration={0}>
+                <TooltipTrigger asChild>
+                  <Link
+                    href="/dashboard/subscription"
+                    className="flex items-center justify-center p-2 text-studiefy-gray hover:text-studiefy-white"
+                  >
+                    <CreditCard className="h-4 w-4" />
+                  </Link>
+                </TooltipTrigger>
+                <TooltipContent side="right" className="border-studiefy-black bg-studiefy-black/90 text-studiefy-white">
+                  Assinatura
+                </TooltipContent>
+              </Tooltip>
+            ) : (
+              <Link
+                href="/dashboard/subscription"
+                className="flex items-center justify-start gap-2 text-sm text-studiefy-gray hover:text-studiefy-white"
+              >
+                <CreditCard className="h-4 w-4" />
+                Assinatura
+              </Link>
+            )}
+          </div>
+
           <ProfileDropdown
             user={{
               name: profile?.username ? `@${profile.username}` : profile?.name,
@@ -195,6 +302,13 @@ export function Sidebar({ isCollapsed = false, onCollapseChange, showToggle = tr
           />
         </div>
       </div>
+
+      {/* Diálogo de "Em breve" */}
+      <ComingSoonDialog 
+        isOpen={comingSoonOpen}
+        onClose={() => setComingSoonOpen(false)}
+        featureName={selectedFeature}
+      />
     </TooltipProvider>
   )
 }

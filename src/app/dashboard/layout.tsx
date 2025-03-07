@@ -13,27 +13,52 @@ export default function DashboardLayout({
   children: React.ReactNode
 }) {
   const [isCollapsed, setIsCollapsed] = useState(false)
+  const [isMobile, setIsMobile] = useState(false)
 
   // Recupera o estado da sidebar no carregamento do componente
   useEffect(() => {
-    const savedState = localStorage.getItem('sidebar_state')
-    if (savedState) {
-      setIsCollapsed(savedState === 'collapsed')
+    // Somente aplicar o estado salvo da sidebar se não for um dispositivo móvel
+    const checkIfMobile = () => {
+      const mobile = window.innerWidth <= 768
+      setIsMobile(mobile)
+      
+      // Se não for mobile, podemos usar o estado salvo
+      if (!mobile) {
+        const savedState = localStorage.getItem('sidebar_state')
+        if (savedState) {
+          setIsCollapsed(savedState === 'collapsed')
+        }
+      } else {
+        // Em dispositivos móveis, a sidebar nunca deve ficar colapsada
+        setIsCollapsed(false)
+      }
     }
+    
+    // Verifica inicialmente
+    checkIfMobile()
+    
+    // Adiciona listener para redimensionamento
+    window.addEventListener('resize', checkIfMobile)
+    
+    // Cleanup
+    return () => window.removeEventListener('resize', checkIfMobile)
   }, [])
 
   // Função para alternar o estado da sidebar
   const toggleSidebar = () => {
-    const newState = !isCollapsed
-    setIsCollapsed(newState)
-    localStorage.setItem('sidebar_state', newState ? 'collapsed' : 'expanded')
+    // Só permitir colapsar a sidebar em desktop
+    if (!isMobile) {
+      const newState = !isCollapsed
+      setIsCollapsed(newState)
+      localStorage.setItem('sidebar_state', newState ? 'collapsed' : 'expanded')
+    }
   }
 
   return (
-    <div className="h-full relative bg-white">
-      {/* Sidebar container */}
+    <div className="h-full relative bg-white overflow-hidden">
+      {/* Sidebar container - apenas para desktop */}
       <div 
-        className="hidden h-full md:flex md:fixed md:inset-y-0 z-[80] transition-all duration-300 ease-in-out overflow-hidden"
+        className="hidden h-full md:flex md:fixed md:inset-y-0 z-[80] transition-all duration-300 ease-in-out"
         style={{ width: isCollapsed ? '70px' : '18rem' }}
       >
         <Sidebar isCollapsed={isCollapsed} onCollapseChange={setIsCollapsed} showToggle={false} />
@@ -57,11 +82,17 @@ export default function DashboardLayout({
       
       {/* Main content */}
       <main 
-        className="transition-all duration-300 ease-in-out"
-        style={{ marginLeft: isCollapsed ? '70px' : '18rem' }}
+        className="h-full transition-all duration-300 ease-in-out overflow-y-auto overflow-x-hidden"
+        style={{ 
+          marginLeft: isMobile ? '0' : (isCollapsed ? '70px' : '18rem'),
+          width: isMobile ? '100%' : `calc(100% - ${isCollapsed ? '70px' : '18rem'})`,
+          maxWidth: '100vw'
+        }}
       >
         <MobileHeader />
-        {children}
+        <div className="w-full max-w-full">
+          {children}
+        </div>
       </main>
     </div>
   )

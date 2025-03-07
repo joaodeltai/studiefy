@@ -1,6 +1,6 @@
 "use client"
 
-import { useState, useEffect } from "react"
+import { useState, useEffect, useCallback } from "react"
 import { useSubjectCategories } from "@/hooks/useSubjectCategories"
 import { Loader2, Layers } from "lucide-react"
 import { Button } from "@/components/ui/button"
@@ -38,9 +38,15 @@ export function CategorySelector({
   const [open, setOpen] = useState(false)
 
   // Reset selected category when subject changes
+  const handleResetCategory = useCallback(() => {
+    if (typeof onCategoryChange === 'function') {
+      onCategoryChange(null)
+    }
+  }, [onCategoryChange])
+
   useEffect(() => {
-    onCategoryChange(null)
-  }, [subjectId])
+    handleResetCategory()
+  }, [subjectId, handleResetCategory])
 
   if (loading) {
     return (
@@ -64,7 +70,7 @@ export function CategorySelector({
               "h-8 w-8 p-0",
               selectedCategoryId ? "text-blue-500" : "text-studiefy-black/70"
             )}
-            disabled={disabled || categories.length === 0}
+            disabled={disabled}
           >
             <Layers className="h-4 w-4" />
           </Button>
@@ -77,7 +83,9 @@ export function CategorySelector({
               <CommandGroup>
                 <CommandItem 
                   onSelect={() => {
-                    onCategoryChange(null)
+                    if (typeof onCategoryChange === 'function') {
+                      onCategoryChange(null)
+                    }
                     setOpen(false)
                   }}
                   className={!selectedCategoryId ? "bg-accent" : ""}
@@ -88,7 +96,9 @@ export function CategorySelector({
                   <CommandItem
                     key={category.id}
                     onSelect={() => {
-                      onCategoryChange(category.id)
+                      if (typeof onCategoryChange === 'function') {
+                        onCategoryChange(category.id)
+                      }
                       setOpen(false)
                     }}
                     className={selectedCategoryId === category.id ? "bg-accent" : ""}

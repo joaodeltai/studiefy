@@ -2,7 +2,7 @@
 
 import { useState, useEffect, useMemo } from "react"
 import { useRouter } from "next/navigation"
-import { ChevronLeft, Calendar, BookOpen, Loader2 } from "lucide-react"
+import { Calendar, BookOpen, Loader2, X } from "lucide-react"
 import { Button } from "@/components/ui/button"
 import { useGrades } from "@/hooks/useGrades"
 import { useSubjects } from "@/hooks/useSubjects"
@@ -25,6 +25,7 @@ import { ptBR } from "date-fns/locale"
 import { Card, CardContent } from "@/components/ui/card"
 import { Badge } from "@/components/ui/badge"
 import { GradeStatistics } from "@/components/grade-statistics"
+import { GradesChart } from "@/components/grades-chart"
 import { PremiumGradesPage } from "@/components/premium-grades-page"
 
 export default function GradesPage() {
@@ -34,7 +35,8 @@ export default function GradesPage() {
   
   // Estados para os filtros
   const [selectedSubjectId, setSelectedSubjectId] = useState<string>("all")
-  const [selectedDate, setSelectedDate] = useState<Date | undefined>(undefined)
+  const [startDate, setStartDate] = useState<Date | undefined>(undefined)
+  const [endDate, setEndDate] = useState<Date | undefined>(undefined)
   
   // Aplicar filtros
   const filteredEvents = useMemo(() => {
@@ -45,13 +47,25 @@ export default function GradesPage() {
       filtered = filtered.filter(event => event.subject_id === selectedSubjectId)
     }
     
-    // Filtrar por data
-    if (selectedDate) {
-      const dateString = format(selectedDate, "yyyy-MM-dd")
+    // Filtrar por data inicial
+    if (startDate) {
+      const dateString = format(startDate, "yyyy-MM-dd")
       filtered = filtered.filter(event => {
         const eventDate = parseISO(event.date)
         if (isValid(eventDate)) {
-          return format(eventDate, "yyyy-MM-dd") === dateString
+          return format(eventDate, "yyyy-MM-dd") >= dateString
+        }
+        return false
+      })
+    }
+    
+    // Filtrar por data final
+    if (endDate) {
+      const dateString = format(endDate, "yyyy-MM-dd")
+      filtered = filtered.filter(event => {
+        const eventDate = parseISO(event.date)
+        if (isValid(eventDate)) {
+          return format(eventDate, "yyyy-MM-dd") <= dateString
         }
         return false
       })
@@ -66,12 +80,13 @@ export default function GradesPage() {
       }
       return 0
     })
-  }, [events, selectedSubjectId, selectedDate])
+  }, [events, selectedSubjectId, startDate, endDate])
   
   // Limpar filtros
   const clearFilters = () => {
     setSelectedSubjectId("all")
-    setSelectedDate(undefined)
+    setStartDate(undefined)
+    setEndDate(undefined)
   }
   
   if (loading || loadingSubjects) {
@@ -84,92 +99,124 @@ export default function GradesPage() {
   
   // Conteúdo da página
   const content = (
-    <div className="h-full p-4 md:p-8 pt-6">
+    <div className="h-full p-4">
       {/* Header */}
-      <div className="flex items-center mb-8">
-        <Button 
-          variant="ghost" 
-          size="icon" 
-          className="mr-2" 
-          onClick={() => router.back()}
-        >
-          <ChevronLeft className="h-5 w-5" />
-        </Button>
+      <div className="flex items-center mb-6 md:pl-12">
         <h1 className="text-2xl font-bold">Notas</h1>
       </div>
       
+      {/* Filtros */}
+      <div className="mb-6">
+        <div className="flex items-center">
+          <div className="grid grid-cols-1 md:grid-cols-3 gap-4 flex-1">
+            {/* Filtro de Matéria */}
+            <div>
+              <Select 
+                value={selectedSubjectId} 
+                onValueChange={setSelectedSubjectId}
+              >
+                <SelectTrigger id="subject-filter" className="w-full">
+                  <SelectValue placeholder="Todas as matérias" />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="all">Todas as matérias</SelectItem>
+                  {subjects.map(subject => (
+                    <SelectItem key={subject.id} value={subject.id}>
+                      {subject.name}
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+            </div>
+            
+            {/* Filtro de Data Inicial */}
+            <div>
+              <Popover>
+                <PopoverTrigger asChild>
+                  <Button
+                    id="start-date-filter"
+                    variant="outline"
+                    className="w-full justify-start text-left font-normal"
+                  >
+                    <Calendar className="mr-2 h-4 w-4" />
+                    {startDate ? (
+                      format(startDate, "dd/MM/yyyy", { locale: ptBR })
+                    ) : (
+                      <span>Data inicial</span>
+                    )}
+                  </Button>
+                </PopoverTrigger>
+                <PopoverContent className="w-auto p-0" align="start">
+                  <CalendarComponent
+                    mode="single"
+                    selected={startDate}
+                    onSelect={setStartDate}
+                    locale={ptBR}
+                  />
+                </PopoverContent>
+              </Popover>
+            </div>
+            
+            {/* Filtro de Data Final */}
+            <div>
+              <Popover>
+                <PopoverTrigger asChild>
+                  <Button
+                    id="end-date-filter"
+                    variant="outline"
+                    className="w-full justify-start text-left font-normal"
+                  >
+                    <Calendar className="mr-2 h-4 w-4" />
+                    {endDate ? (
+                      format(endDate, "dd/MM/yyyy", { locale: ptBR })
+                    ) : (
+                      <span>Data final</span>
+                    )}
+                  </Button>
+                </PopoverTrigger>
+                <PopoverContent className="w-auto p-0" align="start">
+                  <CalendarComponent
+                    mode="single"
+                    selected={endDate}
+                    onSelect={setEndDate}
+                    locale={ptBR}
+                  />
+                </PopoverContent>
+              </Popover>
+            </div>
+          </div>
+          
+          {/* Botão para limpar filtros - Aparece apenas quando há filtros ativos */}
+          {(selectedSubjectId !== "all" || startDate || endDate) && (
+            <div className="ml-2">
+              <Button 
+                variant="outline"
+                onClick={clearFilters}
+                size="sm"
+                className="h-9 w-9 p-0 rounded-lg border border-studiefy-black/10 text-studiefy-gray hover:text-studiefy-black"
+              >
+                <span className="sr-only">Limpar filtros</span>
+                <X className="h-4 w-4" />
+              </Button>
+            </div>
+          )}
+        </div>
+      </div>
+      
       {/* Estatísticas */}
-      {events.length > 0 && (
+      {filteredEvents.length > 0 && (
         <GradeStatistics 
-          events={events} 
+          events={filteredEvents} 
           subjectId={selectedSubjectId !== "all" ? selectedSubjectId : undefined} 
         />
       )}
       
-      {/* Filtros */}
-      <div className="bg-white rounded-lg shadow-sm border p-4 mb-6">
-        <h2 className="text-lg font-semibold mb-4">Filtros</h2>
-        
-        <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mb-4">
-          {/* Filtro de Matéria */}
-          <div>
-            <Label htmlFor="subject-filter" className="mb-2 block">Matéria</Label>
-            <Select 
-              value={selectedSubjectId} 
-              onValueChange={setSelectedSubjectId}
-            >
-              <SelectTrigger id="subject-filter" className="w-full">
-                <SelectValue placeholder="Todas as matérias" />
-              </SelectTrigger>
-              <SelectContent>
-                <SelectItem value="all">Todas as matérias</SelectItem>
-                {subjects.map(subject => (
-                  <SelectItem key={subject.id} value={subject.id}>
-                    {subject.name}
-                  </SelectItem>
-                ))}
-              </SelectContent>
-            </Select>
-          </div>
-          
-          {/* Filtro de Data */}
-          <div>
-            <Label htmlFor="date-filter" className="mb-2 block">Data</Label>
-            <Popover>
-              <PopoverTrigger asChild>
-                <Button
-                  id="date-filter"
-                  variant="outline"
-                  className="w-full justify-start text-left font-normal"
-                >
-                  <Calendar className="mr-2 h-4 w-4" />
-                  {selectedDate ? (
-                    format(selectedDate, "dd 'de' MMMM 'de' yyyy", { locale: ptBR })
-                  ) : (
-                    <span>Selecione uma data</span>
-                  )}
-                </Button>
-              </PopoverTrigger>
-              <PopoverContent className="w-auto p-0" align="start">
-                <CalendarComponent
-                  mode="single"
-                  selected={selectedDate}
-                  onSelect={setSelectedDate}
-                  locale={ptBR}
-                />
-              </PopoverContent>
-            </Popover>
-          </div>
-        </div>
-        
-        {/* Botão para limpar filtros */}
-        <Button 
-          variant="outline" 
-          onClick={clearFilters}
-          className="w-full md:w-auto"
-        >
-          Limpar filtros
-        </Button>
+      {/* Gráfico de Evolução de Notas */}
+      <div className="mb-6">
+        <GradesChart 
+          events={filteredEvents}
+          subjectId={selectedSubjectId !== "all" ? selectedSubjectId : undefined}
+        />
       </div>
       
       {/* Conteúdo - Lista de Notas */}
@@ -251,7 +298,7 @@ export default function GradesPage() {
         ) : (
           <div className="flex flex-col items-center justify-center py-12 text-gray-500">
             <p className="text-lg">Nenhuma nota encontrada</p>
-            {selectedSubjectId !== "all" || selectedDate ? (
+            {selectedSubjectId !== "all" || startDate || endDate ? (
               <p className="text-sm mt-2">Tente ajustar os filtros para ver mais resultados</p>
             ) : (
               <p className="text-sm mt-2">Adicione notas aos seus eventos para visualizá-las aqui</p>

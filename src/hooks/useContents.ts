@@ -684,16 +684,68 @@ export function useContents(subjectId: string) {
     ? Infinity 
     : Math.max(0, FREE_PLAN_LIMITS.MAX_CONTENTS_PER_SUBJECT - contents.length)
 
+  const updateFilters = (newFilters: Partial<ContentFilters>) => {
+    setFilters(prev => ({ ...prev, ...newFilters }))
+  }
+
+  const moveToTrash = async (id: string) => {
+    if (!user) {
+      toast.error("Usuário não autenticado")
+      return
+    }
+
+    if (!id) {
+      toast.error("Conteúdo não encontrado")
+      return
+    }
+
+    try {
+      const content = contents.find(c => c.id === id)
+      if (!content) {
+        toast.error("Conteúdo não encontrado")
+        return
+      }
+
+      const { error } = await supabase
+        .from("contents")
+        .update({ deleted: true })
+        .eq("id", id)
+
+      if (error) {
+        console.error("Error moving content to trash:", error)
+        toast.error("Erro ao mover conteúdo para a lixeira")
+        return
+      }
+
+      // Se o conteúdo estava concluído, remove 1 XP
+      if (content.completed) {
+        await removeXP(1)
+      }
+
+      const updatedContents = contents.filter((content) => content.id !== id);
+      setContents(updatedContents);
+      saveContentsCache(updatedContents);
+
+      toast.success("Conteúdo movido para a lixeira!")
+    } catch (error) {
+      console.error("Error moving content to trash:", error)
+      toast.error("Erro ao mover conteúdo para a lixeira")
+      throw error
+    }
+  }
+
   return {
     contents: filteredContents,
     allContents: contents,
     loading,
     filters,
     setFilters,
+    updateFilters,
     addContent,
     updateContent,
     deleteContent,
     toggleComplete,
+    moveToTrash,
     updatePriority,
     updateDueDate,
     updateFocusTime,

@@ -26,13 +26,15 @@ export interface ContentFilters {
   endDate: Date | null
   priority: PriorityLevel | 'all'
   tags: string[]
+  categoryId: string | null
 }
 
 const defaultFilters: ContentFilters = {
   startDate: null,
   endDate: null,
   priority: 'all',
-  tags: []
+  tags: [],
+  categoryId: null
 }
 
 export function useAllContents() {
@@ -47,6 +49,11 @@ export function useAllContents() {
       fetchContents()
     }
   }, [user, filters])
+
+  // Remover log para evitar possíveis problemas
+  // useEffect(() => {
+  //   console.log("Filtros atualizados:", filters)
+  // }, [filters])
 
   const fetchContents = async () => {
     try {
@@ -72,6 +79,9 @@ export function useAllContents() {
       }
       if (filters.tags.length > 0) {
         query = query.contains('tags', filters.tags)
+      }
+      if (filters.categoryId) {
+        query = query.eq('category_id', filters.categoryId)
       }
 
       const { data: contentsData, error: contentsError } = await query

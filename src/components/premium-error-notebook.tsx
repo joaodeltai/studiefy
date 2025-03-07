@@ -6,8 +6,10 @@ import { ErrorEntry } from "@/hooks/useEvents"
 import { Subject } from "@/hooks/useSubjects"
 import { SubjectCategory } from "@/hooks/useSubjectCategories"
 import { EventSource } from "@/hooks/useEventSources"
-import { ReactElement } from "react"
+import { ReactElement, useState, useEffect } from "react"
 import { CheckCircle, PenSquare, Brain, BookOpen } from "lucide-react"
+import { useSubscription } from "@/hooks/useSubscription"
+import { SubscriptionPlan, SubscriptionStatus } from "@/types/subscription"
 
 interface PremiumErrorNotebookProps {
   eventId: string
@@ -44,6 +46,21 @@ interface PremiumErrorNotebookProps {
  * Mostra uma versão desfocada com um banner de aviso para usuários free.
  */
 export function PremiumErrorNotebook(props: PremiumErrorNotebookProps): ReactElement {
+  const { subscription, isPremium, isLoading } = useSubscription();
+  const [isUserPremium, setIsUserPremium] = useState(false);
+  
+  // Verificação adicional para garantir que o status premium seja correto
+  useEffect(() => {
+    if (!isLoading) {
+      const premium = Boolean(
+        subscription && 
+        subscription.plan === SubscriptionPlan.PREMIUM && 
+        subscription.status === SubscriptionStatus.ACTIVE
+      );
+      setIsUserPremium(premium);
+    }
+  }, [isLoading, subscription]);
+
   const customMessage = `
     O Caderno de Erros é uma funcionalidade premium que permite:
     
@@ -53,6 +70,12 @@ export function PremiumErrorNotebook(props: PremiumErrorNotebookProps): ReactEle
     • Acompanhar seu progresso e evitar erros futuros
   `;
 
+  // Para usuários premium, apenas renderiza o ErrorNotebook diretamente
+  if (isUserPremium) {
+    return <ErrorNotebook {...props} />;
+  }
+
+  // Para usuários free, mostra o gate premium
   return (
     <div className="relative">
       <PremiumGate 

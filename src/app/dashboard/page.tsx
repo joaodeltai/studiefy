@@ -8,6 +8,7 @@ import { Loader2, Medal, Flame } from "lucide-react"
 import { cn } from "@/lib/utils"
 import { StudyHoursChart } from "@/components/study-hours-chart"
 import { SubscriptionStatus } from "@/components/subscription-status"
+import { useState, useEffect } from 'react'
 
 // Funções para cálculo de XP
 const getXPForLevel = (level: number) => level * 10
@@ -23,6 +24,33 @@ export default function DashboardPage() {
   const { profile, loading: loadingProfile } = useProfile()
   const { streak, loading: loadingStreak } = useStreak()
   const { totalContents, contentsInProgress, completedContents, loading: loadingStats } = useStats()
+  const [isCollapsed, setIsCollapsed] = useState(false)
+  const [needsPadding, setNeedsPadding] = useState(false)
+
+  // Efeito para recuperar o estado da sidebar e verificar se precisa de padding
+  useEffect(() => {
+    const savedState = localStorage.getItem('sidebar_state')
+    if (savedState) {
+      setIsCollapsed(savedState === 'collapsed')
+    }
+    
+    // Função para verificar se o cabeçalho precisa de padding
+    const checkNeedsPadding = () => {
+      // Em telas menores que 1200px, geralmente o botão fica próximo ao cabeçalho
+      const screenWidth = window.innerWidth
+      setNeedsPadding(screenWidth > 768 && screenWidth < 1200)
+    }
+    
+    // Verificar inicialmente
+    checkNeedsPadding()
+    
+    // Adicionar listener para redimensionamento
+    window.addEventListener('resize', checkNeedsPadding)
+    
+    return () => {
+      window.removeEventListener('resize', checkNeedsPadding)
+    }
+  }, [])
 
   if (loadingProfile || loadingStreak || loadingStats) {
     return (
@@ -41,13 +69,13 @@ export default function DashboardPage() {
   const progress = (profile.xp / xpForNextLevel) * 100
 
   return (
-    <div className="h-full p-4 space-y-4">
-      <div className="max-w-3xl mx-auto space-y-4">
+    <div className="h-full p-4 space-y-4 overflow-y-auto overflow-x-hidden">
+      <div className="w-full max-w-3xl mx-auto space-y-4">
         {/* Status da assinatura */}
         <SubscriptionStatus />
         
         {/* Linha superior com nível e ofensiva - visível apenas em desktop */}
-        <div className="hidden md:flex flex-col space-y-2">
+        <div className={`hidden md:flex flex-col space-y-2 ${needsPadding ? 'pl-8' : ''}`}>
           <div className="flex items-center justify-between">
             <div className="flex items-center gap-2">
               <Medal className="h-6 w-6 text-yellow-500" />
@@ -83,7 +111,7 @@ export default function DashboardPage() {
         </div>
 
         {/* Card de estatísticas */}
-        <div className="rounded-lg border bg-card text-card-foreground shadow-sm">
+        <div className="rounded-lg border bg-card text-card-foreground shadow-sm w-full">
           <div className="grid grid-cols-3 divide-x">
             <div className="px-3 py-4 sm:px-6 sm:py-6 flex flex-col items-center justify-center">
               <span className="text-2xl sm:text-4xl font-bold tracking-tight">

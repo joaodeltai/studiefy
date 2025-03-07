@@ -26,13 +26,43 @@ export function useSubjectCategories(subjectId: string) {
     }
 
     if (!subjectId) {
-      setCategories([])
-      setLoading(false)
+      // Quando subjectId está vazio, carrega todas as categorias
+      fetchAllCategories()
       return
     }
 
     fetchCategories()
   }, [user, subjectId])
+
+  const fetchAllCategories = async () => {
+    if (!user) {
+      setCategories([])
+      setLoading(false)
+      return
+    }
+
+    try {
+      setLoading(true)
+      const { data, error } = await supabase
+        .from("subject_categories")
+        .select("*")
+        .eq("user_id", user.id)
+        .order("created_at", { ascending: false })
+
+      if (error) {
+        console.error("Error fetching all categories:", error)
+        toast.error("Erro ao carregar categorias")
+        return
+      }
+
+      setCategories(data || [])
+    } catch (error) {
+      console.error("Error fetching all categories:", error)
+      toast.error("Erro ao carregar categorias")
+    } finally {
+      setLoading(false)
+    }
+  }
 
   const fetchCategories = async () => {
     if (!user || !subjectId) {

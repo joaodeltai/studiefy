@@ -3,7 +3,7 @@
 import React from 'react'
 import Link from 'next/link'
 import { cn } from '@/lib/utils'
-import { LogOut, Settings, User } from 'lucide-react'
+import { LogOut, Settings, User, ChevronDown } from 'lucide-react'
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar"
 import {
   DropdownMenu,
@@ -81,6 +81,8 @@ export function ProfileDropdown({
               )}
             </div>
           )}
+          
+          <ChevronDown className="h-4 w-4 text-studiefy-gray" />
         </button>
       </DropdownMenuTrigger>
       <DropdownMenuContent

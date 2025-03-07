@@ -75,7 +75,8 @@ export function MobileHeader() {
   if (pathname.includes("/contents/") || 
       pathname.includes("/study") || 
       pathname.includes("/assessments") ||
-      pathname.includes("/events/")) {
+      pathname.includes("/events/") ||
+      pathname.startsWith("/dashboard/subjects")) {
     return null
   }
 
@@ -102,7 +103,7 @@ export function MobileHeader() {
               <SheetHeader className="sr-only">
                 <SheetTitle>Menu de Navegação</SheetTitle>
               </SheetHeader>
-              <Sidebar isCollapsed={false} />
+              <Sidebar isCollapsed={false} onCollapseChange={() => {}} showToggle={false} />
             </SheetContent>
           </Sheet>
         )}

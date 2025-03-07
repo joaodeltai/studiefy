@@ -29,6 +29,7 @@ import {
   DialogTitle,
   DialogTrigger,
 } from "@/components/ui/dialog"
+import { VisuallyHidden } from "@radix-ui/react-visually-hidden"
 import { cn } from "@/lib/utils"
 import { Flame, Timer, BookCheck, LineChart, LayoutGrid, Target, BookOpen, Brain, Cog } from 'lucide-react'
 import Footer from "@/components/global/Footer";
@@ -413,7 +414,9 @@ export default function Home() {
                     "data-[state=open]:zoom-in-95 data-[state=closed]:zoom-out-95",
                     "data-[state=open]:slide-in-from-bottom-2"
                   )}>
-                    <DialogTitle className="sr-only">Informação sobre redução de ansiedade</DialogTitle>
+                    <DialogTitle>
+                      <VisuallyHidden>Informação sobre redução de ansiedade</VisuallyHidden>
+                    </DialogTitle>
                     <p className="text-sm">87% dos usuários relataram menos ansiedade com os estudos após uma semana de uso.</p>
                   </DialogContent>
                 </Dialog>
@@ -468,7 +471,9 @@ export default function Home() {
                     "data-[state=open]:zoom-in-95 data-[state=closed]:zoom-out-95",
                     "data-[state=open]:slide-in-from-bottom-2"
                   )}>
-                    <DialogTitle className="sr-only">Informação sobre melhoria nas notas</DialogTitle>
+                    <DialogTitle>
+                      <VisuallyHidden>Informação sobre melhoria nas notas</VisuallyHidden>
+                    </DialogTitle>
                     <p className="text-sm">+40 pontos na nota em simulados após 1 mês com o Studiefy.</p>
                   </DialogContent>
                 </Dialog>

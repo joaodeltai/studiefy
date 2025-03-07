@@ -1,11 +1,15 @@
 "use client"
 
+import { useState } from "react"
 import { SubjectCard } from "@/components/subject-card"
 import { useSubjects } from "@/hooks/useSubjects"
-import { Loader2 } from "lucide-react"
+import { Loader2, PanelLeft } from "lucide-react"
+import { Button } from "@/components/ui/button"
+import { useRouter } from "next/navigation"
 
 export default function SubjectsPage() {
   const { subjects, loading } = useSubjects()
+  const router = useRouter()
 
   if (loading) {
     return (
@@ -17,9 +21,24 @@ export default function SubjectsPage() {
 
   return (
     <div className="h-full p-4 space-y-4">
-      <h1 className="hidden md:block text-3xl font-bold text-studiefy-black">
+      {/* Header para telas médias e grandes */}
+      <h1 className="hidden md:block text-3xl font-bold text-studiefy-black md:pl-12">
         Matérias
       </h1>
+
+      {/* Header para telas pequenas */}
+      <div className="flex items-center justify-between md:hidden mb-4">
+        <Button 
+          variant="ghost" 
+          size="sm" 
+          className="p-2"
+          onClick={() => router.push("/dashboard")}
+        >
+          <PanelLeft className="w-5 h-5" />
+        </Button>
+        <h1 className="text-2xl font-bold text-studiefy-black">Matérias</h1>
+        <div className="w-10"></div> {/* Espaçador para centralizar o título */}
+      </div>
 
       {subjects.length === 0 ? (
         <div className="flex flex-col items-center justify-center h-[calc(100vh-200px)] text-studiefy-gray">

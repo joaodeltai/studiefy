@@ -27,12 +27,15 @@ body {
     --border: 240 5.9% 90%;
     --input: 240 5.9% 90%;
     --ring: 240 10% 3.9%;
-    --chart-1: 173 58% 39%;
-    --chart-2: 12 76% 61%;
+    --radius: 0.5rem;
+    /* Cores para o gráfico */
+    --chart-1: 215 70% 50%;
+    --chart-2: 25 95% 50%;
+    --color-nota: hsl(215, 70%, 50%);
+    --color-redacao: hsl(25, 95%, 50%);
     --chart-3: 197 37% 24%;
     --chart-4: 43 74% 66%;
     --chart-5: 27 87% 67%;
-    --radius: 0.5rem;
     --sidebar-background: 0 0% 98%;
     --sidebar-foreground: 240 5.3% 26.1%;
     --sidebar-primary: 240 5.9% 10%;
@@ -62,11 +65,14 @@ body {
     --border: 240 3.7% 15.9%;
     --input: 240 3.7% 15.9%;
     --ring: 240 4.9% 83.9%;
-    --chart-1: 220 70% 50%;
-    --chart-5: 160 60% 45%;
+    /* Cores para o gráfico no tema escuro */
+    --chart-1: 215 70% 60%;
+    --chart-2: 25 95% 60%;
+    --color-nota: hsl(215, 70%, 60%);
+    --color-redacao: hsl(25, 95%, 60%);
     --chart-3: 30 80% 55%;
     --chart-4: 280 65% 60%;
-    --chart-2: 340 75% 55%;
+    --chart-5: 160 60% 45%;
     --sidebar-background: 240 5.9% 10%;
     --sidebar-foreground: 240 4.8% 95.9%;
     --sidebar-primary: 224.3 76.3% 48%;
