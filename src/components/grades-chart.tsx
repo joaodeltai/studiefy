@@ -155,10 +155,13 @@ export function GradesChart({ events, subjectId }: GradesChartProps) {
                             return label;
                           }
                           
-                          const dataIndex = props.payload[0]?.payload?.id;
-                          // Verificar se dataIndex existe antes de procurar o evento
-                          if (dataIndex) {
-                            const event = events.find(e => e.id === dataIndex);
+                          // Usar type assertion para acessar os dados com segurança
+                          const payload = props.payload as any[];
+                          const dataPoint = payload[0]?.payload;
+                          
+                          // Verificar se dataPoint existe e tem um id
+                          if (dataPoint && dataPoint.id) {
+                            const event = events.find(e => e.id === dataPoint.id);
                             return event ? `${event.title} (${label})` : label;
                           }
                           return label;

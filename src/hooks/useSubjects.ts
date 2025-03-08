@@ -6,24 +6,12 @@ import { useEffect, useState } from "react"
 import { usePlanLimits, FREE_PLAN_LIMITS } from "./usePlanLimits"
 import { toast } from "sonner"
 
-// Chave para o cache de matérias no localStorage
-const SUBJECTS_CACHE_KEY = 'studiefy:subjects:cache';
-// Tempo de expiração do cache em milissegundos (15 minutos)
-const CACHE_EXPIRATION_TIME = 15 * 60 * 1000;
-
 export interface Subject {
   id: string
   name: string
   color: string
   user_id: string
   created_at: string
-}
-
-// Interface para o objeto de cache
-interface SubjectsCache {
-  subjects: Subject[];
-  timestamp: number;
-  userId: string;
 }
 
 export interface SubjectError extends Error {
@@ -36,83 +24,14 @@ export function useSubjects() {
   const { user } = useAuth()
   const { isPremium, hasReachedSubjectsLimit } = usePlanLimits()
 
-  // Função para salvar o cache no localStorage
-  const saveSubjectsCache = (subjectsData: Subject[]) => {
-    try {
-      if (!user) return;
-      
-      const cacheData: SubjectsCache = {
-        subjects: subjectsData,
-        timestamp: Date.now(),
-        userId: user.id
-      };
-      
-      localStorage.setItem(SUBJECTS_CACHE_KEY, JSON.stringify(cacheData));
-    } catch (error) {
-      console.error('Erro ao salvar cache de matérias:', error);
-    }
-  };
-
-  // Função para carregar o cache do localStorage
-  const loadSubjectsCache = (): SubjectsCache | null => {
-    try {
-      if (!user) return null;
-      
-      const cachedData = localStorage.getItem(SUBJECTS_CACHE_KEY);
-      
-      if (!cachedData) return null;
-      
-      const parsedCache = JSON.parse(cachedData) as SubjectsCache;
-      
-      // Verificar se o cache pertence ao usuário atual
-      if (parsedCache.userId !== user.id) {
-        localStorage.removeItem(SUBJECTS_CACHE_KEY);
-        return null;
-      }
-      
-      // Verificar se o cache está expirado
-      if (Date.now() - parsedCache.timestamp > CACHE_EXPIRATION_TIME) {
-        localStorage.removeItem(SUBJECTS_CACHE_KEY);
-        return null;
-      }
-      
-      return parsedCache;
-    } catch (error) {
-      console.error('Erro ao carregar cache de matérias:', error);
-      return null;
-    }
-  };
-
-  // Função para limpar o cache de matérias
-  const clearSubjectsCache = () => {
-    try {
-      localStorage.removeItem(SUBJECTS_CACHE_KEY);
-    } catch (error) {
-      console.error('Erro ao remover cache de matérias:', error);
-    }
-  };
-
   useEffect(() => {
     if (user) {
       fetchSubjects();
     }
   }, [user])
 
-  const fetchSubjects = async (forceRefresh = false) => {
+  const fetchSubjects = async () => {
     if (!user) return;
-
-    // Se não for forçado a atualizar, verifique o cache primeiro
-    if (!forceRefresh) {
-      const cachedData = loadSubjectsCache();
-      if (cachedData) {
-        setSubjects(cachedData.subjects);
-        setLoading(false);
-        return;
-      }
-    } else {
-      // Se forçar atualização, limpe o cache atual
-      clearSubjectsCache();
-    }
 
     try {
       setLoading(true)
@@ -126,9 +45,7 @@ export function useSubjects() {
         throw error
       }
 
-      const subjectsData = data || [];
-      setSubjects(subjectsData);
-      saveSubjectsCache(subjectsData);
+      setSubjects(data || []);
     } catch (error) {
       console.error("Error fetching subjects:", error)
     } finally {
@@ -163,7 +80,6 @@ export function useSubjects() {
 
       const updatedSubjects = [data, ...subjects];
       setSubjects(updatedSubjects);
-      saveSubjectsCache(updatedSubjects);
       return data
     } catch (error: any) {
       console.error("Error adding subject:", error)
@@ -197,7 +113,6 @@ export function useSubjects() {
 
       const updatedSubjects = subjects.filter((subject) => subject.id !== id);
       setSubjects(updatedSubjects);
-      saveSubjectsCache(updatedSubjects);
     } catch (error) {
       console.error("Error deleting subject:", error)
       throw error
@@ -222,7 +137,6 @@ export function useSubjects() {
         subject.id === id ? { ...subject, name, color } : subject
       );
       setSubjects(updatedSubjects);
-      saveSubjectsCache(updatedSubjects);
       return data
     } catch (error) {
       console.error("Error updating subject:", error)
@@ -241,7 +155,7 @@ export function useSubjects() {
     addSubject,
     deleteSubject,
     updateSubject,
-    refreshSubjects: (force = false) => fetchSubjects(force),
+    refreshSubjects: () => fetchSubjects(),
     hasReachedLimit,
     remainingSubjects: remainingSubjectsCount
   }

@@ -13,7 +13,7 @@ const Footer = () => {
           <div className="space-y-4">
             <Link href="/" className="flex items-center space-x-2">
               <Image
-                src="/logo.png"
+                src="/images/logo_sfy_transp.webp"
                 alt="Studiefy Logo"
                 width={32}
                 height={32}

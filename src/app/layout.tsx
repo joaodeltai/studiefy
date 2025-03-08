@@ -10,6 +10,9 @@ const inter = Inter({
 export const metadata: Metadata = {
   title: "Studiefy",
   description: "Sua plataforma de estudos",
+  icons: {
+    icon: '/images/logo_sfy_transp.webp',
+  },
 };
 
 export default function RootLayout({
@@ -20,6 +23,7 @@ export default function RootLayout({
   return (
     <html lang="pt-BR">
       <head>
+        <link rel="icon" href="/images/logo_sfy_transp.webp" />
         {/* Google Tag Manager */}
         {typeof window !== 'undefined' && (
           <script
