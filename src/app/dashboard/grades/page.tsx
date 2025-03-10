@@ -1,8 +1,8 @@
 "use client"
 
-import { useState, useEffect, useMemo } from "react"
+import { useState, useEffect, useMemo, useRef } from "react"
 import { useRouter } from "next/navigation"
-import { Calendar, BookOpen, Loader2, X } from "lucide-react"
+import { Calendar, BookOpen, Loader2, X, Info } from "lucide-react"
 import { Button } from "@/components/ui/button"
 import { useGrades } from "@/hooks/useGrades"
 import { useSubjects } from "@/hooks/useSubjects"
@@ -37,6 +37,27 @@ export default function GradesPage() {
   const [selectedSubjectId, setSelectedSubjectId] = useState<string>("all")
   const [startDate, setStartDate] = useState<Date | undefined>(undefined)
   const [endDate, setEndDate] = useState<Date | undefined>(undefined)
+  const [showInfo, setShowInfo] = useState(false)
+  const infoRef = useRef<HTMLDivElement>(null)
+  const btnRef = useRef<HTMLButtonElement>(null)
+  
+  // Fechar ao clicar fora
+  useEffect(() => {
+    function handleClickOutside(event: MouseEvent) {
+      if (showInfo && 
+          infoRef.current && 
+          btnRef.current && 
+          !infoRef.current.contains(event.target as Node) &&
+          !btnRef.current.contains(event.target as Node)) {
+        setShowInfo(false)
+      }
+    }
+    
+    document.addEventListener("mousedown", handleClickOutside)
+    return () => {
+      document.removeEventListener("mousedown", handleClickOutside)
+    }
+  }, [showInfo])
   
   // Aplicar filtros
   const filteredEvents = useMemo(() => {
@@ -99,10 +120,44 @@ export default function GradesPage() {
   
   // Conteúdo da página
   const content = (
-    <div className="h-full p-4">
+    <div className="min-h-screen h-full p-4">
       {/* Header */}
       <div className="flex items-center mb-6 md:pl-12">
         <h1 className="text-2xl font-bold">Notas</h1>
+        <div className="relative">
+          <Button 
+            variant="ghost" 
+            size="icon" 
+            className="ml-2 h-8 w-8 rounded-full hover:bg-studiefy-black/10"
+            onClick={() => setShowInfo(!showInfo)}
+            ref={btnRef}
+          >
+            <Info className="h-4 w-4 text-studiefy-black/70 hover:text-studiefy-black" />
+            <span className="sr-only">Informações sobre Notas</span>
+          </Button>
+          
+          {showInfo && (
+            <div 
+              ref={infoRef}
+              className="absolute z-50 top-full left-0 mt-2 w-72 bg-white text-studiefy-black border border-studiefy-black/10 shadow-md p-3 rounded-md text-sm animate-in fade-in-50 duration-200"
+              style={{
+                boxShadow: "0 4px 12px rgba(0, 0, 0, 0.08)"
+              }}
+            >
+              <h3 className="text-base font-medium mb-1.5 text-studiefy-black">Sobre Notas</h3>
+              <p className="text-studiefy-black/80 mb-1.5 leading-snug">
+                <strong>Notas</strong> é onde você acompanha seu desempenho em todas as avaliações, visualizando estatísticas e gráficos que mostram sua evolução ao longo do tempo.
+              </p>
+              <p className="font-medium mb-1 mt-2 text-studiefy-black">Como usar:</p>
+              <ul className="list-disc list-inside text-studiefy-black/80 leading-snug">
+                <li>Filtre por matéria e período para análises específicas</li>
+                <li>Visualize sua média geral e por matéria</li>
+                <li>Acompanhe sua evolução através dos gráficos</li>
+                <li>Veja detalhes de cada avaliação na lista abaixo</li>
+              </ul>
+            </div>
+          )}
+        </div>
       </div>
       
       {/* Filtros */}

@@ -9,9 +9,9 @@ const inter = Inter({
 
 export const metadata: Metadata = {
   title: "Studiefy",
-  description: "Sua plataforma de estudos",
+  description: "Você no controle dos seus estudos",
   icons: {
-    icon: '/images/logo_sfy_transp.webp',
+    icon: 'https://uwemjaqphbytkkhalqge.supabase.co/storage/v1/object/public/images//logo_sfy_transp.webp',
   },
 };
 
@@ -23,7 +23,7 @@ export default function RootLayout({
   return (
     <html lang="pt-BR">
       <head>
-        <link rel="icon" href="/images/logo_sfy_transp.webp" />
+        <link rel="icon" href="https://uwemjaqphbytkkhalqge.supabase.co/storage/v1/object/public/images//logo_sfy_transp.webp" />
         {/* Google Tag Manager */}
         {typeof window !== 'undefined' && (
           <script

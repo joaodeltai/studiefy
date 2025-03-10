@@ -8,6 +8,7 @@ import { Textarea } from "@/components/ui/textarea";
 import Footer from "@/components/global/Footer";
 import { useAuth } from '@/hooks/useAuth';
 import { useRouter } from 'next/navigation';
+import Image from 'next/image';
 
 export default function Contact() {
   const { user } = useAuth();
@@ -24,6 +25,14 @@ export default function Contact() {
       <header className="bg-background py-4 px-4 border-b border-foreground/10 mb-0">
         <div className="container mx-auto flex justify-between items-center">
           <Link href="/" className="flex items-center gap-2 text-2xl font-bold hover:text-primary transition-colors">
+            <Image 
+              src="https://uwemjaqphbytkkhalqge.supabase.co/storage/v1/object/public/images//logo_sfy_transp.webp"
+              alt="Studiefy Logo"
+              width={32}
+              height={32}
+              className="w-8 h-8"
+              unoptimized
+            />
             Studiefy
             <span className="text-xs px-2 py-0.5 bg-gradient-to-r from-foreground via-foreground/80 to-foreground bg-[length:200%_100%] animate-shimmer rounded-full font-medium text-background">
               Beta

@@ -49,10 +49,19 @@ export function useAuth() {
     }
   }
 
-  const signUp = async (email: string, password: string, name: string) => {
+  const signUp = async (email: string, password: string, name: string, phoneNumber?: string) => {
     try {
       setIsLoading(true)
       setError(null)
+
+      // Validação de senha no backend
+      const passwordRegex = /^(?=.*[a-z])(?=.*[A-Z])(?=.*\d)(?=.*[!@#$%^&*()_+\-=\[\]{};':"\\|,.<>\/?])[A-Za-z\d!@#$%^&*()_+\-=\[\]{};':"\\|,.<>\/?]{8,}$/;
+      
+      if (!passwordRegex.test(password)) {
+        throw new Error(
+          "A senha deve conter pelo menos 8 caracteres, incluindo uma letra maiúscula, uma letra minúscula, um número e um caractere especial."
+        );
+      }
 
       const { data, error: signUpError } = await supabase.auth.signUp({
         email,
@@ -60,6 +69,7 @@ export function useAuth() {
         options: {
           data: {
             name,
+            phone_number: phoneNumber,
           },
         },
       })

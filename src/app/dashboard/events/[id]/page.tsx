@@ -300,16 +300,8 @@ export default function EventPage() {
   const formattedDate = format(new Date(event.date), "dd 'de' MMMM 'de' yyyy", { locale: ptBR })
 
   return (
-    <div className="p-6 md:p-8">
-      <div className="flex items-start gap-3 mb-6">
-        <Button
-          variant="ghost"
-          size="icon"
-          onClick={() => router.push('/dashboard/assessments')}
-          className="mr-2"
-        >
-          <ChevronLeft className="h-6 w-6" />
-        </Button>
+    <div className="min-h-screen h-full p-6 md:p-8">
+      <div className="md:pl-12 mb-6">
         <div className="flex-1">
           <div className="flex items-center gap-2">
             <h1 className="text-2xl font-semibold text-studiefy-black">{event.title}</h1>

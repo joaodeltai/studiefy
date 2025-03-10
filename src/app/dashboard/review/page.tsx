@@ -1,6 +1,6 @@
 "use client"
 
-import { useState, useEffect, useMemo } from "react"
+import { useState, useEffect, useMemo, useRef } from "react"
 import { useEvents, ErrorEntry } from "@/hooks/useEvents"
 import { getAllErrorEntries, toggleErrorReviewed } from "@/hooks/useEvents"
 import { useSubjects } from "@/hooks/useSubjects"
@@ -21,7 +21,7 @@ import { Label } from "@/components/ui/label"
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"
 import { Checkbox } from "@/components/ui/checkbox"
 import { toast } from "sonner"
-import { Check, CheckCircle2, X } from "lucide-react"
+import { Check, CheckCircle2, X, Info } from "lucide-react"
 
 export default function ReviewPage() {
   const router = useRouter()
@@ -34,6 +34,9 @@ export default function ReviewPage() {
   const [selectedSourceId, setSelectedSourceId] = useState<string>("all")
   const [selectedDifficulty, setSelectedDifficulty] = useState<string>("all")
   const [searchQuery, setSearchQuery] = useState<string>("")
+  const [showInfo, setShowInfo] = useState(false)
+  const infoRef = useRef<HTMLDivElement>(null)
+  const btnRef = useRef<HTMLButtonElement>(null)
   
   // Estado para as categorias do assunto selecionado
   const [categories, setCategories] = useState<any[]>([])
@@ -52,7 +55,6 @@ export default function ReviewPage() {
   const reviewedErrors = useMemo(() => {
     return filteredErrors.filter(error => error.reviewed)
   }, [filteredErrors])
-
 
   // Buscar categorias quando o assunto mudar
   useEffect(() => {
@@ -180,11 +182,63 @@ export default function ReviewPage() {
     }
   }
 
+  // Fechar ao clicar fora
+  useEffect(() => {
+    function handleClickOutside(event: MouseEvent) {
+      if (showInfo && 
+          infoRef.current && 
+          btnRef.current && 
+          !infoRef.current.contains(event.target as Node) &&
+          !btnRef.current.contains(event.target as Node)) {
+        setShowInfo(false)
+      }
+    }
+    
+    document.addEventListener("mousedown", handleClickOutside)
+    return () => {
+      document.removeEventListener("mousedown", handleClickOutside)
+    }
+  }, [showInfo])
+
   return (
-    <div className="h-full p-4">
+    <div className="min-h-screen h-full p-4">
       {/* Header */}
       <div className="flex items-center mb-6 md:pl-12">
         <h1 className="text-2xl font-bold">Revisão</h1>
+        <div className="relative">
+          <Button 
+            variant="ghost" 
+            size="icon" 
+            className="ml-2 h-8 w-8 rounded-full hover:bg-studiefy-black/10"
+            onClick={() => setShowInfo(!showInfo)}
+            ref={btnRef}
+          >
+            <Info className="h-4 w-4 text-studiefy-black/70 hover:text-studiefy-black" />
+            <span className="sr-only">Informações sobre Revisão</span>
+          </Button>
+          
+          {showInfo && (
+            <div 
+              ref={infoRef}
+              className="absolute z-50 top-full left-0 mt-2 w-72 bg-white text-studiefy-black border border-studiefy-black/10 shadow-md p-3 rounded-md text-sm animate-in fade-in-50 duration-200"
+              style={{
+                boxShadow: "0 4px 12px rgba(0, 0, 0, 0.08)"
+              }}
+            >
+              <h3 className="text-base font-medium mb-1.5 text-studiefy-black">Sobre Revisão</h3>
+              <p className="text-studiefy-black/80 mb-1.5 leading-snug">
+                <strong>Revisão</strong> é onde você encontra todos os erros que adicionou ao seu caderno de erros durante as avaliações, facilitando o processo de revisão e aprendizado.
+              </p>
+              <p className="font-medium mb-1 mt-2 text-studiefy-black">Como usar:</p>
+              <ul className="list-disc list-inside text-studiefy-black/80 leading-snug">
+                <li>Alterne entre erros revisados e não revisados</li>
+                <li>Use os filtros para encontrar erros específicos</li>
+                <li>Marque erros como revisados ao estudá-los</li>
+                <li>Visualize a questão, sua resposta e as anotações que fez para cada erro</li>
+              </ul>
+            </div>
+          )}
+        </div>
       </div>
       
       {/* Filtros */}

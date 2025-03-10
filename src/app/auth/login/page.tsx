@@ -16,6 +16,7 @@ import { Label } from "@/components/ui/label"
 import { useAuth } from "@/hooks/useAuth"
 import { useState } from "react"
 import { Alert, AlertDescription } from "@/components/ui/alert"
+import Image from "next/image"
 
 export default function LoginPage() {
   const [email, setEmail] = useState("")
@@ -32,8 +33,15 @@ export default function LoginPage() {
       <Card className="w-full max-w-sm">
         <form onSubmit={handleSubmit}>
           <CardHeader className="space-y-1">
-            <div className="flex justify-center mb-4 text-4xl">
-              📚
+            <div className="flex justify-center mb-4">
+              <Image 
+                src="https://uwemjaqphbytkkhalqge.supabase.co/storage/v1/object/public/images//logo_sfy_transp.webp"
+                alt="Studiefy Logo"
+                width={64}
+                height={64}
+                className="w-16 h-16"
+                unoptimized
+              />
             </div>
             <CardTitle className="text-2xl text-center">
               Bem-vindo de volta

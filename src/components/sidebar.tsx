@@ -11,6 +11,7 @@ import { ProfileDropdown } from "./profile-dropdown"
 import { useState, useEffect } from 'react'
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip"
 import { ComingSoonDialog } from './coming-soon-dialog'
+import Image from 'next/image'
 
 const routes = [
   {
@@ -158,7 +159,15 @@ export function Sidebar({ isCollapsed = false, onCollapseChange, showToggle = tr
                 innerCollapsed ? "justify-center pl-0 w-full" : "pl-3"
               )}
             >
-              {innerCollapsed ? "S" : "Studiefy"}
+              <Image 
+                src="https://uwemjaqphbytkkhalqge.supabase.co/storage/v1/object/public/images//logo_branca.webp"
+                alt="Studiefy Logo"
+                width={32}
+                height={32}
+                className="w-8 h-8"
+                unoptimized
+              />
+              {!innerCollapsed && <span className="ml-2">Studiefy</span>}
             </Link>
             {showToggle && (
               <Button 

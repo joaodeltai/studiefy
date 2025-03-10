@@ -3,11 +3,15 @@
 import { useAllContents } from "@/hooks/useAllContents"
 import { ContentWithSubjectCard } from "@/components/content-with-subject-card"
 import { ContentFilters } from "@/components/content-filters"
-import { Loader2 } from "lucide-react"
-import { useState, useEffect, useCallback } from "react"
+import { Loader2, Info } from "lucide-react"
+import { useState, useEffect, useCallback, useRef } from "react"
+import { Button } from "@/components/ui/button"
 
 export default function StudyPage() {
   const [localCategoryId, setLocalCategoryId] = useState<string | null>(null)
+  const [showInfo, setShowInfo] = useState(false)
+  const infoRef = useRef<HTMLDivElement>(null)
+  const btnRef = useRef<HTMLButtonElement>(null)
   const {
     contents,
     loading,
@@ -67,6 +71,24 @@ export default function StudyPage() {
     }
   }, [updateFilters]);
 
+  // Fechar ao clicar fora
+  useEffect(() => {
+    function handleClickOutside(event: MouseEvent) {
+      if (showInfo && 
+          infoRef.current && 
+          btnRef.current && 
+          !infoRef.current.contains(event.target as Node) &&
+          !btnRef.current.contains(event.target as Node)) {
+        setShowInfo(false)
+      }
+    }
+    
+    document.addEventListener("mousedown", handleClickOutside)
+    return () => {
+      document.removeEventListener("mousedown", handleClickOutside)
+    }
+  }, [showInfo])
+
   // Remover log para evitar possíveis problemas
   // useEffect(() => {
   //   if (!loading) {
@@ -83,9 +105,43 @@ export default function StudyPage() {
   }
 
   return (
-    <div className="h-full p-4">
+    <div className="min-h-screen h-full p-4">
       <div className="flex items-center gap-3 mb-6 md:pl-12">
         <h1 className="text-2xl font-semibold text-studiefy-black">Estudo</h1>
+        <div className="relative">
+          <Button 
+            variant="ghost" 
+            size="icon" 
+            className="h-8 w-8 rounded-full hover:bg-studiefy-black/10"
+            onClick={() => setShowInfo(!showInfo)}
+            ref={btnRef}
+          >
+            <Info className="h-4 w-4 text-studiefy-black/70 hover:text-studiefy-black" />
+            <span className="sr-only">Informações sobre Estudo</span>
+          </Button>
+          
+          {showInfo && (
+            <div 
+              ref={infoRef}
+              className="absolute z-50 top-full left-0 mt-2 w-72 bg-white text-studiefy-black border border-studiefy-black/10 shadow-md p-3 rounded-md text-sm animate-in fade-in-50 duration-200"
+              style={{
+                boxShadow: "0 4px 12px rgba(0, 0, 0, 0.08)"
+              }}
+            >
+              <h3 className="text-base font-medium mb-1.5 text-studiefy-black">Sobre Estudo</h3>
+              <p className="text-studiefy-black/80 mb-1.5 leading-snug">
+                <strong>Estudo</strong> é onde você encontra todos os seus conteúdos de todas as matérias em um só lugar, facilitando a organização dos seus estudos.
+              </p>
+              <p className="font-medium mb-1 mt-2 text-studiefy-black">Como usar:</p>
+              <ul className="list-disc list-inside text-studiefy-black/80 leading-snug">
+                <li>Use os filtros para encontrar conteúdos específicos</li>
+                <li>Marque conteúdos como concluídos ao finalizar</li>
+                <li>Organize por prioridade e data de vencimento</li>
+                <li>Clique em um conteúdo para ver seus detalhes</li>
+              </ul>
+            </div>
+          )}
+        </div>
       </div>
 
       <div className="space-y-4">

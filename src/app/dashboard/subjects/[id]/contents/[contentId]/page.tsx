@@ -380,7 +380,7 @@ export default function ContentPage({ params }: PageProps) {
   }
 
   return (
-    <div className="h-full p-4">
+    <div className="min-h-screen h-full p-4">
       <div className="flex items-center gap-3 mb-6">
         <Button
           variant="ghost"

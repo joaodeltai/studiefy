@@ -13,11 +13,12 @@ const Footer = () => {
           <div className="space-y-4">
             <Link href="/" className="flex items-center space-x-2">
               <Image
-                src="/images/logo_sfy_transp.webp"
+                src="https://uwemjaqphbytkkhalqge.supabase.co/storage/v1/object/public/images//logo_sfy_transp.webp"
                 alt="Studiefy Logo"
                 width={32}
                 height={32}
                 className="w-8 h-8"
+                unoptimized
               />
               <span className="text-xl font-bold">Studiefy</span>
             </Link>

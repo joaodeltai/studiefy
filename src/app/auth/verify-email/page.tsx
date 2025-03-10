@@ -9,14 +9,22 @@ import {
 } from "@/components/ui/card"
 import Link from "next/link"
 import { Button } from "@/components/ui/button"
+import Image from "next/image"
 
 export default function VerifyEmailPage() {
   return (
     <div className="flex items-center justify-center min-h-screen p-8">
       <Card className="w-full max-w-sm">
         <CardHeader className="space-y-1">
-          <div className="flex justify-center mb-4 text-4xl">
-            📧
+          <div className="flex justify-center mb-4">
+            <Image 
+              src="https://uwemjaqphbytkkhalqge.supabase.co/storage/v1/object/public/images//logo_sfy_transp.webp"
+              alt="Studiefy Logo"
+              width={64}
+              height={64}
+              className="w-16 h-16"
+              unoptimized
+            />
           </div>
           <CardTitle className="text-2xl text-center">
             Verifique seu email

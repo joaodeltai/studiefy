@@ -8,9 +8,9 @@ import { PrioritySelector } from "@/components/priority-selector"
 import { DeleteContentDialog } from "@/components/delete-content-dialog"
 import { DatePicker } from "@/components/date-picker"
 import { ContentFilters } from "@/components/content-filters"
-import { Loader2, ChevronLeft, ChevronDown, AlertTriangle, CreditCard, PanelLeft } from "lucide-react"
+import { Loader2, ChevronLeft, ChevronDown, AlertTriangle, CreditCard, PanelLeft, Info } from "lucide-react"
 import { notFound, useRouter, useParams } from "next/navigation"
-import { KeyboardEvent, useState, useCallback } from "react"
+import { KeyboardEvent, useState, useCallback, useRef, useEffect } from "react"
 import { toast } from "sonner"
 import { format } from "date-fns"
 import { ptBR } from "date-fns/locale"
@@ -218,6 +218,27 @@ export default function SubjectPage() {
   const [newContentDueDate, setNewContentDueDate] = useState<Date | null>(null)
   const [newContentCategoryId, setNewContentCategoryId] = useState<string | null>(null)
   const [localCategoryId, setLocalCategoryId] = useState<string | null>(null)
+  const [showInfo, setShowInfo] = useState(false)
+  const infoRef = useRef<HTMLDivElement>(null)
+  const btnRef = useRef<HTMLButtonElement>(null)
+
+  // Fechar ao clicar fora
+  useEffect(() => {
+    function handleClickOutside(event: MouseEvent) {
+      if (showInfo && 
+          infoRef.current && 
+          btnRef.current && 
+          !infoRef.current.contains(event.target as Node) &&
+          !btnRef.current.contains(event.target as Node)) {
+        setShowInfo(false)
+      }
+    }
+    
+    document.addEventListener("mousedown", handleClickOutside)
+    return () => {
+      document.removeEventListener("mousedown", handleClickOutside)
+    }
+  }, [showInfo])
 
   // Função adaptadora para toggleComplete
   const handleToggleEventComplete = async (id: string) => {
@@ -311,7 +332,7 @@ export default function SubjectPage() {
   const completedContents = filteredContents.filter(content => content.completed)
 
   return (
-    <div className="h-full p-4">
+    <div className="min-h-screen h-full p-4">
       {/* Header para telas médias e grandes */}
       <div className="hidden md:flex flex-col md:flex-row md:items-center md:gap-3 mb-4">
         <div className="flex items-center gap-3">
@@ -322,6 +343,41 @@ export default function SubjectPage() {
           <h1 className="text-3xl font-bold text-studiefy-black">
             {subject.name}
           </h1>
+          <div className="relative">
+            <Button 
+              variant="ghost" 
+              size="icon" 
+              className="ml-1 h-8 w-8 rounded-full hover:bg-studiefy-black/10"
+              onClick={() => setShowInfo(!showInfo)}
+              ref={btnRef}
+            >
+              <Info className="h-4 w-4 text-studiefy-black/70 hover:text-studiefy-black" />
+              <span className="sr-only">Informações sobre Conteúdos</span>
+            </Button>
+            
+            {showInfo && (
+              <div 
+                ref={infoRef}
+                className="absolute z-50 top-full left-0 mt-2 w-72 bg-white text-studiefy-black border border-studiefy-black/10 shadow-md p-3 rounded-md text-sm animate-in fade-in-50 duration-200"
+                style={{
+                  boxShadow: "0 4px 12px rgba(0, 0, 0, 0.08)"
+                }}
+              >
+                <h3 className="text-base font-medium mb-1.5 text-studiefy-black">Sobre Conteúdos</h3>
+                <p className="text-studiefy-black/80 mb-1.5 leading-snug">
+                  <strong>Conteúdos</strong> são os tópicos de estudo dentro de cada matéria. Aqui você pode organizar tudo o que precisa estudar e acompanhar seu progresso.
+                </p>
+                <p className="font-medium mb-1 mt-2 text-studiefy-black">Como usar:</p>
+                <ul className="list-disc list-inside text-studiefy-black/80 leading-snug">
+                  <li>Adicione novos conteúdos digitando e pressionando Enter</li>
+                  <li>Use # para adicionar tags aos seus conteúdos</li>
+                  <li>Defina prioridades, datas e categorias para organizar melhor</li>
+                  <li>Marque como concluído ao finalizar o estudo de um conteúdo</li>
+                  <li>Clique em um conteúdo para acessar seus detalhes e anotações</li>
+                </ul>
+              </div>
+            )}
+          </div>
         </div>
         <div className="md:ml-auto flex items-center gap-2">
           <AddEventDialog
