@@ -1065,30 +1065,30 @@ export default function Home() {
               <div className="space-y-6">
                 <div className="flex items-start gap-4">
                   <div className="bg-primary/10 p-3 rounded-lg mt-1">
-                    <Target className="w-6 h-6 text-primary" />
+                    <Target className="w-6 h-6 text-foreground" />
                   </div>
                   <div>
-                    <h4 className="text-lg font-medium mb-1">Identifique seus pontos fracos</h4>
+                    <h4 className="inline-block px-2 py-1 rounded bg-yellow-500/10 text-lg font-medium mb-1">Identifique seus pontos fracos</h4>
                     <p className="text-foreground/70">Descubra exatamente quais conteúdos precisam de mais atenção e foque seus estudos onde realmente importa.</p>
                   </div>
                 </div>
                 
                 <div className="flex items-start gap-4">
                   <div className="bg-primary/10 p-3 rounded-lg mt-1">
-                    <BarChart2 className="w-6 h-6 text-primary" />
+                    <BarChart2 className="w-6 h-6 text-foreground" />
                   </div>
                   <div>
-                    <h4 className="text-lg font-medium mb-1">Acompanhe sua evolução</h4>
+                    <h4 className="inline-block px-2 py-1 rounded bg-green-500/10 text-lg font-medium mb-1">Acompanhe sua evolução</h4>
                     <p className="text-foreground/70">Visualize seu progresso à medida que transforma erros recorrentes em acertos consistentes.</p>
                   </div>
                 </div>
                 
                 <div className="flex items-start gap-4">
                   <div className="bg-primary/10 p-3 rounded-lg mt-1">
-                    <Brain className="w-6 h-6 text-primary" />
+                    <Brain className="w-6 h-6 text-foreground" />
                   </div>
                   <div>
-                    <h4 className="text-lg font-medium mb-1">Revisão inteligente</h4>
+                    <h4 className="inline-block px-2 py-1 rounded bg-red-500/10 text-lg font-medium mb-1">Revisão inteligente</h4>
                     <p className="text-foreground/70">Crie ciclos de revisão baseados na curva do esquecimento para maximizar a retenção do conteúdo.</p>
                   </div>
                 </div>
@@ -1126,17 +1126,17 @@ export default function Home() {
                   </thead>
                   <tbody>
                     <tr className="border-t border-foreground/10 hover:bg-muted/30 transition-colors">
-                      <td className="p-2 text-sm">Calcular a integral de x²+2x+1</td>
+                      <td className="p-2 text-sm">Questão 12 - Cálculo da integral</td>
                       <td className="p-2 text-sm">Matemática</td>
                       <td className="p-2 text-sm"><Badge variant="outline" className="bg-yellow-500/10 text-yellow-600 hover:bg-yellow-500/10 border-yellow-500/20">Média</Badge></td>
                     </tr>
                     <tr className="border-t border-foreground/10 hover:bg-muted/30 transition-colors">
-                      <td className="p-2 text-sm">Explicar o processo de fotossíntese</td>
+                      <td className="p-2 text-sm">Qustão 36 - Fotossíntese</td>
                       <td className="p-2 text-sm">Biologia</td>
                       <td className="p-2 text-sm"><Badge variant="outline" className="bg-green-500/10 text-green-600 hover:bg-green-500/10 border-green-500/20">Fácil</Badge></td>
                     </tr>
                     <tr className="border-t border-foreground/10 hover:bg-muted/30 transition-colors">
-                      <td className="p-2 text-sm">Analisar o contexto histórico da Revolução Francesa</td>
+                      <td className="p-2 text-sm">Questão 45 - Revolução Francesa</td>
                       <td className="p-2 text-sm">História</td>
                       <td className="p-2 text-sm"><Badge variant="outline" className="bg-red-500/10 text-red-600 hover:bg-red-500/10 border-red-500/20">Difícil</Badge></td>
                     </tr>
@@ -1147,15 +1147,15 @@ export default function Home() {
               {/* Estatísticas */}
               <div className="grid grid-cols-3 gap-4 mt-6">
                 <div className="bg-muted/30 p-3 rounded-lg text-center">
-                  <p className="text-2xl font-bold text-primary">24</p>
+                  <p className="text-2xl font-bold text-foreground">72</p>
                   <p className="text-xs text-foreground/70">Questões</p>
                 </div>
                 <div className="bg-muted/30 p-3 rounded-lg text-center">
-                  <p className="text-2xl font-bold text-primary">8</p>
+                  <p className="text-2xl font-bold text-foreground">8</p>
                   <p className="text-xs text-foreground/70">Matérias</p>
                 </div>
                 <div className="bg-muted/30 p-3 rounded-lg text-center">
-                  <p className="text-2xl font-bold text-primary">67%</p>
+                  <p className="text-2xl font-bold text-foreground">67%</p>
                   <p className="text-xs text-foreground/70">Revisadas</p>
                 </div>
               </div>
@@ -1172,7 +1172,7 @@ export default function Home() {
               className="bg-background border border-foreground/10 rounded-xl p-6 hover:border-primary hover:shadow-md transition-all"
             >
               <div className="bg-primary/10 p-3 rounded-lg w-fit mb-4">
-                <Filter className="w-6 h-6 text-primary" />
+                <Filter className="w-6 h-6 text-foreground" />
               </div>
               <h3 className="text-xl font-semibold mb-2">Filtragem Avançada</h3>
               <p className="text-foreground/70">Filtre seus erros por matéria, conteúdo, origem ou nível de dificuldade para uma revisão mais eficiente.</p>
@@ -1186,7 +1186,7 @@ export default function Home() {
               className="bg-background border border-foreground/10 rounded-xl p-6 hover:border-primary hover:shadow-md transition-all"
             >
               <div className="bg-primary/10 p-3 rounded-lg w-fit mb-4">
-                <BookOpen className="w-6 h-6 text-primary" />
+                <BookOpen className="w-6 h-6 text-foreground" />
               </div>
               <h3 className="text-xl font-semibold mb-2">Revisão Programada</h3>
               <p className="text-foreground/70">Crie ciclos de revisão baseados na curva do esquecimento para maximizar a retenção do conteúdo.</p>
@@ -1200,7 +1200,7 @@ export default function Home() {
               className="bg-background border border-foreground/10 rounded-xl p-6 hover:border-primary hover:shadow-md transition-all"
             >
               <div className="bg-primary/10 p-3 rounded-lg w-fit mb-4">
-                <FileText className="w-6 h-6 text-primary" />
+                <FileText className="w-6 h-6 text-foreground" />
               </div>
               <h3 className="text-xl font-semibold mb-2">Anotações Detalhadas</h3>
               <p className="text-foreground/70">Adicione notas personalizadas a cada questão para registrar explicações e dicas para não cometer o mesmo erro.</p>
@@ -1209,11 +1209,11 @@ export default function Home() {
           
           {/* CTA */}
           <div className="text-center mt-16">
-            <Button size="lg" className="bg-primary hover:bg-primary/90 text-white">
+            <Button size="lg" className="bg-foreground hover:bg-primary/90 text-white">
               Comece a usar o Caderno de Erros
             </Button>
             <p className="text-sm text-foreground/70 mt-4">
-              Disponível para todos os usuários do Studiefy
+              Somente no Studiefy
             </p>
           </div>
         </div>
@@ -1293,7 +1293,7 @@ export default function Home() {
               className="bg-foreground text-background rounded-3xl p-8 relative overflow-hidden"
             >
               <div className="absolute top-6 right-6">
-                <span className="bg-primary px-3 py-1 rounded-full text-sm font-medium">Recomendado</span>
+                <span className="bg-background px-3 py-1 rounded-full text-sm text-foreground font-medium">Recomendado</span>
               </div>
 
               <div className="mb-8">
@@ -1334,9 +1334,9 @@ export default function Home() {
 
               <Link href="/auth/register">
                 <Button
-                  className="w-full bg-primary hover:bg-primary/90 text-background transition-colors"
+                  className="w-full bg-background hover:bg-primary/90 text-foreground transition-colors"
                 >
-                  Obter Premium
+                  Começar premium
                 </Button>
               </Link>
 
@@ -1348,55 +1348,6 @@ export default function Home() {
 
         </div>
       </section>
-
-      {/* Seção 6 - Beta Tester */}
-      <div className="w-full bg-[#282828] py-16">
-        <div className="container mx-auto px-4">
-          <div className="w-full bg-[#f5f5f5] rounded-3xl p-8 md:p-12 relative overflow-hidden">
-            {/* Background Image */}
-            <div className="absolute inset-0 w-full h-full">
-              <Image
-                src="/images/creative-background-with-white-lines.jpg"
-                alt="Creative background"
-                fill
-                className="object-cover opacity-50"
-              />
-            </div>
-
-            {/* Content */}
-            <div className="relative z-10">
-              <div className="w-full lg:w-[45%]">
-                <h2 className="text-2xl sm:text-3xl md:text-4xl lg:text-5xl font-bold mb-8 uppercase text-left">
-                  Comece agora como Beta Tester
-                </h2>
-
-                <div className="space-y-4 text-left mb-8">
-                  <div className="flex items-center gap-2 text-lg md:text-xl">
-                    <span className="text-2xl">✦</span>
-                    <span>Apenas 220 vagas</span>
-                  </div>
-                  <div className="flex items-center gap-2 text-lg md:text-xl">
-                    <span className="text-2xl">✦</span>
-                    <span>Acesso vitalício gratuito</span>
-                  </div>
-                  <div className="flex items-center gap-2 text-lg md:text-xl font-bold bg-black/10 p-4 rounded-xl">
-                    <span className="text-2xl">✦</span>
-                    <span>Um SUPER BÔNUS: Todas as provas da UFRGS organizadas por assunto para você estudar</span>
-                  </div>
-                </div>
-
-                <Link href="/auth/register">
-                  <Button
-                    className="w-full sm:w-auto bg-[#282828] hover:bg-[#383838] text-white font-bold py-4 sm:py-6 px-4 sm:px-8 rounded-xl text-sm sm:text-base md:text-lg whitespace-normal sm:whitespace-nowrap"
-                  >
-                    COMEÇAR AGORA GRATUITAMENTE
-                  </Button>
-                </Link>
-              </div>
-            </div>
-          </div>
-        </div>
-      </div>
       <FAQ />
       <Footer />
     </div>
