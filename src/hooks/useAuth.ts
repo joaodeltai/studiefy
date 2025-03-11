@@ -38,7 +38,7 @@ export function useAuth() {
         }
         throw signInError
       }
-
+      
       router.refresh()
       router.push('/dashboard')
     } catch (error) {

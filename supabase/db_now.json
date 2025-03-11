@@ -11,6 +11,11 @@
   },
   {
     "table_name": "events",
+    "column_name": "updated_at",
+    "data_type": "timestamp with time zone"
+  },
+  {
+    "table_name": "events",
     "column_name": "completed",
     "data_type": "boolean"
   },
@@ -245,26 +250,6 @@
     "data_type": "timestamp with time zone"
   },
   {
-    "table_name": "event_sources",
-    "column_name": "id",
-    "data_type": "uuid"
-  },
-  {
-    "table_name": "event_sources",
-    "column_name": "user_id",
-    "data_type": "uuid"
-  },
-  {
-    "table_name": "event_sources",
-    "column_name": "created_at",
-    "data_type": "timestamp with time zone"
-  },
-  {
-    "table_name": "event_sources",
-    "column_name": "updated_at",
-    "data_type": "timestamp with time zone"
-  },
-  {
     "table_name": "profiles",
     "column_name": "id",
     "data_type": "uuid"
@@ -308,6 +293,26 @@
     "table_name": "profiles",
     "column_name": "subscription_plan",
     "data_type": "USER-DEFINED"
+  },
+  {
+    "table_name": "event_sources",
+    "column_name": "id",
+    "data_type": "uuid"
+  },
+  {
+    "table_name": "event_sources",
+    "column_name": "user_id",
+    "data_type": "uuid"
+  },
+  {
+    "table_name": "event_sources",
+    "column_name": "created_at",
+    "data_type": "timestamp with time zone"
+  },
+  {
+    "table_name": "event_sources",
+    "column_name": "updated_at",
+    "data_type": "timestamp with time zone"
   },
   {
     "table_name": "error_entries",
@@ -375,23 +380,13 @@
     "data_type": "timestamp with time zone"
   },
   {
-    "table_name": "events",
-    "column_name": "updated_at",
-    "data_type": "timestamp with time zone"
-  },
-  {
     "table_name": "subject_categories",
     "column_name": "name",
     "data_type": "text"
   },
   {
-    "table_name": "profiles",
-    "column_name": "username",
-    "data_type": "text"
-  },
-  {
-    "table_name": "error_entries",
-    "column_name": "notes",
+    "table_name": "event_sources",
+    "column_name": "name",
     "data_type": "text"
   },
   {
@@ -405,13 +400,13 @@
     "data_type": "text"
   },
   {
-    "table_name": "subscriptions",
-    "column_name": "stripe_customer_id",
+    "table_name": "error_entries",
+    "column_name": "notes",
     "data_type": "text"
   },
   {
-    "table_name": "profiles",
-    "column_name": "role",
+    "table_name": "subscriptions",
+    "column_name": "stripe_customer_id",
     "data_type": "text"
   },
   {
@@ -420,13 +415,13 @@
     "data_type": "text"
   },
   {
-    "table_name": "event_sources",
-    "column_name": "name",
+    "table_name": "subscriptions",
+    "column_name": "stripe_subscription_id",
     "data_type": "text"
   },
   {
-    "table_name": "subscriptions",
-    "column_name": "stripe_subscription_id",
+    "table_name": "profiles",
+    "column_name": "name",
     "data_type": "text"
   },
   {
@@ -435,13 +430,13 @@
     "data_type": "text"
   },
   {
-    "table_name": "contents",
-    "column_name": "title",
+    "table_name": "error_entries",
+    "column_name": "question",
     "data_type": "text"
   },
   {
-    "table_name": "error_entries",
-    "column_name": "question",
+    "table_name": "contents",
+    "column_name": "title",
     "data_type": "text"
   },
   {
@@ -456,12 +451,17 @@
   },
   {
     "table_name": "profiles",
-    "column_name": "name",
+    "column_name": "avatar_url",
     "data_type": "text"
   },
   {
-    "table_name": "payment_history",
-    "column_name": "invoice_pdf",
+    "table_name": "profiles",
+    "column_name": "email",
+    "data_type": "text"
+  },
+  {
+    "table_name": "profiles",
+    "column_name": "username",
     "data_type": "text"
   },
   {
@@ -471,7 +471,17 @@
   },
   {
     "table_name": "payment_history",
+    "column_name": "invoice_pdf",
+    "data_type": "text"
+  },
+  {
+    "table_name": "payment_history",
     "column_name": "stripe_invoice_id",
+    "data_type": "text"
+  },
+  {
+    "table_name": "profiles",
+    "column_name": "role",
     "data_type": "text"
   },
   {
@@ -480,18 +490,13 @@
     "data_type": "text"
   },
   {
+    "table_name": "profiles",
+    "column_name": "phone_number",
+    "data_type": "text"
+  },
+  {
     "table_name": "error_entries",
     "column_name": "difficulty",
-    "data_type": "text"
-  },
-  {
-    "table_name": "profiles",
-    "column_name": "avatar_url",
-    "data_type": "text"
-  },
-  {
-    "table_name": "profiles",
-    "column_name": "email",
     "data_type": "text"
   }
 ]

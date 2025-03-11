@@ -11,7 +11,6 @@ dist/
 downloads/
 eggs/
 .eggs/
-# lib/  # Comentado para permitir que os arquivos lib/stripe.ts e lib/supabase/server.ts sejam incluídos no repositório
 lib64/
 parts/
 sdist/
@@ -69,3 +68,7 @@ yarn-error.log*
 .env.development.local
 .env.test.local
 .env.production.local
+
+
+# Outros arquivos
+db_now.json

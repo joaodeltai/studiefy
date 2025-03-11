@@ -18,7 +18,11 @@ import {
   AlertDialogTitle,
 } from "@/components/ui/alert-dialog"
 
-export function EventSourcesManager() {
+interface EventSourcesManagerProps {
+  hideTitle?: boolean;
+}
+
+export function EventSourcesManager({ hideTitle = false }: EventSourcesManagerProps) {
   const { sources, loading, addSource, deleteSource, updateSource } = useEventSources()
   const [isAddSourceDialogOpen, setIsAddSourceDialogOpen] = useState(false)
   const [editingSource, setEditingSource] = useState<EventSource | null>(null)
@@ -62,17 +66,19 @@ export function EventSourcesManager() {
 
   return (
     <div className="space-y-4">
-      <div className="flex items-center justify-between">
-        <h3 className="text-lg font-medium">Origens de Eventos</h3>
-        <Button 
-          size="sm" 
-          className="gap-1"
-          onClick={() => setIsAddSourceDialogOpen(true)}
-        >
-          <Plus className="h-4 w-4" />
-          Adicionar
-        </Button>
-      </div>
+      {!hideTitle && (
+        <div className="flex items-center justify-between">
+          <h3 className="text-lg font-medium">Origens de Eventos</h3>
+          <Button 
+            size="sm" 
+            className="gap-1"
+            onClick={() => setIsAddSourceDialogOpen(true)}
+          >
+            <Plus className="h-4 w-4" />
+            Adicionar
+          </Button>
+        </div>
+      )}
       
       {loading ? (
         <div className="flex items-center justify-center py-4">

@@ -20,9 +20,10 @@ import {
 
 interface SubjectCategoriesManagerProps {
   subjectId: string | null
+  hideTitle?: boolean
 }
 
-export function SubjectCategoriesManager({ subjectId }: SubjectCategoriesManagerProps) {
+export function SubjectCategoriesManager({ subjectId, hideTitle = false }: SubjectCategoriesManagerProps) {
   const { categories, loading, addCategory, deleteCategory, updateCategory } = useSubjectCategories(subjectId || "")
   const [isAddCategoryDialogOpen, setIsAddCategoryDialogOpen] = useState(false)
   const [editingCategory, setEditingCategory] = useState<SubjectCategory | null>(null)
@@ -68,9 +69,11 @@ export function SubjectCategoriesManager({ subjectId }: SubjectCategoriesManager
   if (!subjectId) {
     return (
       <div className="space-y-4">
-        <div className="flex items-center justify-between">
-          <h3 className="text-lg font-medium">Categorias da Matéria</h3>
-        </div>
+        {!hideTitle && (
+          <div className="flex items-center justify-between">
+            <h3 className="text-lg font-medium">Categorias da Matéria</h3>
+          </div>
+        )}
         <div className="text-center py-8 text-studiefy-gray border rounded-md bg-gray-50">
           <p className="font-medium">Selecione uma matéria para gerenciar suas categorias</p>
           <p className="text-sm mt-2">As categorias ajudam a organizar os conteúdos de estudo dentro de cada matéria.</p>
@@ -81,17 +84,19 @@ export function SubjectCategoriesManager({ subjectId }: SubjectCategoriesManager
 
   return (
     <div className="space-y-4">
-      <div className="flex items-center justify-between">
-        <h3 className="text-lg font-medium">Categorias da Matéria</h3>
-        <Button 
-          size="sm" 
-          className="gap-1"
-          onClick={() => setIsAddCategoryDialogOpen(true)}
-        >
-          <Plus className="h-4 w-4" />
-          Adicionar
-        </Button>
-      </div>
+      {!hideTitle && (
+        <div className="flex items-center justify-between">
+          <h3 className="text-lg font-medium">Categorias da Matéria</h3>
+          <Button 
+            size="sm" 
+            className="gap-1"
+            onClick={() => setIsAddCategoryDialogOpen(true)}
+          >
+            <Plus className="h-4 w-4" />
+            Adicionar
+          </Button>
+        </div>
+      )}
       
       {loading ? (
         <div className="flex items-center justify-center py-4">

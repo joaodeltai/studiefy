@@ -16,7 +16,6 @@ import {
   useMotionValue,
   useTransform,
 } from "framer-motion"
-import VacancyBanner from "@/components/VacancyBanner"
 import {
   Tooltip,
   TooltipContent,
@@ -251,10 +250,9 @@ export default function Home() {
 
   return (
     <div className="min-h-screen flex flex-col bg-background text-foreground">
-      <VacancyBanner />
       
       {/* Header */}
-      <header className="bg-background py-4 px-4 border-b border-foreground/10 mb-0 mt-8">
+      <header className="bg-background py-4 px-4 mb-0">
         <div className="container mx-auto flex justify-between items-center">
           <Link href="/" className="flex items-center gap-2 text-2xl font-bold hover:text-primary transition-colors">
             <Image 
@@ -270,6 +268,16 @@ export default function Home() {
               Beta
             </span>
           </Link>
+
+          {/* Menu central */}
+          <div className="hidden md:flex items-center gap-6">
+            <Link href="/blog" className="font-medium hover:text-primary transition-colors">
+              Blog
+            </Link>
+            <Link href="/precos" className="font-medium hover:text-primary transition-colors">
+              Preços
+            </Link>
+          </div>
 
           {/* Auth buttons */}
           <div className="flex items-center gap-4">
@@ -803,7 +811,7 @@ export default function Home() {
       <div className="mt-8 overflow-hidden">
         {/* Título da seção com destaque */}
         <div className="relative px-4 mb-16">
-          <h2 className="text-3xl md:text-4xl lg:text-5xl font-bold text-center">
+          <h2 className="text-3xl font-bold text-center">
             <span>Pra ti que é...</span>
           </h2>
         </div>

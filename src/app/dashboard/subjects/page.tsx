@@ -3,12 +3,13 @@
 import { useState, useEffect, useRef } from "react"
 import { SubjectCard } from "@/components/subject-card"
 import { useSubjects } from "@/hooks/useSubjects"
-import { Loader2, PanelLeft, Info } from "lucide-react"
+import { Loader2, PanelLeft, Info, Plus } from "lucide-react"
 import { Button } from "@/components/ui/button"
 import { useRouter } from "next/navigation"
+import { AddSubjectDialog } from "@/components/add-subject-dialog"
 
 export default function SubjectsPage() {
-  const { subjects, loading } = useSubjects()
+  const { subjects, loading, addSubject } = useSubjects()
   const router = useRouter()
   const [showInfoDesktop, setShowInfoDesktop] = useState(false)
   const [showInfoMobile, setShowInfoMobile] = useState(false)
@@ -16,6 +17,7 @@ export default function SubjectsPage() {
   const infoMobileRef = useRef<HTMLDivElement>(null)
   const btnDesktopRef = useRef<HTMLButtonElement>(null)
   const btnMobileRef = useRef<HTMLButtonElement>(null)
+  const [isAddSubjectDialogOpen, setIsAddSubjectDialogOpen] = useState(false)
 
   // Fechar ao clicar fora
   useEffect(() => {
@@ -89,10 +91,19 @@ export default function SubjectsPage() {
               <ul className="list-disc list-inside text-studiefy-black/80 leading-snug">
                 <li>Clique em uma matéria para acessar seus conteúdos</li>
                 <li>Use o menu (três pontos) para editar ou excluir</li>
-                <li>Adicione novas matérias em Configurações</li>
+                <li>Clique no botão "+" para adicionar uma nova matéria</li>
               </ul>
             </div>
           )}
+        </div>
+        
+        <div className="ml-auto">
+          <AddSubjectDialog 
+            onAddSubject={addSubject}
+            isOpenExternal={isAddSubjectDialogOpen}
+            onOpenChangeExternal={setIsAddSubjectDialogOpen}
+            showTriggerButton={true}
+          />
         </div>
       </div>
 
@@ -139,19 +150,25 @@ export default function SubjectsPage() {
                 <ul className="list-disc list-inside text-studiefy-black/80 leading-snug">
                   <li>Clique em uma matéria para acessar seus conteúdos</li>
                   <li>Use o menu (três pontos) para editar ou excluir</li>
-                  <li>Adicione novas matérias em Configurações</li>
+                  <li>Clique no botão "+" para adicionar uma nova matéria</li>
                 </ul>
               </div>
             )}
           </div>
         </div>
-        <div className="w-10"></div> {/* Espaçador para centralizar o título */}
+        <Button
+          variant="outline"
+          className="p-2"
+          onClick={() => setIsAddSubjectDialogOpen(true)}
+        >
+          <Plus className="h-5 w-5" />
+        </Button>
       </div>
 
       {subjects.length === 0 ? (
         <div className="flex flex-col items-center justify-center h-[calc(100vh-200px)] text-studiefy-gray">
           <p>Nenhuma matéria cadastrada</p>
-          <p className="text-sm">Adicione matérias na página de Configurações</p>
+          <p className="text-sm">Adicione matérias clicando no botão "+" acima</p>
         </div>
       ) : (
         <div className="px-1 sm:px-0">
@@ -167,6 +184,13 @@ export default function SubjectsPage() {
           </div>
         </div>
       )}
+      
+      <AddSubjectDialog 
+        onAddSubject={addSubject} 
+        isOpenExternal={isAddSubjectDialogOpen}
+        onOpenChangeExternal={setIsAddSubjectDialogOpen}
+        showTriggerButton={false}
+      />
     </div>
   )
 }

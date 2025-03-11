@@ -111,7 +111,7 @@ export function ErrorNotebook({
         newCategoryId === "none" ? undefined : newCategoryId, 
         newSourceId === "none" ? undefined : newSourceId, 
         newDifficulty === "none" ? undefined : newDifficulty, 
-        newNotes
+        newNotes || undefined
       )
       
       // Resetar o formulário
@@ -352,7 +352,7 @@ export function ErrorNotebook({
                       />
                     </td>
                     <td className="py-2">
-                      <Select value={newSubjectId} onValueChange={setNewSubjectId}>
+                      <Select value={newSubjectId || undefined} onValueChange={setNewSubjectId}>
                         <SelectTrigger className={cleanSelectTriggerStyle}>
                           <SelectValue placeholder="Selecione a matéria" />
                         </SelectTrigger>
@@ -368,7 +368,7 @@ export function ErrorNotebook({
                     </td>
                     <td className="py-2">
                       <Select 
-                        value={newCategoryId} 
+                        value={newCategoryId || undefined} 
                         onValueChange={setNewCategoryId}
                         disabled={!newSubjectId || filteredCategories.length === 0}
                       >
@@ -386,7 +386,7 @@ export function ErrorNotebook({
                       </Select>
                     </td>
                     <td className="py-2">
-                      <Select value={newSourceId} onValueChange={setNewSourceId}>
+                      <Select value={newSourceId || undefined} onValueChange={setNewSourceId}>
                         <SelectTrigger className={cleanSelectTriggerStyle}>
                           <SelectValue placeholder="Selecione a origem" />
                         </SelectTrigger>
@@ -401,7 +401,7 @@ export function ErrorNotebook({
                       </Select>
                     </td>
                     <td className="py-2">
-                      <Select value={newDifficulty} onValueChange={setNewDifficulty}>
+                      <Select value={newDifficulty || undefined} onValueChange={setNewDifficulty}>
                         <SelectTrigger className={cleanSelectTriggerStyle}>
                           <SelectValue placeholder="Selecione a dificuldade" />
                         </SelectTrigger>

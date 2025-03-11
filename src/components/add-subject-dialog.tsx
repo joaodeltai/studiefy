@@ -85,10 +85,11 @@ export function AddSubjectDialog({
       {showTriggerButton && (
         <DialogTrigger asChild>
           <Button
-            size="icon"
-            className="fixed bottom-6 right-6 h-14 w-14 rounded-full shadow-lg bg-[#282828] hover:bg-[#c8ff29] hover:text-[#282828] transition-colors"
+            variant="outline"
+            className="gap-2"
           >
-            <Plus className="h-6 w-6 text-[#f5f3f5]" />
+            <Plus className="h-4 w-4" />
+            <span className="hidden sm:inline">Matéria</span>
           </Button>
         </DialogTrigger>
       )}
