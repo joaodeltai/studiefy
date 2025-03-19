@@ -1,12 +1,12 @@
 'use client';
 
-import React from 'react';
+import React, { useState } from 'react';
 import { Button } from "@/components/ui/button";
 import Link from "next/link";
 import { Input } from "@/components/ui/input";
 import { useAuth } from '@/hooks/useAuth'
 import { useRouter } from 'next/navigation'
-import { Mouse, Stethoscope, Info } from 'lucide-react'
+import { Mouse, Stethoscope, Info, PieChart, TrendingUp, Lightbulb, ChevronRight } from 'lucide-react'
 import Image from 'next/image'
 import { interpolate } from "flubber"
 import {
@@ -30,15 +30,15 @@ import {
 } from "@/components/ui/dialog"
 import { VisuallyHidden } from "@radix-ui/react-visually-hidden"
 import { cn } from "@/lib/utils"
-import { Flame, Timer, BookCheck, LineChart, LayoutGrid, Target, BookOpen, Brain, Cog, Check, X } from 'lucide-react'
+import { Flame, Timer, BookCheck, LineChart, LayoutGrid, Target, BookOpen, Brain, Cog, Check, X, BarChart2, Filter, FileText, PlusCircle } from 'lucide-react'
 import Footer from "@/components/global/Footer";
 import { FAQ } from "@/components/FAQ";
 import { Badge } from "@/components/ui/badge";
-import { BarChart2, Filter, FileText, PlusCircle } from "lucide-react";
+import { PREMIUM_MONTHLY_PRICE_ID, PREMIUM_ANNUAL_PRICE_ID } from '@/lib/stripe-client';
 
 const paths = [
   "M9 16.17L4.83 12l-1.42 1.41L9 19 21 7l-1.41-1.41L9 16.17z", // Check
-  "M19 6.41L17.59 5 12 10.59 6.41 5 5 6.41 10.59 12 5 17.59 6.41 19 12 13.41 17.59 19 19 17.59 13.41 12 19 6.41z", // X
+  "M19 6.41L17.59 5 12 10.59 6.41 5 5 6.41 10.59 12 5 17.59 6.41 19 19 17.59 13.41 12 19 6.41z", // X
   "M3 17.25V21h3.75L17.81 9.94l-3.75-3.75L3 17.25zM20.71 7.04c.39-.39.39-1.02 0-1.41l-2.34-2.34c-.39-.39-1.02-.39-1.41 0l-1.83 1.83 3.75 3.75 1.83-1.83z" // Pencil
 ]
 
@@ -72,7 +72,7 @@ const IconMorphing = () => {
       onComplete: () => {
         if (pathIndex === paths.length) {
           // Quando chegar no último (que é a cópia do primeiro),
-          // volta instantaneamente para o primeiro sem animação
+          // volta instantamente para o primeiro sem animação
           progress.set(0)
           setPathIndex(0)
         } else {
@@ -247,36 +247,115 @@ const AnimatedFlame = () => {
 export default function Home() {
   const { user } = useAuth()
   const router = useRouter()
+  const [subscriptionPeriod, setSubscriptionPeriod] = useState<'monthly' | 'annual'>('monthly')
+  const [isLoading, setIsLoading] = useState(false)
+
+  // Função para iniciar o checkout do Stripe
+  const handleCheckout = async () => {
+    if (!user) {
+      // Se o usuário não estiver logado, redireciona para a página de registro
+      router.push('/auth/register');
+      return;
+    }
+
+    setIsLoading(true);
+
+    try {
+      // Determina qual ID de preço usar com base no período selecionado
+      const priceId = subscriptionPeriod === 'monthly' 
+        ? PREMIUM_MONTHLY_PRICE_ID 
+        : PREMIUM_ANNUAL_PRICE_ID;
+
+      // Chama a API para criar uma sessão de checkout
+      const response = await fetch('/api/subscriptions/create-checkout-session', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({ priceId }),
+      });
+
+      const { url } = await response.json();
+
+      // Redireciona para a página de checkout do Stripe
+      window.location.href = url;
+    } catch (error) {
+      console.error('Erro ao iniciar checkout:', error);
+      alert('Ocorreu um erro ao processar o pagamento. Por favor, tente novamente.');
+    } finally {
+      setIsLoading(false);
+    }
+  };
+
+  // Função para scroll suave até a seção de planos
+  const scrollToPlanos = (e: React.MouseEvent) => {
+    e.preventDefault();
+    const planosSection = document.getElementById('planos');
+    if (planosSection) {
+      // Posição atual do scroll
+      const startPosition = window.pageYOffset;
+      // Posição final desejada (com ajuste para o header fixo)
+      const targetPosition = planosSection.offsetTop - 100;
+      // Distância a percorrer
+      const distance = targetPosition - startPosition;
+      // Duração da animação em milissegundos (mais rápido)
+      const duration = 500;
+      // Tempo de início
+      let startTime: number | null = null;
+      
+      // Função de animação
+      function animation(currentTime: number) {
+        if (startTime === null) startTime = currentTime;
+        const timeElapsed = currentTime - startTime;
+        const progress = Math.min(timeElapsed / duration, 1);
+        
+        // Função de easing para dar um efeito mais natural
+        // Usando easeOutQuart para um início rápido e desaceleração suave no final
+        const easeOutQuart = (t: number) => 1 - Math.pow(1 - t, 4);
+        
+        window.scrollTo(0, startPosition + distance * easeOutQuart(progress));
+        
+        if (timeElapsed < duration) {
+          requestAnimationFrame(animation);
+        }
+      }
+      
+      // Iniciar a animação
+      requestAnimationFrame(animation);
+    }
+  };
 
   return (
     <div className="min-h-screen flex flex-col bg-background text-foreground">
       
       {/* Header */}
-      <header className="bg-background py-4 px-4 mb-0">
-        <div className="container mx-auto flex justify-between items-center">
-          <Link href="/" className="flex items-center gap-2 text-2xl font-bold hover:text-primary transition-colors">
-            <Image 
-              src="https://uwemjaqphbytkkhalqge.supabase.co/storage/v1/object/public/images//logo_sfy_transp.webp"
-              alt="Studiefy Logo"
-              width={32}
-              height={32}
-              className="w-8 h-8"
-              unoptimized
-            />
-            Studiefy
-            <span className="text-xs px-2 py-0.5 bg-gradient-to-r from-foreground via-foreground/80 to-foreground bg-[length:200%_100%] animate-shimmer rounded-full font-medium text-background">
-              Beta
-            </span>
-          </Link>
+      <header className="fixed top-4 left-0 right-0 z-50 mx-4 bg-background/80 backdrop-blur-md py-4 px-8 rounded-full shadow-sm">
+        <div className="container mx-auto max-w-6xl flex justify-between items-center">
+          <div className="flex items-center gap-6">
+            <Link href="/" className="flex items-center gap-2 text-2xl font-bold hover:text-primary transition-colors">
+              <Image 
+                src="https://uwemjaqphbytkkhalqge.supabase.co/storage/v1/object/public/images//logo_sfy_transp.webp"
+                alt="Studiefy Logo"
+                width={44}
+                height={44}
+                className="w-12 h-12"
+                unoptimized
+              />
+              Studiefy
+              <span className="text-xs px-2 py-0.5 bg-gradient-to-r from-foreground via-foreground/80 to-foreground bg-[length:200%_100%] animate-shimmer rounded-full font-medium text-background">
+                Beta
+              </span>
+            </Link>
 
-          {/* Menu central */}
-          <div className="hidden md:flex items-center gap-6">
-            <Link href="/blog" className="font-medium hover:text-primary transition-colors">
-              Blog
-            </Link>
-            <Link href="/precos" className="font-medium hover:text-primary transition-colors">
-              Preços
-            </Link>
+            {/* Menu central movido para o lado esquerdo */}
+            <div className="flex items-center gap-6">
+              <Link href="/blog" className="font-bold hover:text-primary transition-colors">
+                Blog
+              </Link>
+              <Link href="#planos" onClick={scrollToPlanos} className="font-bold hover:text-primary transition-colors">
+                Preços
+              </Link>
+            </div>
           </div>
 
           {/* Auth buttons */}
@@ -289,7 +368,7 @@ export default function Home() {
             ) : (
               <div className="flex gap-4">
                 <Link href="/auth/login">
-                  <Button variant="ghost" className="hover:text-primary transition-colors">Login</Button>
+                  <Button variant="ghost" className="hover:text-primary transition-colors border border-foreground">Login</Button>
                 </Link>
                 <Link href="/auth/register">
                   <Button className="bg-foreground text-background hover:bg-primary hover:text-foreground transition-colors">
@@ -302,9 +381,12 @@ export default function Home() {
         </div>
       </header>
 
+      {/* Espaçador para compensar o header fixo */}
+      <div className="h-24"></div>
+
       {/* Hero Section */}
       <section className="flex items-start justify-center bg-background text-foreground py-16">
-        <div className="container mx-auto px-4">
+        <div className="container mx-auto px-8 max-w-6xl">
           <div className="grid md:grid-cols-2 gap-x-16">
             {/* Coluna da esquerda */}
             <div className="space-y-3">
@@ -333,7 +415,7 @@ export default function Home() {
 
       {/* Stats Banner */}
       <div className="w-full bg-background py-12">
-        <div className="container mx-auto px-4">
+        <div className="container mx-auto px-8 max-w-6xl">
           <div className="flex flex-col items-center">
             <div className="flex justify-center gap-8 md:gap-32 items-center">
               {/* Desktop Tooltip */}
@@ -491,13 +573,16 @@ export default function Home() {
       </div>
 
       {/* Paradoxo da Produtividade */}
-      <div className="container mx-auto px-4 py-16">
+      <div className="container mx-auto px-8 max-w-6xl py-16">
         <div className="relative flex flex-col md:grid md:grid-cols-2 md:gap-8 md:items-center">
           {/* Lado esquerdo - Texto explicativo */}
           <div className="text-foreground space-y-6">
-            <h3 className="text-2xl md:text-3xl font-bold">
+            <p className="text-sm font-medium text-foreground/70 uppercase tracking-wider">
+              Chega de perder seu tempo precioso com planilhas e cadernos.
+            </p>
+            <h2 className="text-4xl md:text-5xl font-bold leading-tight">
               Você sabe o que é o Paradoxo da Produtividade?
-            </h3>
+            </h2>
             <div className="space-y-4 text-foreground/80">
               <p>
                 Não? vou te explicar... sabe aquela sensação de estudar o dia inteiro, mas ainda assim não ter certeza se está progredindo, certo?
@@ -572,14 +657,14 @@ export default function Home() {
       </div>
 
       {/* Texto de transição */}
-      <div className="container mx-auto px-4 text-center">
+      <div className="container mx-auto px-8 max-w-6xl text-center">
         <p className="text-[#282828] text-lg md:text-2xl">
           Então criamos o...
         </p>
       </div>
 
       {/* Seção 3 - Versão Alternativa */}
-      <div className="container mx-auto px-4 py-16">
+      <div className="container mx-auto px-8 max-w-6xl py-16">
         {/* Header */}
         <div className="mb-16">
           <div className="flex items-start gap-4 md:gap-8">
@@ -595,10 +680,11 @@ export default function Home() {
             {/* Elemento decorativo com imagem */}
             <div className="flex-1 h-[90px] md:h-[140px] rounded-3xl md:rounded-full overflow-hidden bg-foreground relative">
               <Image
-                src="/images/3d-rendering-abstract-black-white-waves.jpg"
+                src="https://uwemjaqphbytkkhalqge.supabase.co/storage/v1/object/public/images//3d-rendering-abstract-black-white-waves.jpg"
                 alt="Abstract waves background"
                 fill
                 className="object-cover opacity-50"
+                unoptimized
               />
               <motion.div 
                 initial={{ opacity: 0, y: 50 }}
@@ -661,8 +747,8 @@ export default function Home() {
           <div className="bg-dark-gray rounded-3xl p-8 md:p-10 text-background relative overflow-hidden">
             <div className="relative z-10">
               <div className="flex items-center gap-4 mb-8">
-                <div className="w-12 h-12 bg-primary rounded-xl flex items-center justify-center">
-                  <span className="text-2xl">👨‍🏫</span>
+                <div className="bg-primary/10 p-3 rounded-lg">
+                  <Target className="w-6 h-6 text-foreground" />
                 </div>
                 <h3 className="text-2xl font-bold">Seu Professor Particular Digital</h3>
               </div>
@@ -682,7 +768,7 @@ export default function Home() {
                   </div>
                   <div className="flex items-center gap-2">
                     <div className="w-1.5 h-1.5 rounded-full bg-primary" />
-                    <p>Revise o Necessário</p>
+                    <p>Revisão Inteligente</p>
                   </div>
                 </div>
                 <div className="space-y-2">
@@ -810,21 +896,21 @@ export default function Home() {
       {/* Seção 4 - Para quem é o aplicativo */}
       <div className="mt-8 overflow-hidden">
         {/* Título da seção com destaque */}
-        <div className="relative px-4 mb-16">
-          <h2 className="text-3xl font-bold text-center">
+        <div className="container mx-auto px-8 max-w-6xl mb-16 text-center">
+          <h2 className="text-3xl font-bold">
             <span>Pra ti que é...</span>
           </h2>
         </div>
 
         {/* Grid de cards com layout alternativo */}
-        <div className="container mx-auto px-4">
+        <div className="container mx-auto px-8 max-w-6xl">
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
             {/* Card 1 - Vestibulandos */}
             <motion.div 
-              initial={{ opacity: 0, y: 20 }}
-              whileInView={{ opacity: 1, y: 0 }}
+              initial={{ opacity: 0, x: -20 }}
+              whileInView={{ opacity: 1, x: 0 }}
+              transition={{ duration: 0.6 }}
               viewport={{ once: true }}
-              whileHover={{ y: -5 }}
               className="group relative h-full"
             >
               <div className="absolute inset-0 bg-primary rounded-3xl transition-all group-hover:blur-[20px] md:group-hover:blur-xl opacity-20" />
@@ -842,11 +928,10 @@ export default function Home() {
 
             {/* Card 2 - Alunos de Cursinho */}
             <motion.div 
-              initial={{ opacity: 0, y: 20 }}
-              whileInView={{ opacity: 1, y: 0 }}
+              initial={{ opacity: 0, x: -20 }}
+              whileInView={{ opacity: 1, x: 0 }}
+              transition={{ duration: 0.6 }}
               viewport={{ once: true }}
-              whileHover={{ y: -5 }}
-              transition={{ delay: 0.1 }}
               className="group relative h-full"
             >
               <div className="absolute inset-0 bg-primary rounded-3xl transition-all group-hover:blur-[20px] md:group-hover:blur-xl opacity-20" />
@@ -864,11 +949,10 @@ export default function Home() {
 
             {/* Card 3 - Estudantes do Terceiro Ano */}
             <motion.div 
-              initial={{ opacity: 0, y: 20 }}
-              whileInView={{ opacity: 1, y: 0 }}
+              initial={{ opacity: 0, x: -20 }}
+              whileInView={{ opacity: 1, x: 0 }}
+              transition={{ duration: 0.6 }}
               viewport={{ once: true }}
-              whileHover={{ y: -5 }}
-              transition={{ delay: 0.2 }}
               className="group relative h-full"
             >
               <div className="absolute inset-0 bg-primary rounded-3xl transition-all group-hover:blur-[20px] md:group-hover:blur-xl opacity-20" />
@@ -886,11 +970,10 @@ export default function Home() {
 
             {/* Card 4 */}
             <motion.div 
-              initial={{ opacity: 0, y: 20 }}
-              whileInView={{ opacity: 1, y: 0 }}
+              initial={{ opacity: 0, x: -20 }}
+              whileInView={{ opacity: 1, x: 0 }}
+              transition={{ duration: 0.6 }}
               viewport={{ once: true }}
-              whileHover={{ y: -5 }}
-              transition={{ delay: 0.3 }}
               className="group relative h-full"
             >
               <div className="absolute inset-0 bg-primary rounded-3xl transition-all group-hover:blur-[20px] md:group-hover:blur-xl opacity-20" />
@@ -911,7 +994,7 @@ export default function Home() {
 
       {/* Section 5 - Como Funciona */}
       <section className="py-24 bg-background">
-        <div className="container mx-auto px-4">
+        <div className="container mx-auto px-8 max-w-6xl">
           <div className="text-center mb-16">
             <h2 className="text-3xl font-bold mb-2">É mais simples do que tu imagina, vê só:</h2>
           </div>
@@ -1052,7 +1135,7 @@ export default function Home() {
 
       {/* Section 6 - Caderno de Erros */}
       <section className="py-24 bg-background border-t border-foreground/10">
-        <div className="container mx-auto px-4">
+        <div className="container mx-auto px-8 max-w-6xl">
           <div className="text-center mb-16">
             <h2 className="text-3xl font-bold mb-4">Caderno de Erros: Transforme seus erros em aprendizado</h2>
             <p className="text-xl text-foreground/70 max-w-3xl mx-auto">
@@ -1155,16 +1238,22 @@ export default function Home() {
               {/* Estatísticas */}
               <div className="grid grid-cols-3 gap-4 mt-6">
                 <div className="bg-muted/30 p-3 rounded-lg text-center">
-                  <p className="text-2xl font-bold text-foreground">72</p>
-                  <p className="text-xs text-foreground/70">Questões</p>
+                  <p className="text-xs text-foreground/70 mb-1">Questões</p>
+                  <div className="flex items-center">
+                    <p className="text-2xl font-bold text-foreground">72</p>
+                  </div>
                 </div>
                 <div className="bg-muted/30 p-3 rounded-lg text-center">
-                  <p className="text-2xl font-bold text-foreground">8</p>
-                  <p className="text-xs text-foreground/70">Matérias</p>
+                  <p className="text-xs text-foreground/70 mb-1">Matérias</p>
+                  <div className="flex items-center">
+                    <p className="text-2xl font-bold text-foreground">8</p>
+                  </div>
                 </div>
                 <div className="bg-muted/30 p-3 rounded-lg text-center">
-                  <p className="text-2xl font-bold text-foreground">67%</p>
-                  <p className="text-xs text-foreground/70">Revisadas</p>
+                  <p className="text-xs text-foreground/70 mb-1">Revisadas</p>
+                  <div className="flex items-center">
+                    <p className="text-2xl font-bold text-foreground">67%</p>
+                  </div>
                 </div>
               </div>
             </motion.div>
@@ -1177,13 +1266,19 @@ export default function Home() {
               whileInView={{ opacity: 1, y: 0 }}
               transition={{ duration: 0.5 }}
               viewport={{ once: true }}
-              className="bg-background border border-foreground/10 rounded-xl p-6 hover:border-primary hover:shadow-md transition-all"
+              className="bg-background border border-foreground/10 rounded-2xl p-6 hover:shadow-lg transition-all group"
             >
-              <div className="bg-primary/10 p-3 rounded-lg w-fit mb-4">
-                <Filter className="w-6 h-6 text-foreground" />
+              <div className="w-12 h-12 rounded-2xl bg-gradient-to-br from-blue-500/20 to-blue-600/10 flex items-center justify-center mb-4 group-hover:scale-110 transition-transform">
+                <Filter className="w-6 h-6 text-blue-500" />
               </div>
-              <h3 className="text-xl font-semibold mb-2">Filtragem Avançada</h3>
-              <p className="text-foreground/70">Filtre seus erros por matéria, conteúdo, origem ou nível de dificuldade para uma revisão mais eficiente.</p>
+              <h3 className="text-xl font-semibold mb-2">Filtros Avançados</h3>
+              <p className="text-foreground/70 mb-4">Filtre seus erros por matéria, conteúdo, origem ou nível de dificuldade para uma revisão mais eficiente.</p>
+              <div className="pt-2">
+                <Link href="/dashboard/grades" className="text-sm font-medium text-primary flex items-center">
+                  Explorar filtros
+                  <ChevronRight className="w-4 h-4 ml-1" />
+                </Link>
+              </div>
             </motion.div>
             
             <motion.div 
@@ -1191,13 +1286,19 @@ export default function Home() {
               whileInView={{ opacity: 1, y: 0 }}
               transition={{ duration: 0.5, delay: 0.2 }}
               viewport={{ once: true }}
-              className="bg-background border border-foreground/10 rounded-xl p-6 hover:border-primary hover:shadow-md transition-all"
+              className="bg-background border border-foreground/10 rounded-2xl p-6 hover:shadow-lg transition-all group"
             >
-              <div className="bg-primary/10 p-3 rounded-lg w-fit mb-4">
-                <BookOpen className="w-6 h-6 text-foreground" />
+              <div className="w-12 h-12 rounded-2xl bg-gradient-to-br from-purple-500/20 to-purple-600/10 flex items-center justify-center mb-4 group-hover:scale-110 transition-transform">
+                <BookOpen className="w-6 h-6 text-purple-500" />
               </div>
               <h3 className="text-xl font-semibold mb-2">Revisão Programada</h3>
-              <p className="text-foreground/70">Crie ciclos de revisão baseados na curva do esquecimento para maximizar a retenção do conteúdo.</p>
+              <p className="text-foreground/70 mb-4">Crie ciclos de revisão baseados na curva do esquecimento para maximizar a retenção do conteúdo.</p>
+              <div className="pt-2">
+                <Link href="/dashboard/grades" className="text-sm font-medium text-primary flex items-center">
+                  Ver revisões
+                  <ChevronRight className="w-4 h-4 ml-1" />
+                </Link>
+              </div>
             </motion.div>
             
             <motion.div 
@@ -1205,13 +1306,19 @@ export default function Home() {
               whileInView={{ opacity: 1, y: 0 }}
               transition={{ duration: 0.5, delay: 0.4 }}
               viewport={{ once: true }}
-              className="bg-background border border-foreground/10 rounded-xl p-6 hover:border-primary hover:shadow-md transition-all"
+              className="bg-background border border-foreground/10 rounded-2xl p-6 hover:shadow-lg transition-all group"
             >
-              <div className="bg-primary/10 p-3 rounded-lg w-fit mb-4">
-                <FileText className="w-6 h-6 text-foreground" />
+              <div className="w-12 h-12 rounded-2xl bg-gradient-to-br from-green-500/20 to-green-600/10 flex items-center justify-center mb-4 group-hover:scale-110 transition-transform">
+                <FileText className="w-6 h-6 text-green-500" />
               </div>
               <h3 className="text-xl font-semibold mb-2">Anotações Detalhadas</h3>
-              <p className="text-foreground/70">Adicione notas personalizadas a cada questão para registrar explicações e dicas para não cometer o mesmo erro.</p>
+              <p className="text-foreground/70 mb-4">Adicione notas personalizadas a cada questão para registrar explicações e dicas para não cometer o mesmo erro.</p>
+              <div className="pt-2">
+                <Link href="/dashboard/grades" className="text-sm font-medium text-primary flex items-center">
+                  Ver anotações
+                  <ChevronRight className="w-4 h-4 ml-1" />
+                </Link>
+              </div>
             </motion.div>
           </div>
           
@@ -1227,14 +1334,335 @@ export default function Home() {
         </div>
       </section>
 
+      {/* Section 7 - Acompanhamento de Notas */}
+      <section className="py-24 relative overflow-hidden">
+        {/* Elementos de fundo decorativos */}
+        <div className="absolute inset-0 bg-gradient-to-br from-primary/5 to-background z-0"></div>
+        <div className="absolute top-0 left-0 w-full h-full overflow-hidden z-0">
+          <div className="absolute -top-10 -left-10 w-72 h-72 bg-blue-500/10 rounded-full blur-3xl"></div>
+          <div className="absolute top-1/3 -right-10 w-80 h-80 bg-purple-500/10 rounded-full blur-3xl"></div>
+          <div className="absolute -bottom-20 left-1/4 w-60 h-60 bg-green-500/10 rounded-full blur-3xl"></div>
+        </div>
+
+        <div className="container mx-auto px-8 max-w-6xl relative z-10">
+          {/* Cabeçalho com estilo diferenciado */}
+          <div className="flex flex-col items-center mb-16">
+            <div className="inline-flex items-center justify-center p-2 bg-primary/10 rounded-full mb-4">
+              <LineChart className="w-6 h-6 text-primary" />
+            </div>
+            <div className="relative">
+              <h2 className="text-4xl md:text-5xl font-bold text-center relative z-10">
+                Acompanhamento de Notas
+              </h2>
+              <div className="absolute -bottom-3 left-0 right-0 h-3 bg-primary/20 rounded-full blur-sm z-0"></div>
+            </div>
+            <p className="text-xl text-foreground/70 max-w-2xl mx-auto text-center mt-6">
+              Visualize sua evolução acadêmica com gráficos e estatísticas personalizadas
+            </p>
+          </div>
+
+          {/* Layout principal em formato de dashboard */}
+          <div className="grid grid-cols-1 lg:grid-cols-12 gap-8 items-stretch">
+            {/* Painel lateral com informações */}
+            <motion.div 
+              initial={{ opacity: 0, x: -30 }}
+              whileInView={{ opacity: 1, x: 0 }}
+              transition={{ duration: 0.7 }}
+              viewport={{ once: true }}
+              className="lg:col-span-4 bg-background rounded-3xl border border-foreground/10 p-8 shadow-lg relative overflow-hidden"
+            >
+              <div className="absolute top-0 right-0 w-40 h-40 bg-primary/5 rounded-full -translate-y-1/2 translate-x-1/2" />
+              
+              <h3 className="text-2xl font-bold mb-6 flex items-center">
+                <span className="bg-blue-500/10 w-10 h-10 rounded-full flex items-center justify-center mr-3">
+                  <TrendingUp className="w-5 h-5 text-blue-500" />
+                </span>
+                Evolução Contínua
+              </h3>
+              
+              <div className="space-y-6">
+                <div className="relative pl-8 before:absolute before:left-0 before:top-0 before:bottom-0 before:w-1 before:bg-gradient-to-b before:from-blue-500 before:to-purple-500 before:rounded-full">
+                  <h4 className="font-semibold text-lg mb-2">Acompanhe seu progresso</h4>
+                  <p className="text-foreground/70">Visualize sua evolução em cada matéria ao longo do tempo e identifique tendências no seu desempenho.</p>
+                </div>
+                
+                <div className="relative pl-8 before:absolute before:left-0 before:top-0 before:bottom-0 before:w-1 before:bg-gradient-to-b before:from-purple-500 before:to-pink-500 before:rounded-full">
+                  <h4 className="font-semibold text-lg mb-2">Análises detalhadas</h4>
+                  <p className="text-foreground/70">Estatísticas completas sobre médias, evolução percentual e comparativos entre períodos.</p>
+                </div>
+                
+                <div className="relative pl-8 before:absolute before:left-0 before:top-0 before:bottom-0 before:w-1 before:bg-gradient-to-b before:from-pink-500 before:to-orange-500 before:rounded-full">
+                  <h4 className="font-semibold text-lg mb-2">Foco nos resultados</h4>
+                  <p className="text-foreground/70">Identifique suas áreas de destaque e as que precisam de mais atenção para otimizar seus estudos.</p>
+                </div>
+              </div>
+              
+              <div className="mt-8">
+                <Button className="w-full bg-gradient-to-r from-blue-500 to-purple-500 hover:from-blue-600 hover:to-purple-600 text-white border-0">
+                  Acessar meu desempenho
+                </Button>
+              </div>
+            </motion.div>
+            
+            {/* Painel principal com visualização de dados */}
+            <motion.div 
+              initial={{ opacity: 0, y: 30 }}
+              whileInView={{ opacity: 1, y: 0 }}
+              transition={{ duration: 0.7 }}
+              viewport={{ once: true }}
+              className="lg:col-span-8 bg-background rounded-3xl border border-foreground/10 p-6 shadow-lg"
+            >
+              {/* Abas de navegação */}
+              <div className="flex items-center space-x-1 mb-6 border-b pb-4">
+                <div className="px-4 py-2 bg-primary/10 text-primary rounded-t-lg font-medium text-sm">Visão Geral</div>
+                <div className="px-4 py-2 text-foreground/60 hover:text-foreground transition-colors text-sm cursor-pointer">Por Matéria</div>
+                <div className="px-4 py-2 text-foreground/60 hover:text-foreground transition-colors text-sm cursor-pointer">Redações</div>
+                <div className="px-4 py-2 text-foreground/60 hover:text-foreground transition-colors text-sm cursor-pointer">Simulados</div>
+              </div>
+              
+              {/* Cards de métricas */}
+              <div className="grid grid-cols-2 md:grid-cols-4 gap-4 mb-6">
+                <div className="bg-gradient-to-br from-blue-500/10 to-blue-600/5 p-4 rounded-xl">
+                  <p className="text-xs text-blue-500 font-medium mb-1">Média Geral</p>
+                  <p className="text-2xl font-bold">7.8</p>
+                  <div className="flex items-center mt-1 text-xs text-blue-500">
+                    <TrendingUp className="w-3 h-3 mr-1" />
+                    <span>+0.5 pts</span>
+                  </div>
+                </div>
+                
+                <div className="bg-gradient-to-br from-purple-500/10 to-purple-600/5 p-4 rounded-xl">
+                  <p className="text-xs text-purple-500 font-medium mb-1">Redação</p>
+                  <p className="text-2xl font-bold">820</p>
+                  <div className="flex items-center mt-1 text-xs text-purple-500">
+                    <TrendingUp className="w-3 h-3 mr-1" />
+                    <span>+40 pts</span>
+                  </div>
+                </div>
+                
+                <div className="bg-gradient-to-br from-pink-500/10 to-pink-600/5 p-4 rounded-xl">
+                  <p className="text-xs text-pink-500 font-medium mb-1">Evolução</p>
+                  <p className="text-2xl font-bold">+12%</p>
+                  <p className="text-xs text-pink-500 mt-1">Último mês</p>
+                </div>
+                
+                <div className="bg-gradient-to-br from-green-500/10 to-green-600/5 p-4 rounded-xl">
+                  <p className="text-xs text-green-500 font-medium mb-1">Nota Mais Alta</p>
+                  <p className="text-2xl font-bold">9.5</p>
+                  <p className="text-xs text-green-500 mt-1">Matemática</p>
+                </div>
+              </div>
+              
+              {/* Gráfico interativo */}
+              <div className="relative bg-muted/20 rounded-xl p-4 h-64 mb-6 overflow-hidden">
+                <div className="absolute top-4 left-4 z-10">
+                  <h4 className="font-medium">Evolução de Notas</h4>
+                  <p className="text-xs text-foreground/60">Últimos 6 meses</p>
+                </div>
+                
+                <div className="absolute bottom-0 left-0 right-0 h-[85%] flex items-end px-4 pb-8">
+                  {/* Linhas de grade */}
+                  <div className="absolute inset-0 grid grid-rows-4 gap-0">
+                    {Array.from({ length: 5 }).map((_, i) => (
+                      <div key={i} className="w-full border-t border-foreground/10 flex items-center">
+                        <span className="text-[10px] text-foreground/40 w-6">{10 - i * 2}</span>
+                      </div>
+                    ))}
+                  </div>
+                  
+                  {/* Barras do gráfico - Matéria 1 */}
+                  <div className="relative flex-1 flex items-end justify-around z-10">
+                    <div className="w-4 h-[65%] bg-gradient-to-t from-blue-500 to-blue-400 rounded-t-sm relative group">
+                      <div className="opacity-0 group-hover:opacity-100 absolute -top-10 left-1/2 -translate-x-1/2 bg-background border border-foreground/10 rounded-md px-2 py-1 text-xs whitespace-nowrap transition-opacity">
+                        <p className="font-medium">Matemática: 7.8</p>
+                        <p className="text-[10px] text-foreground/60">Março</p>
+                      </div>
+                    </div>
+                    <div className="w-4 h-[70%] bg-gradient-to-t from-blue-500 to-blue-400 rounded-t-sm"></div>
+                    <div className="w-4 h-[60%] bg-gradient-to-t from-blue-500 to-blue-400 rounded-t-sm"></div>
+                    <div className="w-4 h-[75%] bg-gradient-to-t from-blue-500 to-blue-400 rounded-t-sm"></div>
+                    <div className="w-4 h-[80%] bg-gradient-to-t from-blue-500 to-blue-400 rounded-t-sm"></div>
+                    <div className="w-4 h-[85%] bg-gradient-to-t from-blue-500 to-blue-400 rounded-t-sm"></div>
+                  </div>
+                  
+                  {/* Barras do gráfico - Matéria 2 */}
+                  <div className="relative flex-1 flex items-end justify-around z-10">
+                    <div className="w-4 h-[55%] bg-gradient-to-t from-purple-500 to-purple-400 rounded-t-sm"></div>
+                    <div className="w-4 h-[60%] bg-gradient-to-t from-purple-500 to-purple-400 rounded-t-sm"></div>
+                    <div className="w-4 h-[50%] bg-gradient-to-t from-purple-500 to-purple-400 rounded-t-sm"></div>
+                    <div className="w-4 h-[65%] bg-gradient-to-t from-purple-500 to-purple-400 rounded-t-sm"></div>
+                    <div className="w-4 h-[70%] bg-gradient-to-t from-purple-500 to-purple-400 rounded-t-sm"></div>
+                    <div className="w-4 h-[75%] bg-gradient-to-t from-purple-500 to-purple-400 rounded-t-sm"></div>
+                  </div>
+                </div>
+                
+                {/* Legenda do eixo X */}
+                <div className="absolute bottom-0 left-8 right-8 flex justify-between text-[10px] text-foreground/40">
+                  <span>Jan</span>
+                  <span>Fev</span>
+                  <span>Mar</span>
+                  <span>Abr</span>
+                  <span>Mai</span>
+                  <span>Jun</span>
+                </div>
+                
+                {/* Legenda */}
+                <div className="absolute top-4 right-4 flex items-center space-x-4">
+                  <div className="flex items-center">
+                    <div className="w-3 h-3 bg-blue-500 rounded-sm mr-1"></div>
+                    <span className="text-xs">Matemática</span>
+                  </div>
+                  <div className="flex items-center">
+                    <div className="w-3 h-3 bg-purple-500 rounded-sm mr-1"></div>
+                    <span className="text-xs">Português</span>
+                  </div>
+                </div>
+              </div>
+              
+              {/* Tabela de eventos recentes */}
+              <div>
+                <div className="flex items-center justify-between mb-4">
+                  <h4 className="font-medium">Eventos Recentes</h4>
+                  <Button variant="outline" size="sm" className="text-xs h-8">
+                    Ver todos
+                  </Button>
+                </div>
+                
+                <div className="overflow-hidden rounded-xl border border-foreground/10">
+                  <table className="w-full">
+                    <thead>
+                      <tr className="bg-muted/30">
+                        <th className="text-left p-3 text-xs font-medium">Data</th>
+                        <th className="text-left p-3 text-xs font-medium">Evento</th>
+                        <th className="text-left p-3 text-xs font-medium">Matéria</th>
+                        <th className="text-right p-3 text-xs font-medium">Nota</th>
+                      </tr>
+                    </thead>
+                    <tbody>
+                      <tr className="border-t border-foreground/5 hover:bg-muted/20 transition-colors">
+                        <td className="p-3 text-sm">15/06</td>
+                        <td className="p-3 text-sm font-medium">Simulado ENEM</td>
+                        <td className="p-3 text-sm">Geral</td>
+                        <td className="p-3 text-sm font-medium text-right">
+                          <span className="inline-block px-2 py-1 rounded bg-blue-500/10 text-blue-500">8.2</span>
+                        </td>
+                      </tr>
+                      <tr className="border-t border-foreground/5 hover:bg-muted/20 transition-colors">
+                        <td className="p-3 text-sm">10/06</td>
+                        <td className="p-3 text-sm font-medium">Redação</td>
+                        <td className="p-3 text-sm">Redação</td>
+                        <td className="p-3 text-sm font-medium text-right">
+                          <span className="inline-block px-2 py-1 rounded bg-purple-500/10 text-purple-500">860</span>
+                        </td>
+                      </tr>
+                      <tr className="border-t border-foreground/5 hover:bg-muted/20 transition-colors">
+                        <td className="p-3 text-sm">05/06</td>
+                        <td className="p-3 text-sm font-medium">Prova Bimestral</td>
+                        <td className="p-3 text-sm">Matemática</td>
+                        <td className="p-3 text-sm font-medium text-right">
+                          <span className="inline-block px-2 py-1 rounded bg-green-500/10 text-green-500">9.5</span>
+                        </td>
+                      </tr>
+                    </tbody>
+                  </table>
+                </div>
+              </div>
+            </motion.div>
+          </div>
+          
+          {/* Recursos adicionais */}
+          <div className="mt-16 grid grid-cols-1 md:grid-cols-3 gap-6">
+            <motion.div 
+              initial={{ opacity: 0, y: 20 }}
+              whileInView={{ opacity: 1, y: 0 }}
+              transition={{ duration: 0.5 }}
+              viewport={{ once: true }}
+              className="bg-background border border-foreground/10 rounded-2xl p-6 hover:shadow-lg transition-all group"
+            >
+              <div className="w-12 h-12 rounded-2xl bg-gradient-to-br from-blue-500/20 to-blue-600/10 flex items-center justify-center mb-4 group-hover:scale-110 transition-transform">
+                <Filter className="w-6 h-6 text-blue-500" />
+              </div>
+              <h3 className="text-xl font-semibold mb-2">Filtros Avançados</h3>
+              <p className="text-foreground/70 mb-4">Filtre suas notas por matéria, período, tipo de avaliação ou faixa de notas para análises personalizadas.</p>
+              <div className="pt-2">
+                <Link href="/dashboard/grades" className="text-sm font-medium text-primary flex items-center">
+                  Explorar filtros
+                  <ChevronRight className="w-4 h-4 ml-1" />
+                </Link>
+              </div>
+            </motion.div>
+            
+            <motion.div 
+              initial={{ opacity: 0, y: 20 }}
+              whileInView={{ opacity: 1, y: 0 }}
+              transition={{ duration: 0.5, delay: 0.2 }}
+              viewport={{ once: true }}
+              className="bg-background border border-foreground/10 rounded-2xl p-6 hover:shadow-lg transition-all group"
+            >
+              <div className="w-12 h-12 rounded-2xl bg-gradient-to-br from-purple-500/20 to-purple-600/10 flex items-center justify-center mb-4 group-hover:scale-110 transition-transform">
+                <PieChart className="w-6 h-6 text-purple-500" />
+              </div>
+              <h3 className="text-xl font-semibold mb-2">Análises Comparativas</h3>
+              <p className="text-foreground/70 mb-4">Compare seu desempenho entre diferentes períodos ou matérias para identificar padrões e tendências.</p>
+              <div className="pt-2">
+                <Link href="/dashboard/grades" className="text-sm font-medium text-primary flex items-center">
+                  Ver análises
+                  <ChevronRight className="w-4 h-4 ml-1" />
+                </Link>
+              </div>
+            </motion.div>
+            
+            <motion.div 
+              initial={{ opacity: 0, y: 20 }}
+              whileInView={{ opacity: 1, y: 0 }}
+              transition={{ duration: 0.5, delay: 0.4 }}
+              viewport={{ once: true }}
+              className="bg-background border border-foreground/10 rounded-2xl p-6 hover:shadow-lg transition-all group"
+            >
+              <div className="w-12 h-12 rounded-2xl bg-gradient-to-br from-green-500/20 to-green-600/10 flex items-center justify-center mb-4 group-hover:scale-110 transition-transform">
+                <Lightbulb className="w-6 h-6 text-green-500" />
+              </div>
+              <h3 className="text-xl font-semibold mb-2">Recomendações Inteligentes</h3>
+              <p className="text-foreground/70 mb-4">Receba sugestões personalizadas de estudo baseadas no seu desempenho para melhorar suas notas.</p>
+              <div className="pt-2">
+                <Link href="/dashboard/grades" className="text-sm font-medium text-primary flex items-center">
+                  Ver recomendações
+                  <ChevronRight className="w-4 h-4 ml-1" />
+                </Link>
+              </div>
+            </motion.div>
+          </div>
+        </div>
+      </section>
+
       {/* Seção de Planos - Free e Premium */}
-      <section className="py-24 bg-background border-t border-foreground/10">
-        <div className="container mx-auto px-4">
+      <section id="planos" className="py-24 bg-background border-t border-foreground/10">
+        <div className="container mx-auto px-8 max-w-6xl">
           <div className="text-center mb-16">
             <h2 className="text-3xl font-bold mb-4">Escolha o plano ideal para você</h2>
             <p className="text-xl text-foreground/70 max-w-2xl mx-auto">
               Comece agora mesmo a estudar com o Studiefy
             </p>
+            
+            {/* Seletor de período (mensal/anual) */}
+            <div className="flex justify-center mt-8">
+              <div className="inline-flex bg-foreground/5 p-1 rounded-full">
+                <Button
+                  variant={subscriptionPeriod === 'monthly' ? 'default' : 'ghost'}
+                  className={`rounded-full px-6 ${subscriptionPeriod === 'monthly' ? '' : 'text-foreground/70 hover:text-foreground'}`}
+                  onClick={() => setSubscriptionPeriod('monthly')}
+                >
+                  Mensal
+                </Button>
+                <Button
+                  variant={subscriptionPeriod === 'annual' ? 'default' : 'ghost'}
+                  className={`rounded-full px-6 ${subscriptionPeriod === 'annual' ? '' : 'text-foreground/70 hover:text-foreground'}`}
+                  onClick={() => setSubscriptionPeriod('annual')}
+                >
+                  Anual
+                </Button>
+              </div>
+            </div>
           </div>
 
           <div className="grid md:grid-cols-2 gap-8 max-w-5xl mx-auto">
@@ -1308,8 +1736,18 @@ export default function Home() {
                 <h3 className="text-2xl font-bold mb-2">Plano Premium</h3>
                 <p className="text-background/70">Recursos completos para sua aprovação</p>
                 <div className="mt-4 flex items-end">
-                  <span className="text-4xl font-bold">R$ 19,90</span>
-                  <span className="text-background/70 ml-2 mb-1">/mês</span>
+                  {subscriptionPeriod === 'monthly' ? (
+                    <>
+                      <span className="text-4xl font-bold">R$ 19,90</span>
+                      <span className="text-background/70 ml-2 mb-1">/mês</span>
+                    </>
+                  ) : (
+                    <>
+                      <span className="text-4xl font-bold">R$ 199,90</span>
+                      <span className="text-background/70 ml-2 mb-1">/ano</span>
+                      <span className="bg-primary/20 text-primary ml-2 px-2 py-0.5 rounded-md text-xs font-medium">Economize 17%</span>
+                    </>
+                  )}
                 </div>
               </div>
 
@@ -1340,13 +1778,23 @@ export default function Home() {
                 </div>
               </div>
 
-              <Link href="/auth/register">
+              {user ? (
                 <Button
                   className="w-full bg-background hover:bg-primary/90 text-foreground transition-colors"
+                  onClick={handleCheckout}
+                  disabled={isLoading}
                 >
-                  Começar premium
+                  {isLoading ? 'Processando...' : 'Começar premium'}
                 </Button>
-              </Link>
+              ) : (
+                <Link href="/auth/register">
+                  <Button
+                    className="w-full bg-background hover:bg-primary/90 text-foreground transition-colors"
+                  >
+                    Começar premium
+                  </Button>
+                </Link>
+              )}
 
               {/* Decorative Elements */}
               <div className="absolute top-0 right-0 w-64 h-64 bg-primary/5 rounded-full -translate-y-1/2 translate-x-1/2" />

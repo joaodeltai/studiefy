@@ -1,13 +1,24 @@
 import Stripe from 'stripe';
-import { SubscriptionPlan } from '@/types/subscription';
+import { SubscriptionPlan, SubscriptionPeriod } from '@/types/subscription';
 
-// Inicializa o cliente Stripe com a chave secreta
-export const stripe = new Stripe(process.env.STRIPE_SECRET_KEY!, {
-  apiVersion: '2025-02-24.acacia', // Use a versão mais recente da API
-  typescript: true,
-});
+// Constantes para os IDs dos planos premium (podem ser usadas no cliente)
+export const PREMIUM_MONTHLY_PRICE_ID = process.env.NEXT_PUBLIC_STRIPE_PRICE_PREMIUM;
+export const PREMIUM_ANNUAL_PRICE_ID = process.env.NEXT_PUBLIC_STRIPE_PRICE_PREMIUM_ANNUAL;
 
-// Função para criar uma sessão de checkout
+// Inicializa o cliente Stripe com a chave secreta (apenas para uso no servidor)
+// Verificamos se estamos no servidor antes de inicializar o cliente Stripe
+let stripe: Stripe | null = null;
+if (typeof window === 'undefined' && process.env.STRIPE_SECRET_KEY) {
+  stripe = new Stripe(process.env.STRIPE_SECRET_KEY, {
+    apiVersion: '2025-02-24.acacia', // Use a versão mais recente da API
+    typescript: true,
+  });
+}
+
+// Exporta o cliente Stripe (apenas para uso no servidor)
+export { stripe };
+
+// Função para criar uma sessão de checkout (apenas para uso no servidor)
 export async function createCheckoutSession({
   customerId,
   priceId,
@@ -17,6 +28,10 @@ export async function createCheckoutSession({
   priceId: string;
   userId: string;
 }) {
+  if (!stripe) {
+    throw new Error('Stripe não foi inicializado. Esta função só pode ser chamada no servidor.');
+  }
+
   // Cria uma sessão de checkout com o cliente e preço especificados
   const session = await stripe.checkout.sessions.create({
     customer: customerId,
@@ -40,7 +55,7 @@ export async function createCheckoutSession({
 }
 
 /**
- * Determina o plano com base no ID do preço
+ * Determina o plano com base no ID do preço (pode ser usada no cliente)
  * 
  * Esta função é usada para converter IDs de preço do Stripe em planos do sistema.
  * Funciona tanto para IDs de teste quanto para IDs de produção.
@@ -51,9 +66,10 @@ export async function createCheckoutSession({
 export function determinePlan(priceId: string): SubscriptionPlan {
   // IDs de preço premium (tanto teste quanto produção)
   const premiumPriceIds = [
-    process.env.NEXT_PUBLIC_STRIPE_PRICE_PREMIUM,
+    PREMIUM_MONTHLY_PRICE_ID,
     process.env.STRIPE_PRICE_PREMIUM_TEST,
-    process.env.STRIPE_PRICE_PREMIUM_PROD
+    process.env.STRIPE_PRICE_PREMIUM_PROD,
+    PREMIUM_ANNUAL_PRICE_ID,
   ].filter(Boolean); // Remove valores undefined ou vazios
   
   // Se o ID do preço for um dos IDs premium conhecidos, retorna PREMIUM
@@ -65,7 +81,23 @@ export function determinePlan(priceId: string): SubscriptionPlan {
   return SubscriptionPlan.FREE;
 }
 
-// Função para verificar o status da assinatura
+/**
+ * Determina o período da assinatura com base no ID do preço (pode ser usada no cliente)
+ * 
+ * @param priceId O ID do preço do Stripe
+ * @returns O período da assinatura (mensal ou anual)
+ */
+export function determinePeriod(priceId: string): SubscriptionPeriod {
+  // Se o ID do preço for o do plano anual, retorna ANNUAL
+  if (priceId === PREMIUM_ANNUAL_PRICE_ID) {
+    return SubscriptionPeriod.ANNUAL;
+  }
+  
+  // Caso contrário, assume que é mensal
+  return SubscriptionPeriod.MONTHLY;
+}
+
+// Função para verificar o status da assinatura (pode ser usada no cliente)
 export async function getSubscriptionStatus(userId: string) {
   const { data: subscription } = await fetch(
     `/api/subscriptions/get-subscription?userId=${userId}`

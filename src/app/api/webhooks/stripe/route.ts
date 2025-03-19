@@ -1,7 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { headers } from 'next/headers';
 import { createServerClientWithCookies } from '../../../../lib/supabase/server';
-import { stripe, determinePlan } from '../../../../lib/stripe';
+import { stripe, determinePlan, determinePeriod } from '../../../../lib/stripe';
 import Stripe from 'stripe';
 import { SubscriptionPlan, SubscriptionStatus } from '../../../../types/subscription';
 import { stripeWebhookLogger as logger } from '../../../../lib/logger';
@@ -63,6 +63,7 @@ export async function POST(req: NextRequest) {
         // Determina o plano com base no ID do preço
         const priceId = subscription.items.data[0].price.id;
         const plan = determinePlan(priceId);
+        const period = determinePeriod(priceId);
 
         // Insere ou atualiza os dados da assinatura no banco de dados
         const { error } = await supabase.from('subscriptions').upsert({
@@ -72,6 +73,7 @@ export async function POST(req: NextRequest) {
           stripe_price_id: priceId,
           status: subscription.status as SubscriptionStatus,
           plan,
+          period,
           current_period_start: new Date(subscription.current_period_start * 1000).toISOString(),
           current_period_end: new Date(subscription.current_period_end * 1000).toISOString(),
           cancel_at_period_end: subscription.cancel_at_period_end,
@@ -118,6 +120,7 @@ export async function POST(req: NextRequest) {
         // Determina o plano com base no ID do preço
         const priceId = subscription.items.data[0].price.id;
         const plan = determinePlan(priceId);
+        const period = determinePeriod(priceId);
 
         // Atualiza os dados da assinatura no banco de dados
         const { error } = await supabase
@@ -125,6 +128,7 @@ export async function POST(req: NextRequest) {
           .update({
             status: subscription.status as SubscriptionStatus,
             plan,
+            period,
             current_period_start: new Date(subscription.current_period_start * 1000).toISOString(),
             current_period_end: new Date(subscription.current_period_end * 1000).toISOString(),
             cancel_at_period_end: subscription.cancel_at_period_end,

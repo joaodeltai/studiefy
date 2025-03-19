@@ -37,6 +37,9 @@ export async function GET(req: NextRequest) {
       );
     }
 
+    // Verifica e atualiza o status do trial se necessário
+    await supabase.rpc('verify_trial_status', { user_id: userId });
+
     // Busca os dados da assinatura do usuário
     const { data, error } = await supabase
       .from('subscriptions')

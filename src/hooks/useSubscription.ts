@@ -33,7 +33,7 @@ export function useSubscription() {
       const isPremiumValue = Boolean(
         subscriptionData && 
         subscriptionData.plan === SubscriptionPlan.PREMIUM && 
-        subscriptionData.status === SubscriptionStatus.ACTIVE
+        (subscriptionData.status === SubscriptionStatus.ACTIVE || subscriptionData.status === SubscriptionStatus.TRIALING)
       );
       
       const cacheData: SubscriptionCache = {
@@ -94,16 +94,16 @@ export function useSubscription() {
         const isPremiumValue = Boolean(
           cachedData.subscription && 
           cachedData.subscription.plan === SubscriptionPlan.PREMIUM && 
-          cachedData.subscription.status === SubscriptionStatus.ACTIVE
+          (cachedData.subscription.status === SubscriptionStatus.ACTIVE || cachedData.subscription.status === SubscriptionStatus.TRIALING)
         );
         setIsPremium(isPremiumValue);
         setIsLoading(false);
         
-        // Verificar se a assinatura no cache está expirada com base no end_date
+        // Verificar se a assinatura no cache está expirada com base no current_period_end
         if (cachedData.subscription?.plan === SubscriptionPlan.PREMIUM && 
-            cachedData.subscription?.end_date) {
+            cachedData.subscription?.current_period_end) {
           
-          const endDate = new Date(cachedData.subscription.end_date);
+          const endDate = new Date(cachedData.subscription.current_period_end);
           const now = new Date();
           
           // Se já passou da data de término da assinatura, forçar atualização
@@ -162,7 +162,7 @@ export function useSubscription() {
         const isPremiumValue = Boolean(
           data && 
           data.plan === SubscriptionPlan.PREMIUM && 
-          data.status === SubscriptionStatus.ACTIVE
+          (data.status === SubscriptionStatus.ACTIVE || data.status === SubscriptionStatus.TRIALING)
         );
         
         // Define explicitamente o isPremium baseado na verificação
@@ -272,16 +272,16 @@ export function useSubscription() {
         const isPremiumValue = Boolean(
           cachedData.subscription && 
           cachedData.subscription.plan === SubscriptionPlan.PREMIUM && 
-          cachedData.subscription.status === SubscriptionStatus.ACTIVE
+          (cachedData.subscription.status === SubscriptionStatus.ACTIVE || cachedData.subscription.status === SubscriptionStatus.TRIALING)
         );
         setIsPremium(isPremiumValue);
         setIsLoading(false);
         
-        // Verificar se a assinatura no cache está expirada com base no end_date
+        // Verificar se a assinatura no cache está expirada com base no current_period_end
         if (cachedData.subscription?.plan === SubscriptionPlan.PREMIUM && 
-            cachedData.subscription?.end_date) {
+            cachedData.subscription?.current_period_end) {
           
-          const endDate = new Date(cachedData.subscription.end_date);
+          const endDate = new Date(cachedData.subscription.current_period_end);
           const now = new Date();
           
           // Se já passou da data de término da assinatura, forçar atualização
@@ -310,7 +310,7 @@ export function useSubscription() {
     if (subscription) {
       const isPremiumValue = Boolean(
         subscription.plan === SubscriptionPlan.PREMIUM && 
-        subscription.status === SubscriptionStatus.ACTIVE
+        (subscription.status === SubscriptionStatus.ACTIVE || subscription.status === SubscriptionStatus.TRIALING)
       );
       setIsPremium(isPremiumValue);
       saveSubscriptionCache(subscription);
@@ -350,7 +350,7 @@ export function useSubscription() {
       !isLoading && 
       subscription && 
       subscription.plan === SubscriptionPlan.PREMIUM && 
-      subscription.status === SubscriptionStatus.ACTIVE
+      (subscription.status === SubscriptionStatus.ACTIVE || subscription.status === SubscriptionStatus.TRIALING)
     ),
     willCancel: subscription?.cancel_at_period_end || false,
     fetchSubscription,

@@ -14,6 +14,7 @@ export interface Profile {
   avatar_url: string | null
   level: number
   xp: number
+  subscription_plan: string
   created_at: string
   updated_at: string
 }

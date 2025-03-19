@@ -6,6 +6,9 @@ import { MobileHeader } from "@/components/mobile-header"
 import { Button } from "@/components/ui/button"
 import { PanelLeft } from "lucide-react"
 import { cn } from "@/lib/utils"
+import { TrialBanner } from "@/components/ui/trial-banner"
+import { useTrialStatus } from "@/hooks/useTrialStatus"
+import { OnboardingSystem } from "@/components/onboarding/onboarding-system"
 
 export default function DashboardLayout({
   children,
@@ -14,6 +17,7 @@ export default function DashboardLayout({
 }) {
   const [isCollapsed, setIsCollapsed] = useState(false)
   const [isMobile, setIsMobile] = useState(false)
+  const { isTrialing, daysRemaining, isExpired } = useTrialStatus()
 
   // Recupera o estado da sidebar no carregamento do componente
   useEffect(() => {
@@ -90,10 +94,20 @@ export default function DashboardLayout({
         }}
       >
         <MobileHeader />
-        <div className="w-full max-w-full">
+        <div className="w-full max-w-full p-4 sm:p-6">
+          {/* Banner de trial */}
+          <TrialBanner 
+            isTrialing={isTrialing} 
+            daysRemaining={daysRemaining} 
+            isExpired={isExpired} 
+          />
+          
           {children}
         </div>
       </main>
+
+      {/* Sistema de Onboarding */}
+      <OnboardingSystem />
     </div>
   )
 }

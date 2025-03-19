@@ -2,7 +2,7 @@
 const nextConfig = {
   // Habilita otimizações de imagem
   images: {
-    domains: ['localhost'],
+    domains: ['localhost', 'uwemjaqphbytkkhalqge.supabase.co', 'studiefy.pro'],
   },
   // Desabilitar verificações do ESLint durante o build
   eslint: {

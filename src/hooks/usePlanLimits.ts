@@ -30,7 +30,7 @@ export function usePlanLimits() {
     !isLoading && 
     subscription && 
     subscription.plan === SubscriptionPlan.PREMIUM && 
-    subscription.status === SubscriptionStatus.ACTIVE
+    (subscription.status === SubscriptionStatus.ACTIVE || subscription.status === SubscriptionStatus.TRIALING)
   );
   
   /**

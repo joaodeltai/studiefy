@@ -55,7 +55,7 @@ export function PremiumErrorNotebook(props: PremiumErrorNotebookProps): ReactEle
       const premium = Boolean(
         subscription && 
         subscription.plan === SubscriptionPlan.PREMIUM && 
-        subscription.status === SubscriptionStatus.ACTIVE
+        (subscription.status === SubscriptionStatus.ACTIVE || subscription.status === SubscriptionStatus.TRIALING)
       );
       setIsUserPremium(premium);
     }

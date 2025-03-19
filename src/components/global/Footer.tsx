@@ -7,7 +7,7 @@ import Image from "next/image";
 const Footer = () => {
   return (
     <footer className="bg-background border-t">
-      <div className="container mx-auto px-4 py-12">
+      <div className="container mx-auto px-8 py-12 max-w-6xl">
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-8">
           {/* Logo e Descrição */}
           <div className="space-y-4">
@@ -87,7 +87,7 @@ const Footer = () => {
             <h3 className="font-semibold mb-4">Contato</h3>
             <div className="space-y-2">
               <p className="text-sm text-muted-foreground">
-                Email: studiefy@jotacedigital.com
+                Email: contato@studiefy.pro
               </p>
               <p className="text-sm text-muted-foreground">
                 WhatsApp: (51) 99124-8817

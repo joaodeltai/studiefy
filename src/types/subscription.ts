@@ -39,6 +39,16 @@ export enum SubscriptionStatus {
 }
 
 /**
+ * Períodos de assinatura disponíveis
+ */
+export enum SubscriptionPeriod {
+  /** Assinatura mensal */
+  MONTHLY = 'monthly',
+  /** Assinatura anual */
+  ANNUAL = 'annual'
+}
+
+/**
  * Interface para os dados de assinatura
  */
 export interface Subscription {
@@ -47,6 +57,7 @@ export interface Subscription {
   profile_id?: string;
   plan: SubscriptionPlan;
   status: SubscriptionStatus;
+  period: SubscriptionPeriod;
   current_period_start: string;
   current_period_end: string;
   cancel_at_period_end: boolean;
