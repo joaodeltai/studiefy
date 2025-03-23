@@ -3,11 +3,8 @@
 import Link from 'next/link'
 import { usePathname } from 'next/navigation'
 import { cn } from '@/lib/utils'
-import { LayoutDashboard, BookOpen, GraduationCap, ClipboardCheck, RotateCcw, LineChart, MessageCircle, CreditCard, PanelLeft, Info, BarChart3, Calendar, Target, Layers } from 'lucide-react'
-import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar"
+import { LayoutDashboard, BookOpen, GraduationCap, ClipboardCheck, RotateCcw, LineChart, PanelLeft, BarChart3, Calendar, Target, Layers } from 'lucide-react'
 import { Button } from "@/components/ui/button"
-import { useProfile } from '@/hooks/useProfile'
-import { ProfileDropdown } from "./profile-dropdown"
 import { useState, useEffect } from 'react'
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip"
 import { ComingSoonDialog } from './coming-soon-dialog'
@@ -83,18 +80,6 @@ const routes = [
   }
 ]
 
-function getInitials(name: string): string {
-  if (!name) return ''
-  
-  return name
-    .split(' ')
-    .map(word => word[0])
-    .filter(Boolean)
-    .join('')
-    .toUpperCase()
-    .slice(0, 2)
-}
-
 interface SidebarProps {
   isCollapsed?: boolean;
   onCollapseChange?: (collapsed: boolean) => void;
@@ -103,24 +88,13 @@ interface SidebarProps {
 
 export function Sidebar({ isCollapsed = false, onCollapseChange, showToggle = true }: SidebarProps) {
   const pathname = usePathname()
-  const { profile } = useProfile()
   const isSmallScreen = typeof window !== 'undefined' ? window.innerWidth <= 768 : false
-  const [dropdownSide, setDropdownSide] = useState<'right' | 'top'>(isSmallScreen ? 'top' : 'right')
   const [innerCollapsed, setInnerCollapsed] = useState(isCollapsed)
   const [comingSoonOpen, setComingSoonOpen] = useState(false)
   const [selectedFeature, setSelectedFeature] = useState("")
 
   useEffect(() => {
-    const handleResize = () => {
-      setDropdownSide(window.innerWidth <= 768 ? 'top' : 'right')
-    }
-
-    window.addEventListener('resize', handleResize)
-    return () => window.removeEventListener('resize', handleResize)
-  }, [])
-
-  // Sincroniza o estado interno com a prop passada do componente pai
-  useEffect(() => {
+    // Sincroniza o estado interno com a prop passada do componente pai
     setInnerCollapsed(isCollapsed)
   }, [isCollapsed])
 
@@ -248,75 +222,12 @@ export function Sidebar({ isCollapsed = false, onCollapseChange, showToggle = tr
             </div>
           </div>
 
-          {/* Área fixa do rodapé com links e perfil */}
+          {/* Área fixa do rodapé com link de feedback */}
           <div className="mt-auto">
-            {/* Links de Feedback e Suporte e Assinatura lado a lado */}
-            <div className="flex items-center justify-between px-3 py-2 mb-2 border-t border-studiefy-black/10 pt-2">
-              {/* Link de Feedback e Suporte */}
-              {innerCollapsed ? (
-                <Tooltip delayDuration={0}>
-                  <TooltipTrigger asChild>
-                    <Link
-                      href="/dashboard/feedback"
-                      className="flex items-center justify-center p-2 text-studiefy-gray hover:text-studiefy-white"
-                    >
-                      <Info className="h-4 w-4" />
-                    </Link>
-                  </TooltipTrigger>
-                  <TooltipContent side="right" className="border-studiefy-black bg-studiefy-black/90 text-studiefy-white">
-                    Feedback e Suporte
-                  </TooltipContent>
-                </Tooltip>
-              ) : (
-                <Link
-                  href="/dashboard/feedback"
-                  className="flex items-center justify-start gap-2 text-sm text-studiefy-gray hover:text-studiefy-white"
-                >
-                  <Info className="h-4 w-4" />
-                  Feedback e Suporte
-                </Link>
-              )}
-              
-              {/* Link de Assinatura */}
-              {innerCollapsed ? (
-                <Tooltip delayDuration={0}>
-                  <TooltipTrigger asChild>
-                    <Link
-                      href="/dashboard/subscription"
-                      className="flex items-center justify-center p-2 text-studiefy-gray hover:text-studiefy-white"
-                    >
-                      <CreditCard className="h-4 w-4" />
-                    </Link>
-                  </TooltipTrigger>
-                  <TooltipContent side="right" className="border-studiefy-black bg-studiefy-black/90 text-studiefy-white">
-                    Assinatura
-                  </TooltipContent>
-                </Tooltip>
-              ) : (
-                <Link
-                  href="/dashboard/subscription"
-                  className="flex items-center justify-start gap-2 text-sm text-studiefy-gray hover:text-studiefy-white"
-                >
-                  <CreditCard className="h-4 w-4" />
-                  Assinatura
-                </Link>
-              )}
+            {/* Link de Feedback */}
+            <div className="flex items-center justify-center px-3 py-4 border-t border-studiefy-black/10">
+              {/* Conteúdo do rodapé, se necessário */}
             </div>
-
-            <ProfileDropdown
-              user={{
-                name: profile?.username ? `@${profile.username}` : profile?.name,
-                email: profile?.email || undefined,
-                avatar_url: profile?.avatar_url || undefined,
-                username: profile?.username || undefined
-              }}
-              side={dropdownSide}
-              className={cn(
-                "w-full",
-                innerCollapsed && "px-0.5 py-2 flex justify-center"
-              )}
-              isCollapsed={innerCollapsed}
-            />
           </div>
         </div>
       </div>

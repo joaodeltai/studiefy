@@ -18,9 +18,24 @@ import {
 import { Sidebar } from "./sidebar"
 import { AddEventDialog } from "./add-event-dialog"
 import { cn } from "@/lib/utils"
+import { Avatar, AvatarFallback, AvatarImage } from "./ui/avatar"
+import Link from "next/link"
 
 // Funções para cálculo de XP
 const getXPForLevel = (level: number) => level * 10
+
+// Função para obter iniciais do nome
+function getInitials(name: string): string {
+  if (!name) return ''
+  
+  return name
+    .split(' ')
+    .map(word => word[0])
+    .filter(Boolean)
+    .join('')
+    .toUpperCase()
+    .slice(0, 2)
+}
 
 export function MobileHeader() {
   // 1. Primeiro todos os hooks
@@ -38,6 +53,7 @@ export function MobileHeader() {
   const showBackButton = pathname !== "/dashboard"
   const xpForNextLevel = profile?.level ? getXPForLevel(profile.level) : 0
   const progress = profile?.xp ? (profile.xp / xpForNextLevel) * 100 : 0
+  const userInitials = profile?.name ? getInitials(profile.name) : '?'
 
   // 3. Funções que usam os valores dos hooks
   function getSubjectColor() {
@@ -68,80 +84,69 @@ export function MobileHeader() {
       return "Minha Conta"
     }
 
+    if (pathname === "/dashboard/assessments") {
+      return "Avaliações"
+    }
+
+    if (pathname === "/dashboard/review") {
+      return "Revisão"
+    }
+
+    if (pathname === "/dashboard/study") {
+      return "Estudos"
+    }
+
     return "Studiefy"
   }
 
-  // 4. Por fim, verificação de renderização
-  if (pathname.includes("/contents/") || 
-      pathname.includes("/study") || 
-      pathname.includes("/assessments") ||
-      pathname.includes("/events/") ||
-      pathname.startsWith("/dashboard/subjects")) {
-    return null
+  // 4. Verificação se está em página pública
+  if (!pathname.startsWith('/dashboard')) {
+    return null;
   }
 
   const subjectColor = getSubjectColor()
 
   return (
-    <header className="md:hidden flex flex-col border-b border-studiefy-black/10">
-      <div className="flex items-center gap-3 px-4 h-14">
-        {showBackButton ? (
-          <button
-            onClick={() => router.back()}
-            className="p-2 rounded-lg hover:bg-studiefy-black/5"
-          >
-            <ChevronLeft className="w-5 h-5" />
-          </button>
-        ) : (
-          <Sheet>
-            <SheetTrigger asChild>
-              <Button variant="ghost" size="icon" className="p-2">
-                <PanelLeft className="w-5 h-5" />
-              </Button>
-            </SheetTrigger>
-            <SheetContent side="left" className="p-0 w-72">
-              <SheetHeader className="sr-only">
-                <SheetTitle>Menu de Navegação</SheetTitle>
-              </SheetHeader>
-              <Sidebar isCollapsed={false} onCollapseChange={() => {}} showToggle={false} />
-            </SheetContent>
-          </Sheet>
-        )}
+    <header className="md:hidden fixed top-0 left-0 right-0 z-50 flex flex-col border-b border-studiefy-black/10 bg-white shadow-sm">
+      <div className="flex items-center justify-between px-4 h-10">
+        {/* Botão da sidebar no lado esquerdo */}
+        <Sheet>
+          <SheetTrigger asChild>
+            <Button variant="ghost" size="icon" className="p-1.5">
+              <PanelLeft className="w-4 h-4" />
+            </Button>
+          </SheetTrigger>
+          <SheetContent side="left" className="p-0 w-72">
+            <SheetHeader className="sr-only">
+              <SheetTitle>Menu de Navegação</SheetTitle>
+            </SheetHeader>
+            <Sidebar isCollapsed={false} onCollapseChange={() => {}} showToggle={false} />
+          </SheetContent>
+        </Sheet>
 
-        {isDashboard ? (
-          <div className="flex-1">
-            <div className="flex items-center justify-between">
-              <div className="flex items-center gap-2">
-                <Medal className="h-5 w-5 text-yellow-500" />
-                <span className="text-sm font-semibold">
-                  {profile?.level || 0}
-                </span>
-              </div>
-              <div className="flex items-center gap-2">
-                <Flame className="h-5 w-5 text-red-500" />
-                <span className="text-sm font-semibold">
-                  {streak?.streak}
-                </span>
-              </div>
-            </div>
-            <Progress value={progress} className="h-1 mt-2" />
-          </div>
-        ) : (
-          <div className="flex-1 flex items-center justify-between">
-            <div className="flex items-center gap-2">
-              {subjectColor && (
-                <div 
-                  className="w-3 h-6 rounded-full" 
-                  style={{ backgroundColor: subjectColor }}
-                />
-              )}
-              <span className="font-semibold">{getPageTitle()}</span>
-            </div>
-            {isSubjectPage && (
-              <AddEventDialog onAddEvent={addEvent} />
+        {/* Título da página no centro */}
+        <div className="flex items-center">
+          {subjectColor && (
+            <div 
+              className="w-2 h-5 rounded-full mr-2" 
+              style={{ backgroundColor: subjectColor }}
+            />
+          )}
+          <span className="font-semibold text-sm">{getPageTitle()}</span>
+        </div>
+
+        {/* Avatar do usuário no lado direito */}
+        <Link href="/dashboard/profile" className="flex items-center">
+          <Avatar className="h-7 w-7 shadow-sm">
+            {profile?.avatar_url ? (
+              <AvatarImage src={profile.avatar_url} alt={profile.name || 'Avatar'} />
+            ) : (
+              <AvatarFallback className="bg-studiefy-black/20 text-studiefy-white text-xs">
+                {userInitials}
+              </AvatarFallback>
             )}
-          </div>
-        )}
+          </Avatar>
+        </Link>
       </div>
     </header>
   )

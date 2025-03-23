@@ -59,6 +59,7 @@ export function useAllEvents() {
           *,
           subject:subjects(name, color)
         `)
+        .eq("deleted", false) // Filtrar apenas eventos não excluídos
         .order("date", { ascending: true })
 
       if (error) {
@@ -173,13 +174,24 @@ export function useAllEvents() {
 
   const deleteEvent = async (id: string) => {
     try {
+      // Primeiro, tenta mover para a lixeira
+      try {
+        await moveToTrash(id)
+        return // Se conseguir mover para a lixeira, encerra a função
+      } catch (error) {
+        // Se falhar (provavelmente porque a coluna 'deleted' não existe),
+        // continua com a exclusão permanente
+        console.warn("Não foi possível mover para a lixeira, excluindo permanentemente:", error)
+      }
+
+      // Exclusão permanente (fallback)
       const event = events.find((e) => e.id === id)
       if (!event) throw new Error(`Event not found: ${id}`)
 
       const { error } = await supabase
         .from("events")
         .delete()
-        .match({ id })
+        .eq("id", id)
 
       if (error) throw error
 
@@ -214,6 +226,55 @@ export function useAllEvents() {
       setEvents(prev => prev.filter(e => e.id !== id))
     } catch (error) {
       console.error("Error deleting event:", error)
+      throw error
+    }
+  }
+
+  const moveToTrash = async (id: string) => {
+    try {
+      const event = events.find((e) => e.id === id)
+      if (!event) throw new Error(`Event not found: ${id}`)
+
+      const { error } = await supabase
+        .from("events")
+        .update({ deleted: true })
+        .eq("id", id)
+
+      if (error) throw error
+
+      // Remover XP se o evento estava completo
+      if (event.completed) {
+        let xpAmount = 0;
+        
+        // Determinação do XP baseado no tipo de evento
+        switch (event.type) {
+          case 'trabalho':
+            xpAmount = 2;
+            break;
+          case 'prova':
+            xpAmount = 3;
+            break;
+          case 'simulado':
+            xpAmount = 5;
+            break;
+          case 'redacao':
+            xpAmount = 4;
+            break;
+          default:
+            xpAmount = 0;
+        }
+        
+        if (xpAmount > 0) {
+          await removeXP(xpAmount);
+        }
+      }
+
+      // Atualizar o estado
+      setEvents(prev => prev.filter(e => e.id !== id))
+      toast.success("Evento movido para a lixeira!")
+    } catch (error) {
+      console.error("Error moving event to trash:", error)
+      toast.error("Erro ao mover evento para a lixeira")
       throw error
     }
   }
@@ -297,9 +358,10 @@ export function useAllEvents() {
   return {
     events,
     loading,
-    deleteEvent,
-    toggleComplete,
+    fetchEvents,
     addEvent,
-    fetchEvents
+    deleteEvent,
+    moveToTrash,
+    toggleComplete,
   }
 }

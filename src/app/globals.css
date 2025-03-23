@@ -29,12 +29,12 @@ body {
     --ring: 240 10% 3.9%;
     --radius: 0.5rem;
     /* Cores para o gráfico */
-    --chart-1: 215 70% 50%;
-    --chart-2: 25 95% 50%;
+    --chart-1: 240 5.9% 10%;
+    --chart-2: 142 71% 45%;
+    --chart-3: 30 100% 60%;
+    --chart-4: 219 90% 65%;
     --color-nota: hsl(215, 70%, 50%);
     --color-redacao: hsl(25, 95%, 50%);
-    --chart-3: 197 37% 24%;
-    --chart-4: 43 74% 66%;
     --chart-5: 27 87% 67%;
     --sidebar-background: 0 0% 98%;
     --sidebar-foreground: 240 5.3% 26.1%;
@@ -90,5 +90,8 @@ body {
   }
   body {
     @apply bg-background text-foreground;
+  }
+  .space-y-2 > :not([hidden]) ~ :not([hidden]) {
+    margin-top: 0.5rem;
   }
 }

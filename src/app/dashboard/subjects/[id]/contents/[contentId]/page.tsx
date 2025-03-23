@@ -8,7 +8,7 @@ import { Checkbox } from "@/components/ui/checkbox"
 import { PrioritySelector } from "@/components/priority-selector"
 import { DeleteContentDialog } from "@/components/delete-content-dialog"
 import { Button } from "@/components/ui/button"
-import { Loader2, ChevronLeft } from "lucide-react"
+import { Loader2, ChevronLeft, Info } from "lucide-react"
 import { notFound, useRouter } from "next/navigation"
 import { toast } from "sonner"
 import { format } from "date-fns"
@@ -21,7 +21,10 @@ import {
   PopoverTrigger,
 } from "@/components/ui/popover"
 import { cn } from "@/lib/utils"
-import { useState } from "react"
+import { KeyboardEvent, useState, useCallback, useRef, useEffect } from "react"
+import { usePageTitle } from "@/contexts/PageTitleContext"
+import { NotesEditor } from "@/components/notes-editor"
+import { NotesEditorWithControls } from "@/components/notes-editor-with-controls"
 
 interface TimerCircleProps {
   timeLeft: number
@@ -288,6 +291,79 @@ interface PageProps {
 export default function ContentPage({ params }: PageProps) {
   const router = useRouter()
   const resolvedParams = React.use(params)
+  const { setPageTitle, setTitleActions } = usePageTitle()
+  const [showContentInfo, setShowContentInfo] = useState(false)
+  const contentInfoRef = useRef<HTMLDivElement>(null)
+  const btnContentInfoRef = useRef<HTMLButtonElement>(null)
+  
+  // Define o título da página como "Conteúdo" e adiciona o ícone de informação
+  React.useEffect(() => {
+    setPageTitle("Conteúdo")
+    
+    // Adiciona o ícone de informação
+    setTitleActions(
+      <div className="relative">
+        <Button 
+          variant="ghost" 
+          size="icon" 
+          className="ml-2 h-8 w-8 rounded-full hover:bg-studiefy-black/10"
+          onClick={() => setShowContentInfo(!showContentInfo)}
+          ref={btnContentInfoRef}
+        >
+          <Info className="h-4 w-4 text-studiefy-black/70 hover:text-studiefy-black" />
+          <span className="sr-only">Informações sobre Conteúdo</span>
+        </Button>
+        
+        {/* Tooltip de informação */}
+        {showContentInfo && (
+          <div 
+            ref={contentInfoRef}
+            className="absolute z-50 top-full left-0 mt-2 w-72 bg-white text-studiefy-black border border-studiefy-black/10 shadow-md p-3 rounded-md text-sm animate-in fade-in-50 duration-200"
+            style={{
+              boxShadow: "0 4px 12px rgba(0, 0, 0, 0.08)"
+            }}
+          >
+            <h3 className="text-base font-medium mb-1.5 text-studiefy-black">Sobre Conteúdo</h3>
+            <p className="text-studiefy-black/80 mb-1.5 leading-snug">
+              <strong>Conteúdo</strong> é um tópico de estudo específico dentro de uma matéria. Aqui você pode gerenciar todos os detalhes deste conteúdo.
+            </p>
+            <p className="font-medium mb-1 mt-2 text-studiefy-black">Como usar:</p>
+            <ul className="list-disc list-inside text-studiefy-black/80 leading-snug">
+              <li>Marque como concluído quando finalizar o estudo</li>
+              <li>Defina uma prioridade para organizar seus estudos</li>
+              <li>Adicione uma data de entrega para não perder prazos</li>
+              <li>Use o timer pomodoro para estudar com mais foco</li>
+              <li>Faça anotações importantes sobre o conteúdo</li>
+            </ul>
+          </div>
+        )}
+      </div>
+    )
+    
+    return () => {
+      setPageTitle("")
+      setTitleActions(null)
+    }
+  }, [showContentInfo])
+  
+  // Fecha o tooltip quando clicar fora dele
+  useEffect(() => {
+    function handleClickOutside(event: MouseEvent) {
+      if (showContentInfo && 
+          contentInfoRef.current && 
+          btnContentInfoRef.current && 
+          !contentInfoRef.current.contains(event.target as Node) &&
+          !btnContentInfoRef.current.contains(event.target as Node)) {
+        setShowContentInfo(false)
+      }
+    }
+    
+    document.addEventListener("mousedown", handleClickOutside)
+    return () => {
+      document.removeEventListener("mousedown", handleClickOutside)
+    }
+  }, [showContentInfo])
+  
   const { subjects, loading: loadingSubjects } = useSubjects()
   const { 
     contents, 
@@ -297,7 +373,8 @@ export default function ContentPage({ params }: PageProps) {
     updatePriority, 
     updateDueDate,
     updateFocusTime,
-    updateTitle
+    updateTitle,
+    updateNotes
   } = useContents(resolvedParams.id)
 
   const subject = subjects?.find((s) => s.id === resolvedParams.id)
@@ -365,6 +442,14 @@ export default function ContentPage({ params }: PageProps) {
     }
   }
 
+  const handleNotesUpdate = async (notes: string) => {
+    try {
+      await updateNotes(content.id, notes)
+    } catch (error) {
+      toast.error("Erro ao atualizar anotações")
+    }
+  }
+
   const renderTitleWithTags = (text: string) => {
     const parts = text.split(/(#\w+)/)
     return parts.map((part, index) => {
@@ -380,48 +465,49 @@ export default function ContentPage({ params }: PageProps) {
   }
 
   return (
-    <div className="min-h-screen h-full p-4">
-      <div className="flex items-center gap-3 mb-6">
-        <Button
-          variant="ghost"
-          size="icon"
-          onClick={() => router.back()}
-          className="mr-2"
-        >
-          <ChevronLeft className="h-6 w-6" />
-        </Button>
-
-        <Checkbox 
-          checked={content.completed}
-          onCheckedChange={handleToggle}
-          className="h-5 w-5"
-        />
-
-        <div className="flex-1">
-          <EditableTitle
-            title={content.title}
-            onSave={handleTitleUpdate}
-            className="text-xl font-semibold"
-          />
+    <div className="min-h-screen h-full p-2">
+      <div className="flex items-center justify-between mb-2">
+        <div className="flex items-center gap-3">
+          {/* Checkbox e título foram movidos para o topo do Pomodoro */}
         </div>
-
         <div className="flex items-center gap-2">
-          <DateText
-            date={content.due_date}
-            onDateChange={handleDateChange}
-          />
-          <PrioritySelector
-            priority={content.priority}
-            onPriorityChange={handlePriorityChange}
-          />
-          <DeleteContentDialog onConfirm={handleDelete} />
+          {/* Controles movidos para o topo das anotações */}
         </div>
       </div>
-      <div className="flex-1 flex items-center justify-center">
-        <PomodoroContent 
-          content={content}
-          onUpdateFocusTime={handleUpdateFocusTime}
-        />
+      <div className="flex-1 flex flex-col md:flex-row gap-8">
+        <div className="w-full md:w-1/2 flex items-center justify-center">
+          <div className="w-full bg-[#f3f5f3] rounded-xl shadow-md p-6">
+            <div className="flex items-center gap-3 mb-4">
+              <Checkbox 
+                checked={content.completed}
+                onCheckedChange={handleToggle}
+                className="h-5 w-5"
+              />
+              <EditableTitle
+                title={content.title}
+                onSave={handleTitleUpdate}
+                className="text-xl font-semibold"
+              />
+            </div>
+            <PomodoroContent 
+              content={content}
+              onUpdateFocusTime={handleUpdateFocusTime}
+            />
+          </div>
+        </div>
+        <div className="w-full md:w-1/2 flex flex-col">
+          <div className="w-full bg-[#f3f5f3] rounded-xl shadow-md p-6 h-full">
+            <NotesEditorWithControls 
+              notes={content.notes}
+              onSave={(notes) => handleNotesUpdate(notes)}
+              date={content.due_date}
+              onDateChange={handleDateChange}
+              priority={content.priority}
+              onPriorityChange={handlePriorityChange}
+              onDelete={handleDelete}
+            />
+          </div>
+        </div>
       </div>
     </div>
   )

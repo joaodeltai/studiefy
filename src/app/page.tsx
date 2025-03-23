@@ -6,7 +6,7 @@ import Link from "next/link";
 import { Input } from "@/components/ui/input";
 import { useAuth } from '@/hooks/useAuth'
 import { useRouter } from 'next/navigation'
-import { Mouse, Stethoscope, Info, PieChart, TrendingUp, Lightbulb, ChevronRight } from 'lucide-react'
+import { Mouse, Stethoscope, Info, PieChart, TrendingUp, Lightbulb, ChevronRight, Menu, Banknote } from 'lucide-react'
 import Image from 'next/image'
 import { interpolate } from "flubber"
 import {
@@ -28,6 +28,13 @@ import {
   DialogTitle,
   DialogTrigger,
 } from "@/components/ui/dialog"
+import {
+  Sheet,
+  SheetContent,
+  SheetHeader,
+  SheetTitle,
+  SheetTrigger,
+} from "@/components/ui/sheet"
 import { VisuallyHidden } from "@radix-ui/react-visually-hidden"
 import { cn } from "@/lib/utils"
 import { Flame, Timer, BookCheck, LineChart, LayoutGrid, Target, BookOpen, Brain, Cog, Check, X, BarChart2, Filter, FileText, PlusCircle } from 'lucide-react'
@@ -328,8 +335,8 @@ export default function Home() {
   return (
     <div className="min-h-screen flex flex-col bg-background text-foreground">
       
-      {/* Header */}
-      <header className="fixed top-4 left-0 right-0 z-50 mx-4 bg-background/80 backdrop-blur-md py-4 px-8 rounded-full shadow-sm">
+      {/* Header - versão desktop (fixo) e mobile (não fixo) */}
+      <header className="md:fixed md:top-4 top-0 left-0 right-0 z-50 md:mx-4 bg-background/80 backdrop-blur-md py-4 px-8 md:rounded-full shadow-sm">
         <div className="container mx-auto max-w-6xl flex justify-between items-center">
           <div className="flex items-center gap-6">
             <Link href="/" className="flex items-center gap-2 text-2xl font-bold hover:text-primary transition-colors">
@@ -347,8 +354,8 @@ export default function Home() {
               </span>
             </Link>
 
-            {/* Menu central movido para o lado esquerdo */}
-            <div className="flex items-center gap-6">
+            {/* Menu central - apenas visível em desktop */}
+            <div className="hidden md:flex items-center gap-6">
               <Link href="/blog" className="font-bold hover:text-primary transition-colors">
                 Blog
               </Link>
@@ -358,8 +365,8 @@ export default function Home() {
             </div>
           </div>
 
-          {/* Auth buttons */}
-          <div className="flex items-center gap-4">
+          {/* Auth buttons - desktop */}
+          <div className="hidden md:flex items-center gap-4">
             {user ? (
               <Button onClick={() => router.push('/dashboard')} 
                 className="bg-foreground text-background hover:bg-primary hover:text-foreground transition-colors">
@@ -378,11 +385,83 @@ export default function Home() {
               </div>
             )}
           </div>
+          
+          {/* Menu hamburger - apenas visível em mobile */}
+          <div className="md:hidden">
+            <Sheet>
+              <SheetTrigger asChild>
+                <Button variant="ghost" size="icon" aria-label="Menu">
+                  <Menu className="h-6 w-6" />
+                </Button>
+              </SheetTrigger>
+              <SheetContent side="right">
+                <SheetHeader>
+                  <SheetTitle className="flex items-center gap-2">
+                    <Image 
+                      src="https://uwemjaqphbytkkhalqge.supabase.co/storage/v1/object/public/images//logo_sfy_transp.webp"
+                      alt="Studiefy Logo"
+                      width={32}
+                      height={32}
+                      className="w-8 h-8"
+                      unoptimized
+                    />
+                    Studiefy
+                  </SheetTitle>
+                </SheetHeader>
+                <div className="mt-6 flex flex-col gap-4">
+                  <Link 
+                    href="/blog" 
+                    className="flex items-center gap-2 py-2 px-4 hover:bg-muted rounded-md transition-colors"
+                  >
+                    <BookOpen className="w-5 h-5" />
+                    Blog
+                  </Link>
+                  <Link 
+                    href="#planos" 
+                    onClick={(e) => {
+                      scrollToPlanos(e);
+                      document.querySelector('[data-radix-collection-item]')?.click();
+                    }}
+                    className="flex items-center gap-2 py-2 px-4 hover:bg-muted rounded-md transition-colors"
+                  >
+                    <Banknote className="w-5 h-5" />
+                    Preços
+                  </Link>
+                  <hr className="my-2" />
+                  {user ? (
+                    <Button 
+                      onClick={() => {
+                        router.push('/dashboard');
+                        document.querySelector('[data-radix-collection-item]')?.click();
+                      }}
+                      className="w-full bg-foreground text-background hover:bg-primary hover:text-foreground transition-colors"
+                    >
+                      Meu Progresso
+                    </Button>
+                  ) : (
+                    <>
+                      <Link 
+                        href="/auth/login" 
+                        className="flex items-center gap-2 py-2 px-4 hover:bg-muted rounded-md transition-colors"
+                      >
+                        Login
+                      </Link>
+                      <Link href="/auth/register">
+                        <Button className="w-full bg-foreground text-background hover:bg-primary hover:text-foreground transition-colors">
+                          Registrar
+                        </Button>
+                      </Link>
+                    </>
+                  )}
+                </div>
+              </SheetContent>
+            </Sheet>
+          </div>
         </div>
       </header>
 
-      {/* Espaçador para compensar o header fixo */}
-      <div className="h-24"></div>
+      {/* Espaçador para compensar o header fixo - apenas em desktop */}
+      <div className="h-24 md:block hidden"></div>
 
       {/* Hero Section */}
       <section className="flex items-start justify-center bg-background text-foreground py-16">

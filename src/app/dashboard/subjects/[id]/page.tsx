@@ -43,6 +43,7 @@ import {
   SheetTrigger 
 } from "@/components/ui/sheet"
 import { Sidebar } from "@/components/sidebar"
+import { useSetPageTitle } from "@/hooks/useSetPageTitle"
 
 interface DateTextProps {
   date: string | null
@@ -197,7 +198,7 @@ export default function SubjectPage() {
   const subjectId = params?.id as string
 
   const { subjects, loading: loadingSubject } = useSubjects()
-  const { events, loading: eventsLoading, addEvent, deleteEvent, toggleComplete } = useEvents(subjectId)
+  const { events, loading: eventsLoading, addEvent, deleteEvent: moveEventToTrash, toggleComplete } = useEvents(subjectId)
   const {
     contents,
     allContents,
@@ -219,18 +220,35 @@ export default function SubjectPage() {
   const [newContentCategoryId, setNewContentCategoryId] = useState<string | null>(null)
   const [localCategoryId, setLocalCategoryId] = useState<string | null>(null)
   const [showInfo, setShowInfo] = useState(false)
+  const [showMobileInfo, setShowMobileInfo] = useState(false)
   const infoRef = useRef<HTMLDivElement>(null)
-  const btnRef = useRef<HTMLButtonElement>(null)
+  const btnInfoRef = useRef<HTMLButtonElement>(null)
+  const btnMobileInfoRef = useRef<HTMLButtonElement>(null)
+  const mobileInfoRef = useRef<HTMLDivElement>(null)
+  
+  // Define o título da página dinamicamente com base no nome da matéria
+  const subject = subjects?.find(s => s.id === subjectId)
+  useSetPageTitle(subject ? subject.name : 'Conteúdos')
 
   // Fechar ao clicar fora
   useEffect(() => {
     function handleClickOutside(event: MouseEvent) {
+      // Para desktop
       if (showInfo && 
           infoRef.current && 
-          btnRef.current && 
+          btnInfoRef.current && 
           !infoRef.current.contains(event.target as Node) &&
-          !btnRef.current.contains(event.target as Node)) {
+          !btnInfoRef.current.contains(event.target as Node)) {
         setShowInfo(false)
+      }
+      
+      // Para mobile
+      if (showMobileInfo && 
+          mobileInfoRef.current && 
+          btnMobileInfoRef.current && 
+          !mobileInfoRef.current.contains(event.target as Node) &&
+          !btnMobileInfoRef.current.contains(event.target as Node)) {
+        setShowMobileInfo(false)
       }
     }
     
@@ -238,7 +256,7 @@ export default function SubjectPage() {
     return () => {
       document.removeEventListener("mousedown", handleClickOutside)
     }
-  }, [showInfo])
+  }, [showInfo, showMobileInfo])
 
   // Função adaptadora para toggleComplete
   const handleToggleEventComplete = async (id: string) => {
@@ -247,8 +265,6 @@ export default function SubjectPage() {
       await toggleComplete(id, !event.completed);
     }
   }
-
-  const subject = subjects?.find((s) => s.id === subjectId)
 
   const handleKeyDown = async (e: KeyboardEvent<HTMLInputElement>) => {
     if (e.key === "Enter" && newContentTitle.trim()) {
@@ -332,147 +348,41 @@ export default function SubjectPage() {
   const completedContents = filteredContents.filter(content => content.completed)
 
   return (
-    <div className="min-h-screen h-full p-4">
-      {/* Header para telas médias e grandes */}
-      <div className="hidden md:flex flex-col md:flex-row md:items-center md:gap-3 mb-4">
-        <div className="flex items-center gap-3">
-          <div 
-            className="w-4 h-8 rounded-full ml-12" 
-            style={{ backgroundColor: subject.color }}
-          />
-          <h1 className="text-3xl font-bold text-studiefy-black">
-            {subject.name}
-          </h1>
-          <div className="relative">
+    <div className="min-h-screen h-full p-4 pt-0">
+      {/* Alertas de limite */}
+      {hasReachedLimit ? (
+        <Alert variant="destructive" className="mb-3">
+          <AlertTriangle className="h-4 w-4" />
+          <AlertDescription className="flex justify-between items-center">
+            <span>
+              Você atingiu o limite de {FREE_PLAN_LIMITS.MAX_CONTENTS_PER_SUBJECT} conteúdos por matéria no plano Free.
+            </span>
             <Button 
-              variant="ghost" 
-              size="icon" 
-              className="ml-1 h-8 w-8 rounded-full hover:bg-studiefy-black/10"
-              onClick={() => setShowInfo(!showInfo)}
-              ref={btnRef}
+              size="sm"
+              className="ml-2 flex items-center gap-1"
+              onClick={() => router.push('/dashboard/subscription')}
             >
-              <Info className="h-4 w-4 text-studiefy-black/70 hover:text-studiefy-black" />
-              <span className="sr-only">Informações sobre Conteúdos</span>
+              <CreditCard className="h-4 w-4" />
+              <span>Fazer Upgrade</span>
             </Button>
-            
-            {showInfo && (
-              <div 
-                ref={infoRef}
-                className="absolute z-50 top-full left-0 mt-2 w-72 bg-white text-studiefy-black border border-studiefy-black/10 shadow-md p-3 rounded-md text-sm animate-in fade-in-50 duration-200"
-                style={{
-                  boxShadow: "0 4px 12px rgba(0, 0, 0, 0.08)"
-                }}
-              >
-                <h3 className="text-base font-medium mb-1.5 text-studiefy-black">Sobre Conteúdos</h3>
-                <p className="text-studiefy-black/80 mb-1.5 leading-snug">
-                  <strong>Conteúdos</strong> são os tópicos de estudo dentro de cada matéria. Aqui você pode organizar tudo o que precisa estudar e acompanhar seu progresso.
-                </p>
-                <p className="font-medium mb-1 mt-2 text-studiefy-black">Como usar:</p>
-                <ul className="list-disc list-inside text-studiefy-black/80 leading-snug">
-                  <li>Adicione novos conteúdos digitando e pressionando Enter</li>
-                  <li>Use # para adicionar tags aos seus conteúdos</li>
-                  <li>Defina prioridades, datas e categorias para organizar melhor</li>
-                  <li>Marque como concluído ao finalizar o estudo de um conteúdo</li>
-                  <li>Clique em um conteúdo para acessar seus detalhes e anotações</li>
-                </ul>
-              </div>
-            )}
-          </div>
-        </div>
-        <div className="md:ml-auto flex items-center gap-2">
-          <AddEventDialog
-            subjectId={subjectId}
-            onAddEvent={async (title, type, date, subjectId) => {
-              try {
-                // Usar o subjectId passado como parâmetro
-                const result = await addEvent(title, type, date);
-                toast.success("Evento adicionado com sucesso");
-                return result;
-              } catch (error: any) {
-                // Não exibir toast de erro se já foi exibido pelo hook de eventos
-                if (!error.code || error.code !== 'PLAN_LIMIT_REACHED') {
-                  toast.error("Erro ao adicionar evento");
-                }
-                // Propagar o erro para que o componente AddEventDialog possa tratá-lo
-                throw error;
-              }
-            }}
-          />
-        </div>
-      </div>
-
-      {/* Header para telas pequenas */}
-      <div className="flex items-center justify-between md:hidden mb-4">
-        <div className="flex items-center gap-2">
-          <Sheet>
-            <SheetTrigger asChild>
-              <Button variant="ghost" size="icon" className="p-2">
-                <PanelLeft className="w-5 h-5" />
-              </Button>
-            </SheetTrigger>
-            <SheetContent side="left" className="p-0 w-72">
-              <SheetHeader className="sr-only">
-                <SheetTitle>Menu de Navegação</SheetTitle>
-              </SheetHeader>
-              <Sidebar isCollapsed={false} onCollapseChange={() => {}} showToggle={false} />
-            </SheetContent>
-          </Sheet>
-          <div 
-            className="w-3 h-6 rounded-full" 
-            style={{ backgroundColor: subject.color }}
-          />
-          <h1 className="text-2xl font-bold text-studiefy-black">
-            {subject.name}
-          </h1>
-        </div>
-        <AddEventDialog
-          subjectId={subjectId}
-          onAddEvent={async (title, type, date, subjectId) => {
-            try {
-              const result = await addEvent(title, type, date);
-              toast.success("Evento adicionado com sucesso");
-              return result;
-            } catch (error: any) {
-              if (!error.code || error.code !== 'PLAN_LIMIT_REACHED') {
-                toast.error("Erro ao adicionar evento");
-              }
-              throw error;
-            }
-          }}
-        />
-      </div>
-
-      <div className="space-y-2">
-        {hasReachedLimit ? (
-          <Alert variant="destructive" className="mb-4">
-            <AlertTriangle className="h-4 w-4" />
-            <AlertDescription className="flex justify-between items-center">
-              <span>
-                Você atingiu o limite de {FREE_PLAN_LIMITS.MAX_CONTENTS_PER_SUBJECT} conteúdos por matéria no plano Free.
-              </span>
-              <Button 
-                size="sm"
-                className="ml-2 flex items-center gap-1"
-                onClick={() => router.push('/dashboard/subscription')}
-              >
-                <CreditCard className="h-4 w-4" />
-                <span>Fazer Upgrade</span>
-              </Button>
+          </AlertDescription>
+        </Alert>
+      ) : (
+        typeof remainingContents === 'number' && 
+        remainingContents <= 3 && 
+        remainingContents > 0 && (
+          <Alert variant="warning" className="mb-3 border-amber-300 bg-amber-50 dark:bg-amber-900/20">
+            <AlertTriangle className="h-4 w-4 text-amber-600 dark:text-amber-400" />
+            <AlertDescription className="text-amber-600 dark:text-amber-400">
+              Você pode adicionar mais {remainingContents} {remainingContents === 1 ? 'conteúdo' : 'conteúdos'} nesta matéria no plano Free.
             </AlertDescription>
           </Alert>
-        ) : (
-          typeof remainingContents === 'number' && 
-          remainingContents <= 3 && 
-          remainingContents > 0 && (
-            <Alert variant="warning" className="mb-4 border-amber-300 bg-amber-50 dark:bg-amber-900/20">
-              <AlertTriangle className="h-4 w-4 text-amber-600 dark:text-amber-400" />
-              <AlertDescription className="text-amber-600 dark:text-amber-400">
-                Você pode adicionar mais {remainingContents} {remainingContents === 1 ? 'conteúdo' : 'conteúdos'} nesta matéria no plano Free.
-              </AlertDescription>
-            </Alert>
-          )
-        )}
-        
+        )
+      )}
+      
+      {/* Filtros e barra de pesquisa */}
+      <div className="mb-4 flex flex-col gap-3" data-component-name="SubjectPage">
+        {/* Barra de pesquisa */}
         <div className="relative flex-1">
           <Input
             type="text"
@@ -503,101 +413,131 @@ export default function SubjectPage() {
           </div>
         </div>
 
-        <ContentFilters
-          subjectId={subjectId}
-          startDate={filters.startDate}
-          endDate={filters.endDate}
-          priority={filters.priority}
-          selectedTags={filters.tags}
-          categoryId={filters.categoryId || localCategoryId}
-          availableTags={availableTags}
-          onStartDateChange={handleStartDateChange}
-          onEndDateChange={handleEndDateChange}
-          onPriorityChange={handlePriorityChange}
-          onTagsChange={handleTagsChange}
-          onCategoryChange={handleCategoryChange}
-          onClearFilters={handleClearFilters}
-        />
-
-        {/* Lista de eventos */}
-        {events.filter(event => !event.completed).length > 0 && (
-          <div className="grid gap-4">
-            {events
-              .filter(event => !event.completed)
-              .map((event) => (
-                <EventCard
-                  key={event.id}
-                  event={event}
-                  subjectId={subjectId}
-                  onDelete={deleteEvent}
-                  onToggleComplete={handleToggleEventComplete}
-                />
-              ))
-            }
-          </div>
-        )}
-
-        {/* Conteúdos */}
-        <div className="flex flex-col gap-6 pb-6">
-          <div className="flex flex-col gap-4">
-            {/* Conteúdos ativos */}
-            {activeContents.map((content) => (
-              <ContentCard
-                key={content.id}
-                id={content.id}
-                subjectId={subjectId}
-                title={content.title}
-                completed={content.completed}
-                priority={content.priority}
-                dueDate={content.due_date}
-                categoryId={content.category_id}
-                tags={content.tags}
-                onToggleComplete={toggleContentComplete}
-                onMoveToTrash={moveToTrash}
-                onUpdatePriority={updatePriority}
-                onUpdateDueDate={updateDueDate}
-              />
-            ))}
-
-            {/* Accordion de conteúdos concluídos */}
-            {completedContents.length > 0 && (
-              <Accordion type="single" collapsible className="w-full">
-                <AccordionItem value="completed-contents" className="border rounded-lg">
-                  <AccordionTrigger className="px-4 hover:no-underline">
-                    <span className="flex items-center gap-2">
-                      Concluídos
-                      <span className="text-sm text-studiefy-black/50">
-                        ({completedContents.length})
-                      </span>
-                      <ChevronDown className="h-4 w-4" />
-                    </span>
-                  </AccordionTrigger>
-                  <AccordionContent>
-                    <div className="flex flex-col gap-4 p-4 pt-0">
-                      {completedContents.map((content) => (
-                        <ContentCard
-                          key={content.id}
-                          id={content.id}
-                          subjectId={subjectId}
-                          title={content.title}
-                          completed={content.completed}
-                          priority={content.priority}
-                          dueDate={content.due_date}
-                          categoryId={content.category_id}
-                          tags={content.tags}
-                          onToggleComplete={toggleContentComplete}
-                          onMoveToTrash={moveToTrash}
-                          onUpdatePriority={updatePriority}
-                          onUpdateDueDate={updateDueDate}
-                        />
-                      ))}
-                    </div>
-                  </AccordionContent>
-                </AccordionItem>
-              </Accordion>
-            )}
-          </div>
+        {/* Filtros */}
+        <div className="w-full">
+          <ContentFilters
+            subjectId={subjectId}
+            startDate={filters.startDate}
+            endDate={filters.endDate}
+            priority={filters.priority}
+            selectedTags={filters.tags}
+            categoryId={filters.categoryId || localCategoryId}
+            availableTags={availableTags}
+            onStartDateChange={handleStartDateChange}
+            onEndDateChange={handleEndDateChange}
+            onPriorityChange={handlePriorityChange}
+            onTagsChange={handleTagsChange}
+            onCategoryChange={handleCategoryChange}
+            onClearFilters={handleClearFilters}
+          />
         </div>
+      </div>
+      
+      {/* Lista de eventos */}
+      {events.filter(event => !event.completed).length > 0 && (
+        <Accordion type="single" collapsible className="w-full mb-4">
+          <AccordionItem value="events" className="border border-studiefy-black/10 rounded-lg shadow-sm">
+            <AccordionTrigger className="px-4 hover:no-underline">
+              <span className="flex items-center gap-2 text-lg font-semibold text-studiefy-black" data-component-name="SubjectPage">
+                Próximos eventos desta Disciplina
+                <span className="text-sm font-normal text-studiefy-black/50">
+                  ({events.filter(event => !event.completed).length})
+                </span>
+              </span>
+            </AccordionTrigger>
+            <AccordionContent>
+              <div className="flex flex-col gap-3 p-4 pt-0">
+                {events
+                  .filter(event => !event.completed)
+                  .map((event) => (
+                    <EventCard
+                      key={event.id}
+                      event={event}
+                      subjectId={subjectId}
+                      onDelete={moveEventToTrash}
+                      onToggleComplete={handleToggleEventComplete}
+                    />
+                  ))
+                }
+              </div>
+            </AccordionContent>
+          </AccordionItem>
+        </Accordion>
+      )}
+
+      {/* Conteúdos */}
+      <div className="flex flex-col gap-4 pb-6">
+        <Accordion type="single" defaultValue="contents" collapsible className="w-full">
+          <AccordionItem value="contents" className="border border-studiefy-black/10 rounded-lg shadow-sm">
+            <AccordionTrigger className="px-4 hover:no-underline">
+              <span className="flex items-center gap-2 text-lg font-semibold text-studiefy-black">
+                Conteúdos
+                <span className="text-sm font-normal text-studiefy-black/50">
+                  ({activeContents.length})
+                </span>
+              </span>
+            </AccordionTrigger>
+            <AccordionContent>
+              <div className="flex flex-col gap-3 p-4 pt-0">
+                {/* Conteúdos ativos */}
+                {activeContents.map((content) => (
+                  <ContentCard
+                    key={content.id}
+                    id={content.id}
+                    subjectId={subjectId}
+                    title={content.title}
+                    completed={content.completed}
+                    priority={content.priority}
+                    dueDate={content.due_date}
+                    categoryId={content.category_id}
+                    tags={content.tags}
+                    onToggleComplete={toggleContentComplete}
+                    onMoveToTrash={moveToTrash}
+                    onUpdatePriority={updatePriority}
+                    onUpdateDueDate={updateDueDate}
+                  />
+                ))}
+
+                {/* Conteúdos completados */}
+                {completedContents.length > 0 && (
+                  <Accordion type="single" collapsible className="w-full mt-2">
+                    <AccordionItem value="completed" className="border border-studiefy-black/10 rounded-lg">
+                      <AccordionTrigger className="px-4 hover:no-underline">
+                        <span className="flex items-center gap-2 text-sm font-medium text-studiefy-black/70">
+                          Completados
+                          <span className="text-xs font-normal text-studiefy-black/50">
+                            ({completedContents.length})
+                          </span>
+                        </span>
+                      </AccordionTrigger>
+                      <AccordionContent>
+                        <div className="flex flex-col gap-3 p-4 pt-0">
+                          {completedContents.map((content) => (
+                            <ContentCard
+                              key={content.id}
+                              id={content.id}
+                              subjectId={subjectId}
+                              title={content.title}
+                              completed={content.completed}
+                              priority={content.priority}
+                              dueDate={content.due_date}
+                              categoryId={content.category_id}
+                              tags={content.tags}
+                              onToggleComplete={toggleContentComplete}
+                              onMoveToTrash={moveToTrash}
+                              onUpdatePriority={updatePriority}
+                              onUpdateDueDate={updateDueDate}
+                            />
+                          ))}
+                        </div>
+                      </AccordionContent>
+                    </AccordionItem>
+                  </Accordion>
+                )}
+              </div>
+            </AccordionContent>
+          </AccordionItem>
+        </Accordion>
       </div>
     </div>
   )

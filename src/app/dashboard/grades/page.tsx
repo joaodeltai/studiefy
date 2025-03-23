@@ -27,11 +27,13 @@ import { Badge } from "@/components/ui/badge"
 import { GradeStatistics } from "@/components/grade-statistics"
 import { GradesChart } from "@/components/grades-chart"
 import { PremiumGradesPage } from "@/components/premium-grades-page"
+import { usePageTitle } from "@/contexts/PageTitleContext"
 
 export default function GradesPage() {
   const router = useRouter()
   const { events, loading } = useGrades()
   const { subjects, loading: loadingSubjects } = useSubjects()
+  const { setPageTitle, setTitleActions } = usePageTitle()
   
   // Estados para os filtros
   const [selectedSubjectId, setSelectedSubjectId] = useState<string>("all")
@@ -40,6 +42,55 @@ export default function GradesPage() {
   const [showInfo, setShowInfo] = useState(false)
   const infoRef = useRef<HTMLDivElement>(null)
   const btnRef = useRef<HTMLButtonElement>(null)
+  
+  // Definir o título da página e o botão de informação
+  useEffect(() => {
+    setPageTitle("Notas")
+    
+    const infoButton = (
+      <div className="relative">
+        <Button 
+          variant="ghost" 
+          size="icon" 
+          className="ml-2 h-8 w-8 rounded-full hover:bg-studiefy-black/10"
+          onClick={() => setShowInfo(!showInfo)}
+          ref={btnRef}
+        >
+          <Info className="h-4 w-4 text-studiefy-black/70 hover:text-studiefy-black" />
+          <span className="sr-only">Informações sobre Notas</span>
+        </Button>
+        
+        {showInfo && (
+          <div 
+            ref={infoRef}
+            className="absolute z-50 top-full left-0 mt-2 w-72 bg-white text-studiefy-black border border-studiefy-black/10 shadow-md p-3 rounded-md text-sm animate-in fade-in-50 duration-200"
+            style={{
+              boxShadow: "0 4px 12px rgba(0, 0, 0, 0.08)"
+            }}
+          >
+            <h3 className="text-base font-medium mb-1.5 text-studiefy-black">Sobre Notas</h3>
+            <p className="text-studiefy-black/80 mb-1.5 leading-snug">
+              <strong>Notas</strong> é onde você acompanha seu desempenho em todas as avaliações, visualizando estatísticas e gráficos que mostram sua evolução ao longo do tempo.
+            </p>
+            <p className="font-medium mb-1 mt-2 text-studiefy-black">Como usar:</p>
+            <ul className="list-disc list-inside text-studiefy-black/80 leading-snug">
+              <li>Filtre por matéria e período para análises específicas</li>
+              <li>Visualize sua média geral e por matéria</li>
+              <li>Acompanhe sua evolução através dos gráficos</li>
+              <li>Veja detalhes de cada avaliação na lista abaixo</li>
+            </ul>
+          </div>
+        )}
+      </div>
+    )
+    
+    setTitleActions(infoButton)
+    
+    return () => {
+      setTitleActions(null)
+      setPageTitle("")
+    }
+  }, [showInfo, setPageTitle, setTitleActions])
   
   // Fechar ao clicar fora
   useEffect(() => {
@@ -121,47 +172,8 @@ export default function GradesPage() {
   // Conteúdo da página
   const content = (
     <div className="min-h-screen h-full p-4">
-      {/* Header */}
-      <div className="flex items-center mb-6 md:pl-12">
-        <h1 className="text-2xl font-bold">Notas</h1>
-        <div className="relative">
-          <Button 
-            variant="ghost" 
-            size="icon" 
-            className="ml-2 h-8 w-8 rounded-full hover:bg-studiefy-black/10"
-            onClick={() => setShowInfo(!showInfo)}
-            ref={btnRef}
-          >
-            <Info className="h-4 w-4 text-studiefy-black/70 hover:text-studiefy-black" />
-            <span className="sr-only">Informações sobre Notas</span>
-          </Button>
-          
-          {showInfo && (
-            <div 
-              ref={infoRef}
-              className="absolute z-50 top-full left-0 mt-2 w-72 bg-white text-studiefy-black border border-studiefy-black/10 shadow-md p-3 rounded-md text-sm animate-in fade-in-50 duration-200"
-              style={{
-                boxShadow: "0 4px 12px rgba(0, 0, 0, 0.08)"
-              }}
-            >
-              <h3 className="text-base font-medium mb-1.5 text-studiefy-black">Sobre Notas</h3>
-              <p className="text-studiefy-black/80 mb-1.5 leading-snug">
-                <strong>Notas</strong> é onde você acompanha seu desempenho em todas as avaliações, visualizando estatísticas e gráficos que mostram sua evolução ao longo do tempo.
-              </p>
-              <p className="font-medium mb-1 mt-2 text-studiefy-black">Como usar:</p>
-              <ul className="list-disc list-inside text-studiefy-black/80 leading-snug">
-                <li>Filtre por matéria e período para análises específicas</li>
-                <li>Visualize sua média geral e por matéria</li>
-                <li>Acompanhe sua evolução através dos gráficos</li>
-                <li>Veja detalhes de cada avaliação na lista abaixo</li>
-              </ul>
-            </div>
-          )}
-        </div>
-      </div>
-      
       {/* Filtros */}
-      <div className="mb-6">
+      <div className="mb-6 md:pl-12">
         <div className="flex items-center">
           <div className="grid grid-cols-1 md:grid-cols-3 gap-4 flex-1">
             {/* Filtro de Matéria */}

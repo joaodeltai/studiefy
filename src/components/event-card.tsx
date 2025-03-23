@@ -29,9 +29,9 @@ export function EventCard({ event, subjectId, onDelete, onToggleComplete }: Even
   const handleDelete = async () => {
     try {
       await onDelete(event.id)
-      toast.success("Evento removido com sucesso")
+      toast.success("Evento movido para a lixeira")
     } catch (error) {
-      toast.error("Erro ao remover evento")
+      toast.error("Erro ao mover evento para a lixeira")
     }
   }
 

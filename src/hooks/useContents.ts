@@ -27,6 +27,7 @@ export interface Content {
   subject_id: string
   category_id: string | null
   focus_time?: number // tempo em segundos
+  notes?: string // campo de anotações
   created_at: string
   updated_at: string
 }
@@ -676,6 +677,43 @@ export function useContents(subjectId: string) {
     }
   }
 
+  const updateNotes = async (id: string, notes: string) => {
+    if (!user) {
+      toast.error("Usuário não autenticado")
+      return
+    }
+
+    if (!id) {
+      toast.error("Conteúdo não encontrado")
+      return
+    }
+
+    try {
+      const { error } = await supabase
+        .from("contents")
+        .update({ notes: notes })
+        .eq("id", id)
+
+      if (error) {
+        console.error("Error updating notes:", error)
+        toast.error("Erro ao atualizar anotações")
+        return
+      }
+
+      const updatedContents = contents.map((content) =>
+        content.id === id ? { ...content, notes } : content
+      );
+      setContents(updatedContents);
+      saveContentsCache(updatedContents);
+
+      // Não mostra toast para não interromper o fluxo do usuário
+    } catch (error) {
+      console.error("Error updating notes:", error)
+      toast.error("Erro ao atualizar anotações")
+      throw error
+    }
+  }
+
   // Verificar se o usuário atingiu o limite de conteúdos
   const hasReachedLimit = hasReachedContentsLimit(contents.length)
   
@@ -751,6 +789,7 @@ export function useContents(subjectId: string) {
     updateFocusTime,
     updateCategory,
     updateTitle,
+    updateNotes,
     availableTags,
     hasReachedLimit,
     remainingContents,

@@ -1,0 +1,37 @@
+[
+  {
+    "id": 1,
+    "autor": "Albert Einstein",
+    "frase": "A mente que se abre a uma nova ideia jamais volta ao seu tamanho original"
+  },
+  {
+    "id": 2,
+    "autor": "Nelson Mandela",
+    "frase": "A educação é a arma mais poderosa que você pode usar para mudar o mundo"
+  },
+  {
+    "id": 3,
+    "autor": "Confúcio",
+    "frase": "Escolha um trabalho que você ame e não terá que trabalhar um único dia em sua vida"
+  },
+  {
+    "id": 4,
+    "autor": "William Shakespeare",
+    "frase": "Nós somos feitos da mesma matéria que os sonhos"
+  },
+  {
+    "id": 5,
+    "autor": "Henry Ford",
+    "frase": "O insucesso é uma oportunidade para recomeçar com mais inteligência"
+  },
+  {
+    "id": 6,
+    "autor": "Sun Tzu",
+    "frase": "Se você conhece o inimigo e conhece a si mesmo, não precisa temer o resultado de cem batalhas"
+  },
+  {
+    "id": 7,
+    "autor": "Platão",
+    "frase": "O sábio fala porque tem algo a dizer; o tolo porque tem que dizer alguma coisa"
+  }
+]

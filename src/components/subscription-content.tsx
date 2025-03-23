@@ -23,7 +23,7 @@ import {
   AlertDialogTrigger,
 } from "@/components/ui/alert-dialog";
 
-export default function SubscriptionPage() {
+export function SubscriptionContent() {
   const [isLoading, setIsLoading] = useState<boolean>(false);
   const [selectedPeriod, setSelectedPeriod] = useState<SubscriptionPeriod>(SubscriptionPeriod.MONTHLY);
   const { subscription, isPremium, willCancel, isCanceling, createCheckoutSession, cancelSubscription } = useSubscription();
@@ -83,15 +83,12 @@ export default function SubscriptionPage() {
     : '';
 
   return (
-    <div className="h-full p-4 md:p-6">
-      {/* Header */}
-      <div className="flex items-center mb-6 md:pl-12">
-        <h1 className="text-2xl font-bold">Planos de Assinatura</h1>
-      </div>
+    <div className="bg-white rounded-lg p-4 sm:p-6 shadow-sm border border-studiefy-black/10">
+      <h2 className="text-xl font-semibold mb-6">Planos de Assinatura</h2>
 
       {/* Conteúdo */}
       {isPremium && !isTrialing && (
-        <div className="max-w-4xl mx-auto mb-8 p-4 border rounded-lg bg-green-50 dark:bg-green-900/20">
+        <div className="mb-8 p-4 border rounded-lg bg-green-50 dark:bg-green-900/20">
           <div className="flex items-center justify-between flex-wrap gap-4">
             <div>
               <h2 className="text-xl font-semibold flex items-center">
@@ -159,7 +156,7 @@ export default function SubscriptionPage() {
 
       {/* Seção de Trial */}
       {isTrialing && daysRemaining !== null && (
-        <div className="max-w-4xl mx-auto mb-8 p-4 border rounded-lg bg-blue-50 dark:bg-blue-900/20">
+        <div className="mb-8 p-4 border rounded-lg bg-blue-50 dark:bg-blue-900/20">
           <div className="flex items-center justify-between flex-wrap gap-4">
             <div>
               <h2 className="text-xl font-semibold flex items-center">
@@ -200,25 +197,21 @@ export default function SubscriptionPage() {
 
       {/* Seção de Trial Expirado */}
       {isExpired && (
-        <div className="max-w-4xl mx-auto mb-8 p-4 border rounded-lg bg-amber-50 dark:bg-amber-900/20">
+        <div className="mb-8 p-4 border rounded-lg bg-red-50 dark:bg-red-900/20">
           <div className="flex items-center justify-between flex-wrap gap-4">
             <div>
               <h2 className="text-xl font-semibold flex items-center">
                 Período de Teste Expirado
-                <Badge className="ml-2 bg-amber-500">Expirado</Badge>
+                <Badge variant="outline" className="ml-2 border-red-500 text-red-500">Expirado</Badge>
               </h2>
               <p className="text-muted-foreground mt-1">
-                Seu período de teste gratuito terminou. Assine o plano Premium para continuar aproveitando todos os recursos.
-              </p>
-              <p className="text-sm text-amber-600 mt-1 flex items-center">
-                <AlertTriangle className="h-4 w-4 mr-1" />
-                Você está utilizando o plano gratuito com recursos limitados.
+                Seu período de teste gratuito terminou. Assine agora para continuar acessando os recursos premium.
               </p>
             </div>
             <div className="flex gap-2">
               <Button 
                 onClick={() => handleSubscribe(currentPriceId || '')} 
-                className="bg-gradient-to-r from-amber-500 to-orange-500 hover:from-amber-600 hover:to-orange-600 text-white"
+                className="bg-gradient-to-r from-blue-600 to-indigo-600 hover:from-blue-700 hover:to-indigo-700 text-white"
                 disabled={isLoading}
               >
                 {isLoading ? (
@@ -227,7 +220,7 @@ export default function SubscriptionPage() {
                     Processando...
                   </>
                 ) : (
-                  'Recuperar Acesso Premium'
+                  'Assinar Premium Agora'
                 )}
               </Button>
             </div>
@@ -235,123 +228,130 @@ export default function SubscriptionPage() {
         </div>
       )}
 
-      {/* Seletor de Período */}
-      <div className="max-w-4xl mx-auto mb-6">
-        <Tabs 
-          defaultValue={SubscriptionPeriod.MONTHLY} 
-          value={selectedPeriod}
-          onValueChange={(value) => setSelectedPeriod(value as SubscriptionPeriod)}
-          className="w-full"
-        >
-          <div className="flex justify-center mb-6">
-            <TabsList className="grid grid-cols-2 w-full max-w-md">
-              <TabsTrigger value={SubscriptionPeriod.MONTHLY}>Mensal</TabsTrigger>
-              <TabsTrigger value={SubscriptionPeriod.ANNUAL}>Anual</TabsTrigger>
+      {/* Planos de Assinatura */}
+      {!isPremium && (
+        <div className="space-y-6">
+          <Tabs defaultValue="monthly" className="w-full" onValueChange={(value) => setSelectedPeriod(value === "monthly" ? SubscriptionPeriod.MONTHLY : SubscriptionPeriod.ANNUAL)}>
+            <TabsList className="grid w-full grid-cols-2 mb-6">
+              <TabsTrigger value="monthly">Mensal</TabsTrigger>
+              <TabsTrigger value="annual">Anual</TabsTrigger>
             </TabsList>
+            
+            <TabsContent value="monthly" className="space-y-4">
+              <Card className="border-2 border-primary">
+                <CardHeader className="pb-3">
+                  <CardTitle className="text-xl flex items-center justify-between">
+                    <span>Plano Premium</span>
+                    <Badge>Mais Popular</Badge>
+                  </CardTitle>
+                  <div className="flex items-baseline">
+                    <span className="text-3xl font-bold">R$ 19,90</span>
+                    <span className="text-muted-foreground ml-1">/mês</span>
+                  </div>
+                </CardHeader>
+                <CardContent className="pb-6">
+                  <ul className="space-y-2">
+                    <li className="flex items-start">
+                      <Check className="h-5 w-5 text-green-500 mr-2 shrink-0 mt-0.5" />
+                      <span>Acesso a todas as funcionalidades premium</span>
+                    </li>
+                    <li className="flex items-start">
+                      <Check className="h-5 w-5 text-green-500 mr-2 shrink-0 mt-0.5" />
+                      <span>Sem limites de uso</span>
+                    </li>
+                    <li className="flex items-start">
+                      <Check className="h-5 w-5 text-green-500 mr-2 shrink-0 mt-0.5" />
+                      <span>Atualizações constantes</span>
+                    </li>
+                    <li className="flex items-start">
+                      <Check className="h-5 w-5 text-green-500 mr-2 shrink-0 mt-0.5" />
+                      <span>Suporte prioritário</span>
+                    </li>
+                  </ul>
+                </CardContent>
+                <CardFooter>
+                  <Button 
+                    className="w-full bg-gradient-to-r from-blue-600 to-indigo-600 hover:from-blue-700 hover:to-indigo-700 text-white" 
+                    onClick={() => handleSubscribe(PREMIUM_MONTHLY_PRICE_ID || '')}
+                    disabled={isLoading}
+                  >
+                    {isLoading ? (
+                      <>
+                        <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                        Processando...
+                      </>
+                    ) : (
+                      'Assinar Agora'
+                    )}
+                  </Button>
+                </CardFooter>
+              </Card>
+            </TabsContent>
+            
+            <TabsContent value="annual" className="space-y-4">
+              <Card className="border-2 border-primary">
+                <CardHeader className="pb-3">
+                  <CardTitle className="text-xl flex items-center justify-between">
+                    <span>Plano Premium Anual</span>
+                    <Badge>Melhor Valor</Badge>
+                  </CardTitle>
+                  <div className="flex flex-col">
+                    <div className="flex items-baseline">
+                      <span className="text-3xl font-bold">R$ 199,90</span>
+                      <span className="text-muted-foreground ml-1">/ano</span>
+                    </div>
+                    <span className="text-sm text-green-600 font-medium mt-1">Economize R$ 39,80 (2 meses grátis)</span>
+                  </div>
+                </CardHeader>
+                <CardContent className="pb-6">
+                  <ul className="space-y-2">
+                    <li className="flex items-start">
+                      <Check className="h-5 w-5 text-green-500 mr-2 shrink-0 mt-0.5" />
+                      <span>Acesso a todas as funcionalidades premium</span>
+                    </li>
+                    <li className="flex items-start">
+                      <Check className="h-5 w-5 text-green-500 mr-2 shrink-0 mt-0.5" />
+                      <span>Sem limites de uso</span>
+                    </li>
+                    <li className="flex items-start">
+                      <Check className="h-5 w-5 text-green-500 mr-2 shrink-0 mt-0.5" />
+                      <span>Atualizações constantes</span>
+                    </li>
+                    <li className="flex items-start">
+                      <Check className="h-5 w-5 text-green-500 mr-2 shrink-0 mt-0.5" />
+                      <span>Suporte prioritário</span>
+                    </li>
+                    <li className="flex items-start">
+                      <Check className="h-5 w-5 text-green-500 mr-2 shrink-0 mt-0.5" />
+                      <span className="font-medium">Economia de 2 meses no valor anual</span>
+                    </li>
+                  </ul>
+                </CardContent>
+                <CardFooter>
+                  <Button 
+                    className="w-full bg-gradient-to-r from-blue-600 to-indigo-600 hover:from-blue-700 hover:to-indigo-700 text-white" 
+                    onClick={() => handleSubscribe(PREMIUM_ANNUAL_PRICE_ID || '')}
+                    disabled={isLoading}
+                  >
+                    {isLoading ? (
+                      <>
+                        <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                        Processando...
+                      </>
+                    ) : (
+                      'Assinar Agora'
+                    )}
+                  </Button>
+                </CardFooter>
+              </Card>
+            </TabsContent>
+          </Tabs>
+          
+          <div className="text-center text-sm text-muted-foreground">
+            <p>Pagamento seguro processado pelo Stripe. Cancele a qualquer momento.</p>
           </div>
-        </Tabs>
-      </div>
-
-      {/* Planos */}
-      <div className="grid grid-cols-1 md:grid-cols-2 gap-6 max-w-4xl mx-auto">
-        {/* Plano Gratuito */}
-        <Card className="border-2 border-muted">
-          <CardHeader>
-            <CardTitle>Plano Gratuito</CardTitle>
-            <CardDescription>Acesso básico à plataforma</CardDescription>
-            <div className="mt-4">
-              <span className="text-3xl font-bold">R$ 0</span>
-              <span className="text-muted-foreground">/mês</span>
-            </div>
-          </CardHeader>
-          <CardContent>
-            <ul className="space-y-2">
-              <li className="flex items-start">
-                <Check className="h-5 w-5 text-green-500 mr-2 shrink-0" />
-                <span>Acesso a materiais básicos</span>
-              </li>
-              <li className="flex items-start">
-                <Check className="h-5 w-5 text-green-500 mr-2 shrink-0" />
-                <span>Limite de 5 questões por dia</span>
-              </li>
-              <li className="flex items-start">
-                <Check className="h-5 w-5 text-green-500 mr-2 shrink-0" />
-                <span>Recursos básicos de estudo</span>
-              </li>
-            </ul>
-          </CardContent>
-          <CardFooter>
-            <Button variant="outline" className="w-full" disabled>
-              Plano Atual
-            </Button>
-          </CardFooter>
-        </Card>
-
-        {/* Plano Premium */}
-        <Card className="border-2 border-primary shadow-lg">
-          <CardHeader>
-            <CardTitle>Plano Premium</CardTitle>
-            <CardDescription>Acesso completo a todos os recursos</CardDescription>
-            <div className="mt-4">
-              <span className="text-3xl font-bold">{premiumPrice}</span>
-              <span className="text-muted-foreground">/{selectedPeriod === SubscriptionPeriod.MONTHLY ? 'mês' : 'ano'}</span>
-              {annualSavings && (
-                <Badge variant="outline" className="ml-2 text-green-600 border-green-600">
-                  {annualSavings}
-                </Badge>
-              )}
-            </div>
-          </CardHeader>
-          <CardContent>
-            <ul className="space-y-2">
-              <li className="flex items-start">
-                <Check className="h-5 w-5 text-green-500 mr-2 shrink-0" />
-                <span>Acesso a todos os materiais e cursos</span>
-              </li>
-              <li className="flex items-start">
-                <Check className="h-5 w-5 text-green-500 mr-2 shrink-0" />
-                <span>Questões ilimitadas</span>
-              </li>
-              <li className="flex items-start">
-                <Check className="h-5 w-5 text-green-500 mr-2 shrink-0" />
-                <span>Recursos avançados de estudo</span>
-              </li>
-              <li className="flex items-start">
-                <Check className="h-5 w-5 text-green-500 mr-2 shrink-0" />
-                <span>Revisão Inteligente</span>
-              </li>
-              <li className="flex items-start">
-                <Check className="h-5 w-5 text-green-500 mr-2 shrink-0" />
-                <span>Suporte prioritário</span>
-              </li>
-              <li className="flex items-start">
-                <Check className="h-5 w-5 text-green-500 mr-2 shrink-0" />
-                <span>Atualizações exclusivas</span>
-              </li>
-            </ul>
-          </CardContent>
-          <CardFooter>
-            <Button 
-              className="w-full bg-gradient-to-r from-blue-600 to-indigo-600 hover:from-blue-700 hover:to-indigo-700"
-              onClick={() => handleSubscribe(currentPriceId || '')}
-              disabled={isLoading || (isPremium && !willCancel)}
-            >
-              {isLoading ? (
-                <>
-                  <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-                  Processando...
-                </>
-              ) : isPremium && !willCancel ? (
-                'Plano Atual'
-              ) : isPremium && willCancel ? (
-                'Renovar Assinatura'
-              ) : (
-                'Assinar Agora'
-              )}
-            </Button>
-          </CardFooter>
-        </Card>
-      </div>
+        </div>
+      )}
     </div>
   );
 }

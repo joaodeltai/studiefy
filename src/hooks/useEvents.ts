@@ -32,6 +32,7 @@ export interface Event {
   created_at: string
   updated_at: string
   completed: boolean
+  deleted?: boolean
   content_ids?: string[]
   notes?: string
   total_questions?: number
@@ -74,30 +75,30 @@ export function useEvents(subjectId: string) {
   };
 
   const fetchEvents = async () => {
+    if (!user || !subjectId) {
+      setEvents([])
+      setLoading(false)
+      return
+    }
+
     try {
       setLoading(true)
-      
-      if (!user || !subjectId || subjectId === "") {
-        setEvents([])
-        return
-      }
-      
-      // Buscar eventos
-      const { data: eventsData, error: eventsError } = await supabase
+      const { data, error } = await supabase
         .from("events")
-        .select("*")
-        .match({ subject_id: subjectId })
-        .order("date", { ascending: true })
+        .select(`
+          *,
+          error_entries(*)
+        `)
+        .eq("subject_id", subjectId)
+        .eq("deleted", false) 
+        .order("date", { ascending: false })
 
-      if (eventsError) throw eventsError
+      if (error) throw error
 
-      // Buscar eventos de todos os assuntos para validar limites
-      await fetchAllEvents();
-      
-      setEvents(eventsData || [])
+      setEvents(data || [])
+      setLoading(false)
     } catch (error) {
       console.error("Error fetching events:", error)
-    } finally {
       setLoading(false)
     }
   }
@@ -199,13 +200,21 @@ export function useEvents(subjectId: string) {
 
   const deleteEvent = async (id: string) => {
     try {
+      // Primeiro, tenta mover para a lixeira
+      try {
+        await moveToTrash(id)
+        return // Se conseguir mover para a lixeira, encerra a função
+      } catch (error) {
+        // Se falhar (provavelmente porque a coluna 'deleted' não existe), 
+        // continua com a exclusão permanente
+        console.warn("Não foi possível mover para a lixeira, excluindo permanentemente:", error)
+      }
+
+      // Exclusão permanente (fallback)
       const event = events.find((e) => e.id === id)
       if (!event) throw new Error(`Event not found: ${id}`)
 
-      const { error } = await supabase
-        .from("events")
-        .delete()
-        .match({ id: id })
+      const { error } = await supabase.from("events").delete().eq("id", id)
 
       if (error) throw error
 
@@ -228,11 +237,45 @@ export function useEvents(subjectId: string) {
     }
   }
 
+  const moveToTrash = async (id: string) => {
+    try {
+      const event = events.find((e) => e.id === id)
+      if (!event) throw new Error(`Event not found: ${id}`)
+
+      const { error } = await supabase
+        .from("events")
+        .update({ deleted: true })
+        .eq("id", id)
+
+      if (error) throw error
+
+      if (event.completed) {
+        const xpAmount = event.type === 'trabalho' 
+          ? 2 
+          : event.type === 'prova'
+          ? 3
+          : event.type === 'simulado'
+          ? 5
+          : 0
+        await removeXP(xpAmount)
+      }
+
+      setEvents((prev) => prev.filter((e) => e.id !== id))
+      setAllEvents((prev) => prev.filter((e) => e.id !== id))
+      
+      toast.success("Evento movido para a lixeira!")
+    } catch (error) {
+      console.error("Error moving event to trash:", error)
+      toast.error("Erro ao mover evento para a lixeira")
+      throw error
+    }
+  }
+
   const updateEvent = async (
     id: string,
     updates: {
       title?: string
-      date?: Date
+      date?: string
       notes?: string
       content_ids?: string[]
       total_questions?: number
@@ -254,11 +297,32 @@ export function useEvents(subjectId: string) {
 
       if (error) throw error
 
+      // Atualizar o estado local
       setEvents((prev) =>
         prev.map((e) =>
-          e.id === id ? { ...e, ...updates } : e
+          e.id === id
+            ? {
+                ...e,
+                ...updates,
+                updated_at: new Date().toISOString(),
+              } as Event
+            : e
         )
       )
+
+      setAllEvents((prev) =>
+        prev.map((e) =>
+          e.id === id
+            ? {
+                ...e,
+                ...updates,
+                updated_at: new Date().toISOString(),
+              } as Event
+            : e
+        )
+      )
+
+      toast.success("Evento atualizado com sucesso!")
     } catch (error) {
       console.error("Error updating event:", error)
       throw error
@@ -441,6 +505,7 @@ export function useEvents(subjectId: string) {
     addEvent,
     toggleComplete,
     deleteEvent,
+    moveToTrash,
     updateEvent,
     updateEssayGrade,
     addErrorEntry,

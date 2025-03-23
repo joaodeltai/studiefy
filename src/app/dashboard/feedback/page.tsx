@@ -2,6 +2,7 @@
 
 import { Info, MessageSquare } from "lucide-react"
 import Link from "next/link"
+import { useSetPageTitle } from "@/hooks/useSetPageTitle"
 
 import {
   Card,
@@ -14,6 +15,9 @@ import {
 import { Button } from "@/components/ui/button"
 
 export default function FeedbackPage() {
+  // Define o título da página
+  useSetPageTitle('Feedback e Suporte')
+  
   const whatsappNumber = "+5551991248817"
   const whatsappMessage = encodeURIComponent("Olá! Estou usando o Studiefy e gostaria de dar um feedback/solicitar suporte.")
   const whatsappLink = `https://wa.me/${whatsappNumber}?text=${whatsappMessage}`
