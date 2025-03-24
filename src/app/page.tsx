@@ -336,7 +336,7 @@ export default function Home() {
     <div className="min-h-screen flex flex-col bg-background text-foreground">
       
       {/* Header - versão desktop (fixo) e mobile (não fixo) */}
-      <header className="md:fixed md:top-4 top-0 left-0 right-0 z-50 md:mx-4 bg-background/80 backdrop-blur-md py-4 px-8 md:rounded-full shadow-sm">
+      <header className="md:fixed md:top-4 top-0 left-0 right-0 z-50 md:mx-4 bg-background/80 backdrop-blur-md py-4 px-8 md:rounded-full md:shadow-sm">
         <div className="container mx-auto max-w-6xl flex justify-between items-center">
           <div className="flex items-center gap-6">
             <Link href="/" className="flex items-center gap-2 text-2xl font-bold hover:text-primary transition-colors">
@@ -420,7 +420,8 @@ export default function Home() {
                     href="#planos" 
                     onClick={(e) => {
                       scrollToPlanos(e);
-                      document.querySelector('[data-radix-collection-item]')?.click();
+                      const element = document.querySelector('[data-radix-collection-item]');
+                      if (element) (element as HTMLElement).click();
                     }}
                     className="flex items-center gap-2 py-2 px-4 hover:bg-muted rounded-md transition-colors"
                   >
@@ -432,7 +433,8 @@ export default function Home() {
                     <Button 
                       onClick={() => {
                         router.push('/dashboard');
-                        document.querySelector('[data-radix-collection-item]')?.click();
+                        const element = document.querySelector('[data-radix-collection-item]');
+                        if (element) (element as HTMLElement).click();
                       }}
                       className="w-full bg-foreground text-background hover:bg-primary hover:text-foreground transition-colors"
                     >
@@ -464,29 +466,37 @@ export default function Home() {
       <div className="h-24 md:block hidden"></div>
 
       {/* Hero Section */}
-      <section className="flex items-start justify-center bg-background text-foreground py-16">
-        <div className="container mx-auto px-8 max-w-6xl">
-          <div className="grid md:grid-cols-2 gap-x-16">
+      <section className="flex items-start justify-center bg-background text-foreground py-4 md:py-16">
+        <div className="container mx-auto px-4 md:px-8 max-w-6xl">
+          <div className="grid md:grid-cols-2">
             {/* Coluna da esquerda */}
-            <div className="space-y-3">
-              <p className="text-sm font-medium text-foreground/70 uppercase tracking-wider">
-                Chega de perder seu tempo precioso com planilhas e cadernos.
+            <div className="space-y-3 w-full">
+              <p className="text-sm font-medium text-foreground/70 uppercase tracking-wider md:pr-16">
+                De vestibulandos para vestibulandos.
               </p>
-              <h2 className="text-4xl md:text-5xl font-bold leading-tight">
+              <h2 className="text-4xl md:text-5xl font-bold">
                 Organize seus estudos para medicina com total clareza do seu progresso
               </h2>
+              
+              <p className="text-sm md:text-base text-foreground/70 mt-6 font-light">
+                A única plataforma que transforma cada minuto de estudo em dados precisos de progresso
+              </p>
+              <div className="mt-6">
+                <Link href="/auth/register">
+                  <Button size="lg" className="w-full md:w-auto bg-foreground text-background hover:bg-primary hover:text-foreground transition-colors">
+                    COMECE AGORA GRATUITAMENTE
+                  </Button>
+                </Link>
+              </div>
             </div>
 
             {/* Coluna da direita */}
-            <div className="flex flex-col justify-between h-full mt-8 md:mt-0">
-              <p className="text-xl text-foreground/70">
-                O único App que transforma cada minuto de estudo em dados precisos de progresso
-              </p>
-              <Link href="/auth/register">
-                <Button size="lg" className="w-full bg-foreground text-background hover:bg-primary hover:text-foreground transition-colors mt-8">
-                  COMECE AGORA GRATUITAMENTE
-                </Button>
-              </Link>
+            <div className="flex items-center justify-center mt-8 md:mt-0">
+              <img 
+                src="https://uwemjaqphbytkkhalqge.supabase.co/storage/v1/object/public/images//img_site_2%20(2).webp" 
+                alt="Studiefy em ação" 
+                className="w-full h-auto"
+              />
             </div>
           </div>
         </div>

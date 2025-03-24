@@ -122,6 +122,11 @@ const Footer = () => {
               </Link>
             </div>
           </div>
+          <div className="flex justify-center mt-6">
+            <p className="text-sm text-muted-foreground">
+              Feito com ❤️ em Porto Alegre - RS
+            </p>
+          </div>
         </div>
       </div>
     </footer>
