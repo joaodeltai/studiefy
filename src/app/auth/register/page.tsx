@@ -17,12 +17,20 @@ import { useState } from "react"
 import { Alert, AlertDescription } from "@/components/ui/alert"
 import Image from "next/image"
 import { Eye, EyeOff } from "lucide-react"
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select"
 
 export default function RegisterPage() {
   const [name, setName] = useState("")
   const [email, setEmail] = useState("")
   const [phoneNumber, setPhoneNumber] = useState("")
   const [password, setPassword] = useState("")
+  const [userType, setUserType] = useState<string>("") // Novo estado para o tipo de usuário
   const [showPassword, setShowPassword] = useState(false)
   const [validationError, setValidationError] = useState<string | null>(null)
   const [passwordStrength, setPasswordStrength] = useState({
@@ -53,8 +61,14 @@ export default function RegisterPage() {
       return
     }
 
+    // Verificar se o tipo de usuário foi selecionado
+    if (!userType) {
+      setValidationError("Por favor, selecione qual o seu perfil")
+      return
+    }
+
     try {
-      await signUp(email, password, name, phoneNumber)
+      await signUp(email, password, name, phoneNumber, userType)
       // Não é necessário redirecionar aqui, pois o redirecionamento agora é feito no hook useAuth
     } catch (error) {
       // O erro já é tratado no hook useAuth
@@ -120,7 +134,7 @@ export default function RegisterPage() {
         </div>
         
         {/* Formulário à direita */}
-        <div className="w-full md:w-1/2 p-6">
+        <div className="w-full md:w-1/2 p-6 overflow-y-auto max-h-[600px]">
           <Card className="w-full border-none shadow-none">
             <form onSubmit={handleSubmit}>
               <CardHeader className="space-y-1 px-0 pb-4">
@@ -185,6 +199,24 @@ export default function RegisterPage() {
                   </div>
                 </div>
                 <div className="space-y-1">
+                  <Label htmlFor="userType">Sou</Label>
+                  <Select
+                    value={userType}
+                    onValueChange={setUserType}
+                    required
+                  >
+                    <SelectTrigger id="userType" disabled={isLoading}>
+                      <SelectValue placeholder="Selecione seu perfil" />
+                    </SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="vestibulando">Vestibulando</SelectItem>
+                      <SelectItem value="estudante">Estudante</SelectItem>
+                      <SelectItem value="universitario">Universitário</SelectItem>
+                      <SelectItem value="concurseiro">Concurseiro</SelectItem>
+                    </SelectContent>
+                  </Select>
+                </div>
+                <div className="space-y-1">
                   <Label htmlFor="password">Senha</Label>
                   <div className="relative">
                     <Input
@@ -234,7 +266,7 @@ export default function RegisterPage() {
                 <Button 
                   type="submit" 
                   className="w-full"
-                  disabled={isLoading || !Object.values(passwordStrength).every(Boolean)}
+                  disabled={isLoading || !Object.values(passwordStrength).every(Boolean) || !userType}
                 >
                   {isLoading ? "Criando conta..." : "Criar conta"}
                 </Button>

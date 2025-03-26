@@ -49,7 +49,7 @@ export function useAuth() {
     }
   }
 
-  const signUp = async (email: string, password: string, name: string, phoneNumber?: string) => {
+  const signUp = async (email: string, password: string, name: string, phoneNumber?: string, role?: string) => {
     try {
       setIsLoading(true)
       setError(null)
@@ -70,6 +70,7 @@ export function useAuth() {
           data: {
             name,
             phone_number: phoneNumber,
+            role: role, // Adicionando o tipo de usuário
           },
         },
       })

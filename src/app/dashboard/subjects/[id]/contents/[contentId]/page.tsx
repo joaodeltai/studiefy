@@ -8,7 +8,7 @@ import { Checkbox } from "@/components/ui/checkbox"
 import { PrioritySelector } from "@/components/priority-selector"
 import { DeleteContentDialog } from "@/components/delete-content-dialog"
 import { Button } from "@/components/ui/button"
-import { Loader2, ChevronLeft, Info } from "lucide-react"
+import { Loader2, ChevronLeft, Info, Maximize2, X } from "lucide-react"
 import { notFound, useRouter } from "next/navigation"
 import { toast } from "sonner"
 import { format } from "date-fns"
@@ -30,9 +30,10 @@ interface TimerCircleProps {
   timeLeft: number
   totalTime: number
   children: React.ReactNode
+  darkMode?: boolean
 }
 
-function TimerCircle({ timeLeft, totalTime, children }: TimerCircleProps) {
+function TimerCircle({ timeLeft, totalTime, children, darkMode = false }: TimerCircleProps) {
   const radius = 120
   const circumference = 2 * Math.PI * radius
   const progress = ((totalTime - timeLeft) / totalTime) * circumference
@@ -46,7 +47,7 @@ function TimerCircle({ timeLeft, totalTime, children }: TimerCircleProps) {
           cx="150"
           cy="150"
           r={radius}
-          className="fill-none stroke-studiefy-black/10"
+          className={darkMode ? "fill-none stroke-white/10" : "fill-none stroke-studiefy-black/10"}
           strokeWidth="20"
         />
       </svg>
@@ -116,6 +117,7 @@ function DateText({ date, onDateChange }: DateTextProps) {
 function PomodoroContent({ content, onUpdateFocusTime }: { content: Content, onUpdateFocusTime: (seconds: number) => Promise<void> }) {
   const { timeLeft, isRunning, duration, toggleTimer, resetTimer, setDuration, getFocusedTime } = usePomodoro(content.id)
   const [showDurationOptions, setShowDurationOptions] = useState(false)
+  const [focusMode, setFocusMode] = useState(false)
 
   // Salva o tempo focado quando o timer é pausado ou zerado
   const saveFocusTime = React.useCallback(async () => {
@@ -137,6 +139,23 @@ function PomodoroContent({ content, onUpdateFocusTime }: { content: Content, onU
       }
     }
   }, [isRunning, saveFocusTime])
+
+  // Fecha o modo foco quando pressionar ESC
+  React.useEffect(() => {
+    const handleKeyDown = (e: KeyboardEvent) => {
+      if (e.key === 'Escape' && focusMode) {
+        setFocusMode(false)
+      }
+    }
+
+    if (focusMode) {
+      document.addEventListener('keydown', handleKeyDown as any)
+    }
+
+    return () => {
+      document.removeEventListener('keydown', handleKeyDown as any)
+    }
+  }, [focusMode])
 
   const handleToggleTimer = async () => {
     if (isRunning) {
@@ -182,102 +201,216 @@ function PomodoroContent({ content, onUpdateFocusTime }: { content: Content, onU
   }
 
   return (
-    <div className="w-full max-w-2xl mx-auto px-4 flex flex-col items-center justify-center gap-12">
-      <div className="flex flex-col items-center gap-2">
-        <div className="relative">
-          <TimerCircle timeLeft={timeLeft} totalTime={duration}>
-            <button 
-              onClick={() => !isRunning && setShowDurationOptions(prev => !prev)}
-              className={cn(
-                "flex flex-col items-center", 
-                !isRunning && "cursor-pointer hover:text-blue-600 transition-colors"
-              )}
-              disabled={isRunning}
-            >
-              <span className="text-5xl font-bold text-studiefy-black">
-                {formatTime(timeLeft)}
-              </span>
-              <span className="text-sm text-studiefy-gray mt-2">
-                Tempo restante
-              </span>
-              {typeof content.focus_time === 'number' && content.focus_time > 0 && (
-                <span className="text-xs text-studiefy-gray mt-1">
-                  {formatTotalFocusTime(content.focus_time)}
-                </span>
-              )}
-              {!isRunning && (
-                <span className="text-xs text-blue-500 mt-1">
-                  Clique para alterar ({formatDuration(duration)})
-                </span>
-              )}
-            </button>
-          </TimerCircle>
+    <>
+      {/* Overlay do Modo Foco */}
+      {focusMode && (
+        <div className="fixed inset-0 bg-black/95 z-[100] flex items-center justify-center">
+          <button 
+            onClick={() => setFocusMode(false)}
+            className="absolute top-4 right-4 text-white hover:text-white/80 transition-colors"
+          >
+            <X className="h-8 w-8" />
+            <span className="sr-only">Sair do modo foco</span>
+          </button>
+          
+          <div className="flex flex-col items-center justify-center gap-8">
+            <div className="relative">
+              <TimerCircle timeLeft={timeLeft} totalTime={duration} darkMode={true}>
+                <button 
+                  onClick={() => !isRunning && setShowDurationOptions(prev => !prev)}
+                  className={cn(
+                    "flex flex-col items-center", 
+                    !isRunning && "cursor-pointer hover:text-blue-400 transition-colors"
+                  )}
+                  disabled={isRunning}
+                >
+                  <span className="text-6xl font-bold text-white">
+                    {formatTime(timeLeft)}
+                  </span>
+                  <span className="text-base text-white/70 mt-2">
+                    Tempo restante
+                  </span>
+                  {typeof content.focus_time === 'number' && content.focus_time > 0 && (
+                    <span className="text-sm text-white/70 mt-1">
+                      {formatTotalFocusTime(content.focus_time)}
+                    </span>
+                  )}
+                  {!isRunning && (
+                    <span className="text-sm text-blue-400 mt-1">
+                      Clique para alterar ({formatDuration(duration)})
+                    </span>
+                  )}
+                </button>
+              </TimerCircle>
 
-          {/* Duration Options Popover */}
-          {showDurationOptions && !isRunning && (
-            <div className="absolute top-1/2 left-1/2 transform -translate-x-1/2 -translate-y-1/2 bg-white shadow-lg rounded-lg p-4 z-10 border border-gray-200 min-w-[200px]">
-              <div className="flex flex-col gap-2">
-                <h3 className="text-sm font-semibold text-center mb-2">Selecione a duração</h3>
-                <button 
-                  onClick={() => handleChangeDuration(POMODORO_DURATIONS.SHORT)}
-                  className={cn(
-                    "px-4 py-2 text-sm rounded-md hover:bg-blue-50 transition-colors text-left",
-                    duration === POMODORO_DURATIONS.SHORT && "bg-blue-100 font-medium"
-                  )}
-                >
-                  25 minutos
-                </button>
-                <button 
-                  onClick={() => handleChangeDuration(POMODORO_DURATIONS.MEDIUM)}
-                  className={cn(
-                    "px-4 py-2 text-sm rounded-md hover:bg-blue-50 transition-colors text-left",
-                    duration === POMODORO_DURATIONS.MEDIUM && "bg-blue-100 font-medium"
-                  )}
-                >
-                  30 minutos
-                </button>
-                <button 
-                  onClick={() => handleChangeDuration(POMODORO_DURATIONS.LONG)}
-                  className={cn(
-                    "px-4 py-2 text-sm rounded-md hover:bg-blue-50 transition-colors text-left",
-                    duration === POMODORO_DURATIONS.LONG && "bg-blue-100 font-medium"
-                  )}
-                >
-                  45 minutos
-                </button>
-                <button 
-                  onClick={() => handleChangeDuration(POMODORO_DURATIONS.EXTENDED)}
-                  className={cn(
-                    "px-4 py-2 text-sm rounded-md hover:bg-blue-50 transition-colors text-left",
-                    duration === POMODORO_DURATIONS.EXTENDED && "bg-blue-100 font-medium"
-                  )}
-                >
-                  60 minutos
-                </button>
-              </div>
+              {/* Duration Options Popover no Modo Foco */}
+              {showDurationOptions && !isRunning && focusMode && (
+                <div className="absolute top-1/2 left-1/2 transform -translate-x-1/2 -translate-y-1/2 bg-white/10 backdrop-blur-md shadow-lg rounded-lg p-4 z-20 border border-white/20 min-w-[220px]">
+                  <div className="flex flex-col gap-2">
+                    <h3 className="text-sm font-semibold text-center mb-2 text-white">Selecione a duração</h3>
+                    <button 
+                      onClick={() => handleChangeDuration(POMODORO_DURATIONS.SHORT)}
+                      className={cn(
+                        "px-4 py-2 text-sm rounded-md hover:bg-white/20 transition-colors text-left text-white",
+                        duration === POMODORO_DURATIONS.SHORT && "bg-white/30 font-medium"
+                      )}
+                    >
+                      25 minutos
+                    </button>
+                    <button 
+                      onClick={() => handleChangeDuration(POMODORO_DURATIONS.MEDIUM)}
+                      className={cn(
+                        "px-4 py-2 text-sm rounded-md hover:bg-white/20 transition-colors text-left text-white",
+                        duration === POMODORO_DURATIONS.MEDIUM && "bg-white/30 font-medium"
+                      )}
+                    >
+                      30 minutos
+                    </button>
+                    <button 
+                      onClick={() => handleChangeDuration(POMODORO_DURATIONS.LONG)}
+                      className={cn(
+                        "px-4 py-2 text-sm rounded-md hover:bg-white/20 transition-colors text-left text-white",
+                        duration === POMODORO_DURATIONS.LONG && "bg-white/30 font-medium"
+                      )}
+                    >
+                      45 minutos
+                    </button>
+                    <button 
+                      onClick={() => handleChangeDuration(POMODORO_DURATIONS.EXTENDED)}
+                      className={cn(
+                        "px-4 py-2 text-sm rounded-md hover:bg-white/20 transition-colors text-left text-white",
+                        duration === POMODORO_DURATIONS.EXTENDED && "bg-white/30 font-medium"
+                      )}
+                    >
+                      60 minutos
+                    </button>
+                  </div>
+                </div>
+              )}
             </div>
-          )}
-        </div>
-      </div>
 
-      <div className="flex items-center gap-4">
-        <button
-          onClick={handleToggleTimer}
-          className="px-8 py-2 rounded-lg bg-blue-500 text-white hover:bg-blue-600 transition-colors"
-        >
-          {isRunning ? "Pausar" : "Começar"}
-        </button>
-        <button
-          onClick={handleResetTimer}
-          className="px-8 py-2 rounded-lg border border-studiefy-black/10 hover:bg-studiefy-black/5 transition-colors"
-        >
-          Reiniciar
-        </button>
+            <div className="flex items-center gap-4">
+              <button
+                onClick={handleToggleTimer}
+                className="px-8 py-2 rounded-lg bg-blue-500 text-white hover:bg-blue-600 transition-colors"
+              >
+                {isRunning ? "Pausar" : "Começar"}
+              </button>
+              <button
+                onClick={handleResetTimer}
+                className="px-8 py-2 rounded-lg border border-white/20 text-white hover:bg-white/10 transition-colors"
+              >
+                Reiniciar
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      <div className="w-full max-w-2xl mx-auto px-4 flex flex-col items-center justify-center gap-12">
+        <div className="flex flex-col items-center gap-2">
+          <div className="relative">
+            <TimerCircle timeLeft={timeLeft} totalTime={duration}>
+              <button 
+                onClick={() => !isRunning && setShowDurationOptions(prev => !prev)}
+                className={cn(
+                  "flex flex-col items-center", 
+                  !isRunning && "cursor-pointer hover:text-blue-600 transition-colors"
+                )}
+                disabled={isRunning}
+              >
+                <span className="text-5xl font-bold text-studiefy-black">
+                  {formatTime(timeLeft)}
+                </span>
+                <span className="text-sm text-studiefy-gray mt-2">
+                  Tempo restante
+                </span>
+                {typeof content.focus_time === 'number' && content.focus_time > 0 && (
+                  <span className="text-xs text-studiefy-gray mt-1">
+                    {formatTotalFocusTime(content.focus_time)}
+                  </span>
+                )}
+                {!isRunning && (
+                  <span className="text-xs text-blue-500 mt-1">
+                    Clique para alterar ({formatDuration(duration)})
+                  </span>
+                )}
+              </button>
+            </TimerCircle>
+
+            {/* Duration Options Popover */}
+            {showDurationOptions && !isRunning && (
+              <div className="absolute top-1/2 left-1/2 transform -translate-x-1/2 -translate-y-1/2 bg-white shadow-lg rounded-lg p-4 z-10 border border-gray-200 min-w-[200px]">
+                <div className="flex flex-col gap-2">
+                  <h3 className="text-sm font-semibold text-center mb-2">Selecione a duração</h3>
+                  <button 
+                    onClick={() => handleChangeDuration(POMODORO_DURATIONS.SHORT)}
+                    className={cn(
+                      "px-4 py-2 text-sm rounded-md hover:bg-blue-50 transition-colors text-left",
+                      duration === POMODORO_DURATIONS.SHORT && "bg-blue-100 font-medium"
+                    )}
+                  >
+                    25 minutos
+                  </button>
+                  <button 
+                    onClick={() => handleChangeDuration(POMODORO_DURATIONS.MEDIUM)}
+                    className={cn(
+                      "px-4 py-2 text-sm rounded-md hover:bg-blue-50 transition-colors text-left",
+                      duration === POMODORO_DURATIONS.MEDIUM && "bg-blue-100 font-medium"
+                    )}
+                  >
+                    30 minutos
+                  </button>
+                  <button 
+                    onClick={() => handleChangeDuration(POMODORO_DURATIONS.LONG)}
+                    className={cn(
+                      "px-4 py-2 text-sm rounded-md hover:bg-blue-50 transition-colors text-left",
+                      duration === POMODORO_DURATIONS.LONG && "bg-blue-100 font-medium"
+                    )}
+                  >
+                    45 minutos
+                  </button>
+                  <button 
+                    onClick={() => handleChangeDuration(POMODORO_DURATIONS.EXTENDED)}
+                    className={cn(
+                      "px-4 py-2 text-sm rounded-md hover:bg-blue-50 transition-colors text-left",
+                      duration === POMODORO_DURATIONS.EXTENDED && "bg-blue-100 font-medium"
+                    )}
+                  >
+                    60 minutos
+                  </button>
+                </div>
+              </div>
+            )}
+          </div>
+        </div>
+
+        <div className="flex items-center gap-4 flex-wrap justify-center">
+          <button
+            onClick={handleToggleTimer}
+            className="px-8 py-2 rounded-lg bg-blue-500 text-white hover:bg-blue-600 transition-colors"
+          >
+            {isRunning ? "Pausar" : "Começar"}
+          </button>
+          <button
+            onClick={handleResetTimer}
+            className="px-8 py-2 rounded-lg border border-studiefy-black/10 hover:bg-studiefy-black/5 transition-colors"
+          >
+            Reiniciar
+          </button>
+          <button
+            onClick={() => setFocusMode(true)}
+            className="px-8 py-2 rounded-lg border border-studiefy-black/10 hover:bg-studiefy-black/5 transition-colors flex items-center gap-2"
+          >
+            <Maximize2 className="h-4 w-4" />
+            Modo Foco
+          </button>
+        </div>
+        <span className="text-xs text-studiefy-gray mt-2">
+          Tempo salvo automaticamente
+        </span>
       </div>
-      <span className="text-xs text-studiefy-gray mt-2">
-        Tempo salvo automaticamente
-      </span>
-    </div>
+    </>
   )
 }
 

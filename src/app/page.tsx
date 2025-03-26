@@ -493,7 +493,7 @@ export default function Home() {
             {/* Coluna da direita */}
             <div className="flex items-center justify-center mt-8 md:mt-0">
               <img 
-                src="https://uwemjaqphbytkkhalqge.supabase.co/storage/v1/object/public/images//img_site_2%20(2).webp" 
+                src="https://uwemjaqphbytkkhalqge.supabase.co/storage/v1/object/public/images//banner_studiefy.webp" 
                 alt="Studiefy em ação" 
                 className="w-full h-auto"
               />
