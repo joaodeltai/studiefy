@@ -4,7 +4,6 @@ import { useState, useEffect } from 'react'
 import { Sidebar } from "@/components/sidebar"
 import { MobileHeader } from "@/components/mobile-header"
 import { Button } from "@/components/ui/button"
-import { PanelLeft } from "lucide-react"
 import { cn } from "@/lib/utils"
 import { TrialBanner } from "@/components/ui/trial-banner"
 import { useTrialStatus } from "@/hooks/useTrialStatus"
@@ -73,18 +72,47 @@ export default function DashboardLayout({
         
         {/* Toggle button for desktop */}
         <Button 
-          variant="ghost" 
-          size="sm" 
+          variant="default" 
+          size="icon" 
           onClick={toggleSidebar}
           className={cn(
-            "fixed z-[90] top-6 hidden md:flex items-center justify-center text-studiefy-gray hover:text-studiefy-black hover:bg-studiefy-black/10 transition-all duration-300 ease-in-out",
+            "fixed z-[90] top-6 hidden md:flex items-center justify-center rounded-full w-7 h-7 transition-all duration-300 ease-in-out",
             isCollapsed 
-              ? "left-[calc(70px+0.5rem)]" 
-              : "left-[calc(18rem+0.5rem)]",
-            isCollapsed && "rotate-180"
+              ? "left-[calc(70px-0.875rem)]" 
+              : "left-[calc(18rem-0.875rem)]",
           )}
         >
-          <PanelLeft className="h-5 w-5" />
+          {isCollapsed ? (
+            <svg 
+              xmlns="http://www.w3.org/2000/svg" 
+              width="24" 
+              height="24" 
+              viewBox="0 0 24 24" 
+              fill="none" 
+              stroke="currentColor" 
+              strokeWidth="2" 
+              strokeLinecap="round" 
+              strokeLinejoin="round" 
+              className="h-4 w-4"
+            >
+              <polyline points="9 18 15 12 9 6"></polyline>
+            </svg>
+          ) : (
+            <svg 
+              xmlns="http://www.w3.org/2000/svg" 
+              width="24" 
+              height="24" 
+              viewBox="0 0 24 24" 
+              fill="none" 
+              stroke="currentColor" 
+              strokeWidth="2" 
+              strokeLinecap="round" 
+              strokeLinejoin="round" 
+              className="h-4 w-4"
+            >
+              <polyline points="15 18 9 12 15 6"></polyline>
+            </svg>
+          )}
         </Button>
         
         {/* Header mobile - aplicado apenas em telas pequenas */}

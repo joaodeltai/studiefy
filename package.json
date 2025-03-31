@@ -42,6 +42,7 @@
     "date-fns": "^3.6.0",
     "flubber": "^0.4.2",
     "framer-motion": "^12.4.7",
+    "fsrs.js": "^1.2.2",
     "js-cookie": "^3.0.5",
     "loops": "^4.0.0",
     "lucide-react": "^0.475.0",

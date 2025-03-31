@@ -55,6 +55,15 @@ const onboardingSteps = [
     description: 'Conheça a página de revisão para estudar seus erros',
     href: '/dashboard/review',
   },
+  // Comentado temporariamente até que a coluna seja adicionada no banco de dados
+  /*
+  {
+    id: 'visited_flashcards',
+    title: 'Explorar os Flashcards',
+    description: 'Conheça o sistema de flashcards com repetição espacada',
+    href: '/dashboard/flashcards',
+  },
+  */
   {
     id: 'configured_event_source',
     title: 'Configurar origem de eventos',

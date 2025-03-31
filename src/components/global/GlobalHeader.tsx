@@ -4,7 +4,7 @@ import React, { useState, useRef, useEffect } from 'react'
 import { useProfile } from '@/hooks/useProfile'
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar"
 import { Button } from "@/components/ui/button"
-import { usePathname } from "next/navigation"
+import { usePathname, useRouter } from 'next/navigation'
 import { MessageSquareHeart, Info, Plus, Medal, Flame } from 'lucide-react'
 import { cn } from "@/lib/utils"
 import { usePageTitle } from "@/contexts/PageTitleContext"
@@ -12,10 +12,13 @@ import { AddEventDialog } from "@/components/add-event-dialog"
 import { AddSubjectDialog } from '@/components/add-subject-dialog'
 import { useSubjects } from '@/hooks/useSubjects'
 import { toast } from 'sonner'
-import { useRouter } from 'next/navigation'
-import Link from 'next/link'
-import { useAllEvents } from "@/hooks/useAllEvents"
+import { useAuth } from '@/hooks/useAuth'
+import { supabase } from '@/lib/supabase'
+import { useAllEvents } from '@/hooks/useAllEvents'
 import { useStreak } from "@/hooks/useStreak"
+import Link from 'next/link'
+import { NewsDialog } from '@/components/news-dialog'
+import Image from 'next/image'
 
 function getInitials(name: string): string {
   if (!name) return ''
@@ -46,6 +49,7 @@ export function GlobalHeader({ isSidebarCollapsed }: { isSidebarCollapsed?: bool
   const { streak, loading: loadingStreak } = useStreak()
   const [showInfo, setShowInfo] = useState(false)
   const [showSubjectContentInfo, setShowSubjectContentInfo] = useState(false)
+  const [showNewsDialog, setShowNewsDialog] = useState(false)
   const infoRef = useRef<HTMLDivElement>(null)
   const btnInfoRef = useRef<HTMLButtonElement>(null)
   const subjectContentInfoRef = useRef<HTMLDivElement>(null)
@@ -64,6 +68,20 @@ export function GlobalHeader({ isSidebarCollapsed }: { isSidebarCollapsed?: bool
   
   // Verificar se estamos na página de avaliações
   const isAssessmentsPage = pathname === '/dashboard/assessments'
+  
+  // Verificar se estamos na página de eventos
+  const isEventPage = pathname.includes('/events/') && pathname.split('/').length === 6
+  
+  // Verificar se estamos na página de flashcards
+  const isFlashcardsPage = pathname === '/dashboard/flashcards'
+  
+  // Verificar se estamos na página de um deck específico
+  const isFlashcardDeckPage = pathname.includes('/dashboard/flashcards/') && 
+    pathname.split('/').length === 4 && 
+    !pathname.includes('/study')
+  
+  // Verificar se estamos na página de flashcards
+  const isFlashcardsPageOrDeck = isFlashcardsPage || isFlashcardDeckPage
   
   // Extrair o ID da matéria da URL, se estivermos na página de conteúdos
   const subjectId = isSubjectContentPage ? pathname.split('/')[3] : undefined
@@ -101,9 +119,15 @@ export function GlobalHeader({ isSidebarCollapsed }: { isSidebarCollapsed?: bool
         {/* Título da página - com margem à esquerda para não sobrepor o botão da sidebar */}
         {pageTitle && !isDashboardMainPage && (
           <div className="flex items-center">
+            {/* Botão de ação do título (como voltar) - exceto para a página de flashcards */}
+            {titleActions && !isFlashcardsPageOrDeck && titleActions}
+            
             <h1 className={cn(
               "text-xl font-semibold text-studiefy-black",
-              isSidebarCollapsed ? "ml-10" : "ml-16"
+              // Remover margem esquerda para a página de flashcards
+              isFlashcardsPageOrDeck ? "ml-0" : (isSidebarCollapsed ? "ml-10" : "ml-16"),
+              // Remover margem se houver ações de título (como botão voltar)
+              titleActions && !isFlashcardsPageOrDeck ? "ml-0" : ""
             )}>
               {titleElement || pageTitle}
             </h1>
@@ -161,9 +185,6 @@ export function GlobalHeader({ isSidebarCollapsed }: { isSidebarCollapsed?: bool
                 )}
               </div>
             )}
-            
-            {/* Ações adicionais do título (definidas dinamicamente) */}
-            {titleActions}
           </div>
         )}
 
@@ -182,7 +203,21 @@ export function GlobalHeader({ isSidebarCollapsed }: { isSidebarCollapsed?: bool
           </div>
         )}
         
-        <div className="flex items-center gap-4">
+        <div className="flex items-center gap-3">
+          {/* Botão de Novo Deck - apenas na página de flashcards */}
+          {isFlashcardsPage && titleActions && (
+            <div className="mr-1">
+              {titleActions}
+            </div>
+          )}
+          
+          {/* Botões de ação na página de um deck específico */}
+          {isFlashcardDeckPage && titleActions && (
+            <div className="mr-1">
+              {titleActions}
+            </div>
+          )}
+          
           {/* Ofensiva - exibida apenas na página principal (ao lado do botão de feedback) */}
           {isDashboardMainPage && profile && streak && (
             <div 
@@ -226,15 +261,31 @@ export function GlobalHeader({ isSidebarCollapsed }: { isSidebarCollapsed?: bool
               subjectId={subjectId} 
               onAddEvent={async (title, type, date) => {
                 try {
-                  // Usar o hook useEvents para adicionar o evento
-                  // Como não temos acesso direto ao hook aqui, vamos redirecionar para a página
-                  // e deixar que o componente da página lide com isso
+                  // Importar o hook useEvents
+                  const { useEvents } = await import('@/hooks/useEvents');
+                  const { data: { user } } = await supabase.auth.getUser();
+                  
+                  if (!user) {
+                    throw new Error('Usuário não autenticado');
+                  }
+                  
+                  // Verificar se subjectId é definido
+                  if (!subjectId) {
+                    throw new Error('ID da matéria não definido');
+                  }
+                  
+                  // Usar o hook para obter a função addEvent
+                  const { addEvent } = useEvents(subjectId);
+                  
+                  // Chamar a função addEvent
+                  await addEvent(title, type, new Date(date));
+                  
                   toast.success("Evento adicionado com sucesso");
                   router.refresh(); // Atualizar a página para mostrar o novo evento
-                  return Promise.resolve();
                 } catch (error: any) {
+                  console.error('Erro ao adicionar evento:', error);
                   toast.error("Erro ao adicionar evento");
-                  return Promise.reject(error);
+                  throw error;
                 }
               }}
             />
@@ -246,9 +297,9 @@ export function GlobalHeader({ isSidebarCollapsed }: { isSidebarCollapsed?: bool
               showSubjectSelector={true}
               onAddEvent={async (title, type, date, subjectId) => {
                 try {
-                  const result = await addEvent(title, type, date, subjectId);
+                  await addEvent(title, type, date, subjectId);
                   toast.success("Evento adicionado com sucesso");
-                  return result;
+                  router.refresh(); // Atualizar a página para mostrar o novo evento
                 } catch (error: any) {
                   if (!error.code || error.code !== 'PLAN_LIMIT_REACHED') {
                     toast.error("Erro ao adicionar evento");
@@ -258,6 +309,23 @@ export function GlobalHeader({ isSidebarCollapsed }: { isSidebarCollapsed?: bool
               }}
             />
           )}
+          
+          {/* Botão de Novidades */}
+          <Button 
+            variant="ghost" 
+            size="icon"
+            onClick={() => setShowNewsDialog(true)}
+            className="flex items-center justify-center hover:bg-transparent"
+          >
+            <div className="relative h-8 w-8">
+              <Image 
+                src="https://uwemjaqphbytkkhalqge.supabase.co/storage/v1/object/public/images//star.webp" 
+                alt="Novidades" 
+                fill
+                style={{ objectFit: 'contain' }}
+              />
+            </div>
+          </Button>
           
           {/* Ícone de Feedback e Suporte */}
           <Button 
@@ -292,6 +360,9 @@ export function GlobalHeader({ isSidebarCollapsed }: { isSidebarCollapsed?: bool
           </Button>
         </div>
       </div>
+      
+      {/* Diálogo de Novidades */}
+      <NewsDialog open={showNewsDialog} onOpenChange={setShowNewsDialog} />
     </header>
   )
 }

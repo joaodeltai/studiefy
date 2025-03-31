@@ -83,7 +83,9 @@ export function useEvents(subjectId: string) {
 
     try {
       setLoading(true)
-      const { data, error } = await supabase
+      
+      // Buscar eventos
+      const { data: eventsData, error: eventsError } = await supabase
         .from("events")
         .select(`
           *,
@@ -93,9 +95,31 @@ export function useEvents(subjectId: string) {
         .eq("deleted", false) 
         .order("date", { ascending: false })
 
-      if (error) throw error
+      if (eventsError) throw eventsError
 
-      setEvents(data || [])
+      // Buscar relacionamentos event_contents para todos os eventos
+      const eventIds = eventsData.map(event => event.id)
+      
+      const { data: eventContentsData, error: eventContentsError } = await supabase
+        .from("event_contents")
+        .select("event_id, content_id")
+        .in("event_id", eventIds)
+
+      if (eventContentsError) throw eventContentsError
+
+      // Mapear os content_ids para cada evento
+      const eventsWithContents = eventsData.map(event => {
+        const contentIds = eventContentsData
+          .filter(ec => ec.event_id === event.id)
+          .map(ec => ec.content_id)
+
+        return {
+          ...event,
+          content_ids: contentIds
+        }
+      })
+
+      setEvents(eventsWithContents || [])
       setLoading(false)
     } catch (error) {
       console.error("Error fetching events:", error)
@@ -481,6 +505,55 @@ export function useEvents(subjectId: string) {
     }
   }
 
+  // Função para associar um conteúdo a um evento
+  const linkContent = async (eventId: string, contentId: string) => {
+    try {
+      // Buscar o evento atual
+      const event = events.find((e) => e.id === eventId)
+      if (!event) throw new Error(`Evento não encontrado: ${eventId}`)
+
+      // Verificar se o evento já tem content_ids, se não, criar um array vazio
+      const currentContentIds = event.content_ids || []
+      
+      // Verificar se o conteúdo já está associado ao evento
+      if (currentContentIds.includes(contentId)) {
+        throw new Error('Este conteúdo já está associado ao evento')
+      }
+      
+      // Adicionar o relacionamento na tabela event_contents
+      const { error } = await supabase
+        .from('event_contents')
+        .insert([{ event_id: eventId, content_id: contentId }])
+
+      if (error) {
+        console.error('Erro ao inserir na tabela event_contents:', error)
+        throw error
+      }
+
+      // Adicionar o novo contentId ao array local para atualizar a UI
+      const updatedContentIds = [...currentContentIds, contentId]
+      
+      // Atualizar o estado local
+      setEvents((prev) =>
+        prev.map((e) =>
+          e.id === eventId
+            ? {
+                ...e,
+                content_ids: updatedContentIds,
+                updated_at: new Date().toISOString(),
+              }
+            : e
+        )
+      )
+      
+      toast.success('Conteúdo associado com sucesso!')
+      return updatedContentIds
+    } catch (error) {
+      console.error('Erro ao associar conteúdo ao evento:', error)
+      throw error
+    }
+  }
+
   // Iniciar a busca por eventos quando o componente for montado ou o subject_id mudar
   useEffect(() => {
     if (user && subjectId) {
@@ -512,6 +585,7 @@ export function useEvents(subjectId: string) {
     updateErrorEntry,
     deleteErrorEntry,
     fetchEvents,
+    linkContent,
   }
 }
 

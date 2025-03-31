@@ -1,7 +1,7 @@
 "use client"
 
 import * as React from "react"
-import { Link } from "lucide-react"
+import { Link, Check } from "lucide-react"
 import { Button } from "@/components/ui/button"
 import {
   Command,
@@ -17,7 +17,7 @@ import {
   PopoverTrigger,
 } from "@/components/ui/popover"
 import { toast } from "sonner"
-import { useEvents } from "@/hooks/useEvents"
+import { useEvents, Event } from "@/hooks/useEvents"
 import { format } from "date-fns"
 import { ptBR } from "date-fns/locale"
 
@@ -42,6 +42,11 @@ export function LinkContentDialog({ contentId, subjectId }: LinkContentDialogPro
     }
   }
 
+  // Verificar quais eventos já estão associados a este conteúdo
+  const isEventLinked = (event: Event) => {
+    return event.content_ids?.includes(contentId) || false
+  }
+
   return (
     <Popover open={open} onOpenChange={setOpen}>
       <PopoverTrigger asChild>
@@ -64,6 +69,8 @@ export function LinkContentDialog({ contentId, subjectId }: LinkContentDialogPro
                   key={event.id}
                   value={event.id}
                   onSelect={() => handleSelect(event.id)}
+                  className="flex justify-between items-center"
+                  disabled={isEventLinked(event)}
                 >
                   <div className="flex flex-col">
                     <span>{event.title}</span>
@@ -71,6 +78,9 @@ export function LinkContentDialog({ contentId, subjectId }: LinkContentDialogPro
                       {format(new Date(event.date), "dd/MM/yyyy", { locale: ptBR })}
                     </span>
                   </div>
+                  {isEventLinked(event) && (
+                    <Check className="h-4 w-4 text-green-500" />
+                  )}
                 </CommandItem>
               ))}
             </CommandGroup>

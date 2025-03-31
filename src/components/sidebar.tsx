@@ -24,6 +24,12 @@ const routes = [
     icon: GraduationCap
   },
   {
+    id: "flashcards",
+    label: 'Flashcards',
+    href: '/dashboard/flashcards',
+    icon: Layers
+  },
+  {
     id: "study",
     label: 'Estudo',
     href: '/dashboard/study',
@@ -70,13 +76,6 @@ const routes = [
     icon: Target,
     comingSoon: true,
     ai: true
-  },
-  {
-    id: "flashcards",
-    label: 'Flashcards',
-    href: '#',
-    icon: Layers,
-    comingSoon: true
   }
 ]
 

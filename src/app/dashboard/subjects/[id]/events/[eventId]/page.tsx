@@ -3,7 +3,7 @@
 import { useEvent } from "@/hooks/useEvent"
 import { useContents } from "@/hooks/useContents"
 import { useParams, useRouter } from "next/navigation"
-import { ChevronLeft, X, PanelLeft } from "lucide-react"
+import { ChevronLeft, X } from "lucide-react"
 import { Button } from "@/components/ui/button"
 import { format } from "date-fns"
 import { ptBR } from "date-fns/locale"
@@ -20,14 +20,6 @@ import { useSubjects } from "@/hooks/useSubjects"
 import { useSubjectCategories } from "@/hooks/useSubjectCategories"
 import { PremiumErrorNotebook } from "@/components/premium-error-notebook"
 import { useEventSources } from "@/hooks/useEventSources"
-import { 
-  Sheet, 
-  SheetContent, 
-  SheetHeader,
-  SheetTitle,
-  SheetTrigger 
-} from "@/components/ui/sheet"
-import { Sidebar } from "@/components/sidebar"
 
 export default function EventPage() {
   const router = useRouter()
@@ -273,55 +265,6 @@ export default function EventPage() {
 
   return (
     <div className="p-6 md:p-8">
-      {/* Cabeçalho para mobile */}
-      <div className="flex md:hidden items-start gap-3 mb-6">
-        <Sheet>
-          <SheetTrigger asChild>
-            <Button variant="ghost" size="icon" className="mr-2">
-              <PanelLeft className="h-6 w-6" />
-            </Button>
-          </SheetTrigger>
-          <SheetContent side="left" className="p-0 w-72">
-            <SheetHeader className="sr-only">
-              <SheetTitle>Menu de Navegação</SheetTitle>
-            </SheetHeader>
-            <Sidebar isCollapsed={false} onCollapseChange={() => {}} showToggle={false} />
-          </SheetContent>
-        </Sheet>
-        <div className="flex-1">
-          <div className="flex items-center gap-2">
-            {subjects && subjects.find(subject => subject.id === subjectId) && (
-              <div 
-                className="w-3 h-6 rounded-full" 
-                style={{ backgroundColor: subjects.find(subject => subject.id === subjectId)?.color }}
-              />
-            )}
-            <h1 className="text-2xl font-semibold text-studiefy-black">{event.title}</h1>
-          </div>
-          <p className="text-sm text-studiefy-black/70">
-            {formattedDate} • {event.type}
-          </p>
-        </div>
-      </div>
-
-      {/* Cabeçalho para desktop */}
-      <div className="hidden md:flex items-start mb-6 md:pl-12 mt-4">
-        <div className="flex-1">
-          <div className="flex items-center gap-2">
-            {subjects && subjects.find(subject => subject.id === subjectId) && (
-              <div 
-                className="w-3 h-6 rounded-full" 
-                style={{ backgroundColor: subjects.find(subject => subject.id === subjectId)?.color }}
-              />
-            )}
-            <h1 className="text-2xl font-semibold text-studiefy-black">{event.title}</h1>
-          </div>
-          <p className="text-sm text-studiefy-black/70">
-            {formattedDate} • {event.type}
-          </p>
-        </div>
-      </div>
-
       <div className="mb-6 flex gap-6">
         <div className="w-1/2">
           <div className="flex items-center justify-between mb-2">

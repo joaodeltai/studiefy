@@ -16,6 +16,7 @@ export type OnboardingProgress = {
   visited_review: boolean
   configured_event_source: boolean
   visited_grades: boolean
+  visited_flashcards: boolean
   is_completed: boolean
   created_at: string
   updated_at: string
@@ -60,6 +61,7 @@ export function useOnboarding() {
             visited_review: false,
             configured_event_source: false,
             visited_grades: false,
+            visited_flashcards: false,
             is_completed: false,
           }
           
@@ -103,21 +105,31 @@ export function useOnboarding() {
     if (!user || !progress) return
     
     try {
-      // Atualizar o estado local primeiro para feedback imediato
-      setProgress((prev) => {
-        if (!prev) return null
-        return { ...prev, [step]: value }
-      })
+      // Verificar se o campo existe no objeto de progresso
+      if (!(step in progress)) {
+        console.warn(`O campo ${step} não existe no objeto de progresso do onboarding.`)
+        return
+      }
+      
+      // Criar uma cópia do progresso atual
+      const updatedProgress = { ...progress }
+      
+      // Atualizar o valor do passo
+      // @ts-ignore - Ignorar erro de tipagem, pois já verificamos que o campo existe
+      updatedProgress[step] = value
+      
+      // Atualizar o estado local para feedback imediato
+      setProgress(updatedProgress)
       
       // Atualizar no banco de dados
       const { error } = await supabase
         .from('onboarding')
-        .update({ 
-          [step]: value, 
+        .update({
+          [step]: value,
           is_completed: false, // Sempre que um passo é alterado, o onboarding não está mais completo
-          updated_at: new Date().toISOString() 
+          updated_at: new Date().toISOString()
         })
-        .eq('user_id', user.id)
+        .eq('id', progress.id)
       
       if (error) {
         console.error(`Erro ao atualizar passo ${step}:`, error)
@@ -130,7 +142,6 @@ export function useOnboarding() {
       }
       
       // Verificar se todos os passos foram concluídos
-      const updatedProgress = { ...progress, [step]: value }
       const allStepsCompleted = 
         updatedProgress.created_subject &&
         updatedProgress.created_content &&
@@ -140,13 +151,14 @@ export function useOnboarding() {
         updatedProgress.visited_review &&
         updatedProgress.configured_event_source &&
         updatedProgress.visited_grades
+        // visited_flashcards foi removido temporariamente até que a coluna seja adicionada no banco de dados
       
       // Se todos os passos foram concluídos, marcar o onboarding como concluído
       if (allStepsCompleted) {
         const { error: completeError } = await supabase
           .from('onboarding')
           .update({ is_completed: true, updated_at: new Date().toISOString() })
-          .eq('user_id', user.id)
+          .eq('id', progress.id)
         
         if (completeError) {
           console.error('Erro ao marcar onboarding como concluído:', completeError)
