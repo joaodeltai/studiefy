@@ -5,6 +5,7 @@ import { usePathname } from 'next/navigation'
 import { cn } from '@/lib/utils'
 import { LayoutDashboard, BookOpen, GraduationCap, ClipboardCheck, RotateCcw, LineChart, PanelLeft, BarChart3, Calendar, Target, Layers } from 'lucide-react'
 import { Button } from "@/components/ui/button"
+import { Badge } from "@/components/ui/badge"
 import { useState, useEffect } from 'react'
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip"
 import { ComingSoonDialog } from './coming-soon-dialog'
@@ -178,14 +179,24 @@ export function Sidebar({ isCollapsed = false, onCollapseChange, showToggle = tr
                             {route.comingSoon ? (
                               <route.icon className="h-5 w-5" />
                             ) : (
-                              <Link href={route.href} className="flex items-center justify-center">
+                              <Link href={route.href} className="flex items-center justify-center relative">
                                 <route.icon className="h-5 w-5" />
+                                {route.id === 'flashcards' && (
+                                  <div className="absolute -top-1 -right-1 w-2 h-2 bg-blue-500 rounded-full" />
+                                )}
                               </Link>
                             )}
                           </div>
                         </TooltipTrigger>
                         <TooltipContent side="right" className="border-studiefy-black bg-studiefy-black/90 text-studiefy-white">
-                          {route.label}
+                          <div className="flex items-center gap-1">
+                            {route.label}
+                            {route.id === 'flashcards' && (
+                              <Badge className="bg-blue-500 text-white border-none text-xs py-0 h-5">
+                                Novo
+                              </Badge>
+                            )}
+                          </div>
                           {route.ai && <span className="text-xs ml-1 text-studiefy-primary align-top">IA</span>}
                         </TooltipContent>
                       </Tooltip>
@@ -209,7 +220,14 @@ export function Sidebar({ isCollapsed = false, onCollapseChange, showToggle = tr
                         ) : (
                           <Link href={route.href} className="flex items-center gap-3 w-full">
                             <route.icon className="h-5 w-5" />
-                            <span>{route.label}</span>
+                            <div className="flex items-center gap-1">
+                              <span>{route.label}</span>
+                              {route.id === 'flashcards' && (
+                                <Badge className="bg-blue-500 text-white border-none text-xs py-0 h-5">
+                                  Novo
+                                </Badge>
+                              )}
+                            </div>
                             {route.ai && <span className="text-xs text-studiefy-primary align-top">IA</span>}
                           </Link>
                         )}

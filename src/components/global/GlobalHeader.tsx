@@ -49,11 +49,14 @@ export function GlobalHeader({ isSidebarCollapsed }: { isSidebarCollapsed?: bool
   const { streak, loading: loadingStreak } = useStreak()
   const [showInfo, setShowInfo] = useState(false)
   const [showSubjectContentInfo, setShowSubjectContentInfo] = useState(false)
+  const [showFlashcardsInfo, setShowFlashcardsInfo] = useState(false)
   const [showNewsDialog, setShowNewsDialog] = useState(false)
   const infoRef = useRef<HTMLDivElement>(null)
   const btnInfoRef = useRef<HTMLButtonElement>(null)
   const subjectContentInfoRef = useRef<HTMLDivElement>(null)
   const btnSubjectContentInfoRef = useRef<HTMLButtonElement>(null)
+  const flashcardsInfoRef = useRef<HTMLDivElement>(null)
+  const btnFlashcardsInfoRef = useRef<HTMLButtonElement>(null)
   const router = useRouter()
   const { addEvent } = useAllEvents()
   
@@ -105,13 +108,20 @@ export function GlobalHeader({ isSidebarCollapsed }: { isSidebarCollapsed?: bool
           !btnSubjectContentInfoRef.current.contains(event.target as Node)) {
         setShowSubjectContentInfo(false)
       }
+      if (showFlashcardsInfo && 
+          flashcardsInfoRef.current && 
+          btnFlashcardsInfoRef.current && 
+          !flashcardsInfoRef.current.contains(event.target as Node) &&
+          !btnFlashcardsInfoRef.current.contains(event.target as Node)) {
+        setShowFlashcardsInfo(false)
+      }
     }
     
     document.addEventListener("mousedown", handleClickOutside)
     return () => {
       document.removeEventListener("mousedown", handleClickOutside)
     }
-  }, [showInfo, showSubjectContentInfo])
+  }, [showInfo, showSubjectContentInfo, showFlashcardsInfo])
   
   return (
     <header className="bg-white h-20 px-8">
@@ -123,68 +133,101 @@ export function GlobalHeader({ isSidebarCollapsed }: { isSidebarCollapsed?: bool
             {titleActions && !isFlashcardsPageOrDeck && titleActions}
             
             <h1 className={cn(
-              "text-xl font-semibold text-studiefy-black",
+              "text-xl font-semibold text-studiefy-black flex items-center gap-2",
               // Remover margem esquerda para a página de flashcards
               isFlashcardsPageOrDeck ? "ml-0" : (isSidebarCollapsed ? "ml-10" : "ml-16"),
               // Remover margem se houver ações de título (como botão voltar)
               titleActions && !isFlashcardsPageOrDeck ? "ml-0" : ""
             )}>
               {titleElement || pageTitle}
+              
+              {/* Ícone de informação para a página de flashcards */}
+              {isFlashcardsPage && (
+                <div className="relative">
+                  <Button 
+                    variant="ghost" 
+                    size="icon" 
+                    className="h-8 w-8 rounded-full hover:bg-studiefy-black/10"
+                    onClick={() => setShowFlashcardsInfo(!showFlashcardsInfo)}
+                    ref={btnFlashcardsInfoRef}
+                  >
+                    <Info className="h-4 w-4 text-studiefy-black/70 hover:text-studiefy-black" />
+                    <span className="sr-only">Informações sobre Flashcards</span>
+                  </Button>
+                  
+                  {showFlashcardsInfo && (
+                    <div 
+                      ref={flashcardsInfoRef}
+                      className="absolute top-full left-0 mt-2 p-4 bg-white rounded-lg shadow-lg z-50 w-72"
+                    >
+                      <p className="text-sm text-studiefy-black/80">
+                        Os <span className="font-medium">Flashcards</span> utilizam o algoritmo FSRS de repetição espaçada para otimizar seu aprendizado. 
+                      </p>
+                      <ul className="mt-2 space-y-1 text-sm text-studiefy-black/80">
+                        <li>• Crie decks para diferentes matérias</li>
+                        <li>• Adicione cartões com perguntas e respostas</li>
+                        <li>• Estude no momento ideal para memorização de longo prazo</li>
+                        <li>• Acompanhe sua constância pelo mapa de calor</li>
+                      </ul>
+                    </div>
+                  )}
+                </div>
+              )}
+              
+              {/* Ícone de informação para a página de matérias */}
+              {isSubjectsPage && (
+                <div className="relative">
+                  <Button 
+                    variant="ghost" 
+                    size="icon" 
+                    className="ml-2 h-8 w-8 rounded-full hover:bg-studiefy-black/10"
+                    onClick={() => setShowInfo(!showInfo)}
+                    ref={btnInfoRef}
+                  >
+                    <Info className="h-4 w-4 text-studiefy-black/70 hover:text-studiefy-black" />
+                    <span className="sr-only">Informações sobre Matérias</span>
+                  </Button>
+                  
+                  {showInfo && (
+                    <div 
+                      ref={infoRef}
+                      className="absolute top-full left-0 mt-2 p-4 bg-white rounded-lg shadow-lg z-50 w-64"
+                    >
+                      <p className="text-sm text-studiefy-black/80">
+                        Aqui você encontra todas as suas matérias cadastradas. Clique em uma matéria para ver seus conteúdos e eventos.
+                      </p>
+                    </div>
+                  )}
+                </div>
+              )}
+              
+              {/* Ícone de informação para a página de conteúdos de uma matéria */}
+              {isSubjectContentPage && (
+                <div className="relative">
+                  <Button 
+                    variant="ghost" 
+                    size="icon" 
+                    className="ml-2 h-8 w-8 rounded-full hover:bg-studiefy-black/10"
+                    onClick={() => setShowSubjectContentInfo(!showSubjectContentInfo)}
+                    ref={btnSubjectContentInfoRef}
+                  >
+                    <Info className="h-4 w-4 text-studiefy-black/70 hover:text-studiefy-black" />
+                    <span className="sr-only">Informações sobre Conteúdos</span>
+                  </Button>
+                  
+                  {showSubjectContentInfo && (
+                    <div 
+                      ref={subjectContentInfoRef}
+                      className="absolute top-full left-0 mt-2 p-4 bg-white rounded-lg shadow-lg z-50 w-64"
+                    >
+                      <p className="text-sm text-studiefy-black/80">
+                        Aqui você encontra todos os conteúdos da matéria selecionada. Você pode adicionar novos conteúdos, marcar como concluídos, definir prioridades e datas de entrega.
+                      </p>
+                    </div>
+                  )}
+                </div>
+              )}
             </h1>
-            
-            {/* Ícone de informação para a página de matérias */}
-            {isSubjectsPage && (
-              <div className="relative">
-                <Button 
-                  variant="ghost" 
-                  size="icon" 
-                  className="ml-2 h-8 w-8 rounded-full hover:bg-studiefy-black/10"
-                  onClick={() => setShowInfo(!showInfo)}
-                  ref={btnInfoRef}
-                >
-                  <Info className="h-4 w-4 text-studiefy-black/70 hover:text-studiefy-black" />
-                  <span className="sr-only">Informações sobre Matérias</span>
-                </Button>
-                
-                {showInfo && (
-                  <div 
-                    ref={infoRef}
-                    className="absolute top-full left-0 mt-2 p-4 bg-white rounded-lg shadow-lg z-50 w-64"
-                  >
-                    <p className="text-sm text-studiefy-black/80">
-                      Aqui você encontra todas as suas matérias cadastradas. Clique em uma matéria para ver seus conteúdos e eventos.
-                    </p>
-                  </div>
-                )}
-              </div>
-            )}
-            
-            {/* Ícone de informação para a página de conteúdos de uma matéria */}
-            {isSubjectContentPage && (
-              <div className="relative">
-                <Button 
-                  variant="ghost" 
-                  size="icon" 
-                  className="ml-2 h-8 w-8 rounded-full hover:bg-studiefy-black/10"
-                  onClick={() => setShowSubjectContentInfo(!showSubjectContentInfo)}
-                  ref={btnSubjectContentInfoRef}
-                >
-                  <Info className="h-4 w-4 text-studiefy-black/70 hover:text-studiefy-black" />
-                  <span className="sr-only">Informações sobre Conteúdos</span>
-                </Button>
-                
-                {showSubjectContentInfo && (
-                  <div 
-                    ref={subjectContentInfoRef}
-                    className="absolute top-full left-0 mt-2 p-4 bg-white rounded-lg shadow-lg z-50 w-64"
-                  >
-                    <p className="text-sm text-studiefy-black/80">
-                      Aqui você encontra todos os conteúdos da matéria selecionada. Você pode adicionar novos conteúdos, marcar como concluídos, definir prioridades e datas de entrega.
-                    </p>
-                  </div>
-                )}
-              </div>
-            )}
           </div>
         )}
 
