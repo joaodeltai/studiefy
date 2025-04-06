@@ -1,12 +1,12 @@
 'use client';
 
-import React, { useState } from 'react';
+import React, { useState, useMemo } from 'react';
 import { Button } from "@/components/ui/button";
 import Link from "next/link";
 import { Input } from "@/components/ui/input";
 import { useAuth } from '@/hooks/useAuth'
 import { useRouter } from 'next/navigation'
-import { Mouse, Stethoscope, Info, PieChart, TrendingUp, Lightbulb, ChevronRight, Menu, Banknote } from 'lucide-react'
+import { Mouse, Stethoscope, Info, PieChart, TrendingUp, Lightbulb, ChevronRight, Menu, Banknote, Flame, Timer, BookCheck, LineChart, LayoutGrid, Target, BookOpen, Brain, Cog, Check, X, BarChart2, Filter, FileText, PlusCircle, Phone, Calendar, Grid, Layers, PenTool, Printer, XCircle, Trello, Bookmark, CheckSquare } from 'lucide-react'
 import Image from 'next/image'
 import { interpolate } from "flubber"
 import {
@@ -37,11 +37,12 @@ import {
 } from "@/components/ui/sheet"
 import { VisuallyHidden } from "@radix-ui/react-visually-hidden"
 import { cn } from "@/lib/utils"
-import { Flame, Timer, BookCheck, LineChart, LayoutGrid, Target, BookOpen, Brain, Cog, Check, X, BarChart2, Filter, FileText, PlusCircle } from 'lucide-react'
+import { PREMIUM_MONTHLY_PRICE_ID, PREMIUM_ANNUAL_PRICE_ID } from '@/lib/stripe-client';
 import Footer from "@/components/global/Footer";
 import { FAQ } from "@/components/FAQ";
 import { Badge } from "@/components/ui/badge";
-import { PREMIUM_MONTHLY_PRICE_ID, PREMIUM_ANNUAL_PRICE_ID } from '@/lib/stripe-client';
+import TimeSavingCalculator from '@/components/TimeSavingCalculator';
+import { AboutFounders } from "@/components/AboutFounders";
 
 const paths = [
   "M9 16.17L4.83 12l-1.42 1.41L9 19 21 7l-1.41-1.41L9 16.17z", // Check
@@ -250,6 +251,26 @@ const AnimatedFlame = () => {
     </div>
   )
 }
+
+const WhatsAppButton = () => {
+  return (
+    <a
+      href="https://wa.me/5551991248817"
+      target="_blank"
+      rel="noopener noreferrer"
+      className="fixed bottom-6 right-6 z-50 bg-green-500 hover:bg-green-600 text-white p-4 rounded-full shadow-lg transition-all duration-300 flex items-center justify-center group"
+      aria-label="Contato via WhatsApp"
+    >
+      <Image 
+        src="https://uwemjaqphbytkkhalqge.supabase.co/storage/v1/object/public/images//icons8-whatsapp.svg"
+        alt="WhatsApp"
+        width={24}
+        height={24}
+      />
+      <span className="max-w-0 overflow-hidden whitespace-nowrap group-hover:max-w-xs group-hover:ml-2 transition-all duration-300 ease-in-out">Fale conosco</span>
+    </a>
+  );
+};
 
 export default function Home() {
   const { user } = useAuth()
@@ -463,28 +484,76 @@ export default function Home() {
       </header>
 
       {/* Espaçador para compensar o header fixo - apenas em desktop */}
-      <div className="h-24 md:block hidden"></div>
+      <div className="h-14 md:block hidden"></div>
 
       {/* Hero Section */}
       <section className="flex items-start justify-center bg-background text-foreground py-4 md:py-16">
         <div className="container mx-auto px-4 md:px-8 max-w-6xl">
           <div className="grid md:grid-cols-2">
             {/* Coluna da esquerda */}
-            <div className="space-y-3 w-full">
+            <div className="w-full">
               <p className="text-sm font-medium text-foreground/70 uppercase tracking-wider md:pr-16">
                 De vestibulandos para vestibulandos.
               </p>
-              <h2 className="text-4xl md:text-5xl font-bold">
-                Organize seus estudos para medicina com total clareza do seu progresso
-              </h2>
+              <h1 className="text-4xl md:text-4xl font-medium">
+                Menos apps, mais aprovação.
+                <br />
+                <span className="leading-loose inline-block space-y-2">
+                  <span className="box-decoration-clone bg-[#C8FF29] font-extrabold text-black px-2 py-2 rounded-md">
+                    Tudo pra passar em Medicina num só lugar.
+                  </span>
+                </span>
+              </h1>
               
               <p className="text-sm md:text-base text-foreground/70 mt-6 font-light">
-                A única plataforma que transforma cada minuto de estudo em dados precisos de progresso
+              Chega de mil apps para estudar e se organizar. Aqui seu estudo vira sistema: mais controle, menos stress e revisão do jeito certo.
               </p>
+              <ul className="space-y-3 mt-6">
+                <li className="flex items-center gap-2">
+                  <div className="flex-shrink-0 w-5 h-5 rounded-full bg-[#C8FF29] flex items-center justify-center">
+                    <svg xmlns="http://www.w3.org/2000/svg" className="h-3 w-3 text-[#282828]" viewBox="0 0 20 20" fill="currentColor">
+                      <path fillRule="evenodd" d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z" clipRule="evenodd" />
+                    </svg>
+                  </div>
+                  <span className="text-sm">Integra matérias, conteúdos e provas em um só lugar</span>
+                </li>
+                <li className="flex items-center gap-2">
+                  <div className="flex-shrink-0 w-5 h-5 rounded-full bg-[#C8FF29] flex items-center justify-center">
+                    <svg xmlns="http://www.w3.org/2000/svg" className="h-3 w-3 text-[#282828]" viewBox="0 0 20 20" fill="currentColor">
+                      <path fillRule="evenodd" d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z" clipRule="evenodd" />
+                    </svg>
+                  </div>
+                  <span className="text-sm">Caderno de erros inteligente</span>
+                </li>
+                <li className="flex items-center gap-2">
+                  <div className="flex-shrink-0 w-5 h-5 rounded-full bg-[#C8FF29] flex items-center justify-center">
+                    <svg xmlns="http://www.w3.org/2000/svg" className="h-3 w-3 text-[#282828]" viewBox="0 0 20 20" fill="currentColor">
+                      <path fillRule="evenodd" d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z" clipRule="evenodd" />
+                    </svg>
+                  </div>
+                  <span className="text-sm">Acompanhamento de desempenho</span>
+                </li>
+                <li className="flex items-center gap-2">
+                  <div className="flex-shrink-0 w-5 h-5 rounded-full bg-[#C8FF29] flex items-center justify-center">
+                    <svg xmlns="http://www.w3.org/2000/svg" className="h-3 w-3 text-[#282828]" viewBox="0 0 20 20" fill="currentColor">
+                      <path fillRule="evenodd" d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z" clipRule="evenodd" />
+                    </svg>
+                  </div>
+                  <span className="text-sm">Revisão de erros com integração direta com os flashcards</span>
+                </li>
+                <li className="flex items-center gap-2">
+                  <div className="flex-shrink-0 w-5 h-5 rounded-full bg-[#C8FF29] flex items-center justify-center">
+                    <svg xmlns="http://www.w3.org/2000/svg" className="h-3 w-3 text-[#282828]" viewBox="0 0 20 20" fill="currentColor">
+                      <path fillRule="evenodd" d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z" clipRule="evenodd" />
+                    </svg>
+                  </div>
+                  <span className="text-sm">E muitooo mais...</span>
+                </li>
+              </ul>
               <div className="mt-6">
                 <Link href="/auth/register">
                   <Button size="lg" className="w-full md:w-auto bg-foreground text-background hover:bg-primary hover:text-foreground transition-colors">
-                    COMECE AGORA GRATUITAMENTE
+                    TESTE AGORA POR 15 DIAS
                   </Button>
                 </Link>
               </div>
@@ -620,6 +689,63 @@ export default function Home() {
                   </DialogContent>
                 </Dialog>
               </div>
+
+              {/* Desktop Tooltip */}
+              <div className="hidden md:block">
+                <TooltipProvider>
+                  <Tooltip>
+                    <TooltipTrigger className="group">
+                      <div className="text-center relative">
+                        <div className="flex items-center justify-center gap-2">
+                          <p className="text-4xl md:text-6xl font-bold text-[#282828]">
+                            <span className="text-[#9046cf]">+</span>2h
+                          </p>
+                          <Info className="w-4 h-4 text-foreground/40 group-hover:text-foreground/70 transition-colors" />
+                        </div>
+                        <p className="text-base md:text-lg text-foreground/70 mt-2 w-full">
+                          de economia por dia
+                        </p>
+                      </div>
+                    </TooltipTrigger>
+                    <TooltipContent>
+                      <p className="text-sm">Economize 2 horas por dia com o Studiefy, otimizando seu tempo de estudo.</p>
+                    </TooltipContent>
+                  </Tooltip>
+                </TooltipProvider>
+              </div>
+
+              {/* Mobile Dialog */}
+              <div className="md:hidden">
+                <Dialog>
+                  <DialogTrigger className="group">
+                    <div className="text-center relative">
+                      <div className="flex items-center justify-center gap-2">
+                        <p className="text-4xl md:text-6xl font-bold text-[#282828]">
+                          <span className="text-[#9046cf]">-</span>2h
+                        </p>
+                        <Info className="w-4 h-4 text-foreground/40 group-hover:text-foreground/70 transition-colors" />
+                      </div>
+                      <p className="text-base md:text-lg text-foreground/70 mt-2 w-full">
+                        de economia por dia
+                      </p>
+                    </div>
+                  </DialogTrigger>
+                  <DialogContent className={cn(
+                    "bg-[#c8ff29] text-[#282828] p-3 rounded-lg",
+                    "w-auto max-w-[200px] mx-auto",
+                    "border-none shadow-none",
+                    "data-[state=open]:animate-in data-[state=closed]:animate-out",
+                    "data-[state=open]:fade-in-0 data-[state=closed]:fade-out-0",
+                    "data-[state=open]:zoom-in-95 data-[state=closed]:zoom-out-95",
+                    "data-[state=open]:slide-in-from-bottom-2"
+                  )}>
+                    <DialogTitle>
+                      <VisuallyHidden>Informação sobre economia de tempo</VisuallyHidden>
+                    </DialogTitle>
+                    <p className="text-sm">Economize 2 horas por dia com o Studiefy, otimizando seu tempo de estudo.</p>
+                  </DialogContent>
+                </Dialog>
+              </div>
             </div>
             
             <p className="text-xs text-foreground/40 mt-4 md:hidden">
@@ -660,6 +786,9 @@ export default function Home() {
           </span>
         </div>
       </div>
+
+      {/* Seção "Quanto tempo você pode economizar?" */}
+      <TimeSavingCalculator />
 
       {/* Paradoxo da Produtividade */}
       <div className="container mx-auto px-8 max-w-6xl py-16">
@@ -778,7 +907,7 @@ export default function Home() {
               <motion.div 
                 initial={{ opacity: 0, y: 50 }}
                 whileInView={{ opacity: 1, y: 0 }}
-                viewport={{ once: true, amount: 0.5 }}
+                viewport={{ once: true }}
                 transition={{ duration: 0.5 }}
                 className="relative z-10 flex items-center justify-center w-full h-full text-background"
               >
@@ -974,7 +1103,7 @@ export default function Home() {
           <div className="inline-flex items-center">
             <Link href="/auth/register">
               <span className="bg-[#282828] text-white px-4 py-2 rounded-xl inline-flex items-center gap-2">
-                Comece agora
+                Teste agora por 15 dias
                 <span className="text-2xl text-primary">→</span>
               </span>
             </Link>
@@ -1227,198 +1356,82 @@ export default function Home() {
         <div className="container mx-auto px-8 max-w-6xl">
           <div className="text-center mb-16">
             <h2 className="text-3xl font-bold mb-4">Caderno de Erros: Transforme seus erros em aprendizado</h2>
-            <p className="text-xl text-foreground/70 max-w-3xl mx-auto">
+            <p className="text-xl text-foreground/70 max-w-2xl mx-auto">
               Uma ferramenta poderosa para identificar, organizar e revisar seus erros de forma estratégica
             </p>
-          </div>
-
-          <div className="grid md:grid-cols-2 gap-12 items-center mb-16">
-            {/* Coluna de Texto */}
-            <motion.div 
-              initial={{ opacity: 0, x: -20 }}
-              whileInView={{ opacity: 1, x: 0 }}
-              transition={{ duration: 0.6 }}
-              viewport={{ once: true }}
-            >
-              <h3 className="text-2xl font-semibold mb-6">Por que usar um Caderno de Erros?</h3>
-              
-              <div className="space-y-6">
-                <div className="flex items-start gap-4">
-                  <div className="bg-primary/10 p-3 rounded-lg mt-1">
-                    <Target className="w-6 h-6 text-foreground" />
-                  </div>
-                  <div>
-                    <h4 className="inline-block px-2 py-1 rounded bg-yellow-500/10 text-lg font-medium mb-1">Identifique seus pontos fracos</h4>
-                    <p className="text-foreground/70">Descubra exatamente quais conteúdos precisam de mais atenção e foque seus estudos onde realmente importa.</p>
-                  </div>
-                </div>
-                
-                <div className="flex items-start gap-4">
-                  <div className="bg-primary/10 p-3 rounded-lg mt-1">
-                    <BarChart2 className="w-6 h-6 text-foreground" />
-                  </div>
-                  <div>
-                    <h4 className="inline-block px-2 py-1 rounded bg-green-500/10 text-lg font-medium mb-1">Acompanhe sua evolução</h4>
-                    <p className="text-foreground/70">Visualize seu progresso à medida que transforma erros recorrentes em acertos consistentes.</p>
-                  </div>
-                </div>
-                
-                <div className="flex items-start gap-4">
-                  <div className="bg-primary/10 p-3 rounded-lg mt-1">
-                    <Brain className="w-6 h-6 text-foreground" />
-                  </div>
-                  <div>
-                    <h4 className="inline-block px-2 py-1 rounded bg-red-500/10 text-lg font-medium mb-1">Revisão inteligente</h4>
-                    <p className="text-foreground/70">Crie ciclos de revisão baseados na curva do esquecimento para maximizar a retenção do conteúdo.</p>
-                  </div>
-                </div>
-              </div>
-            </motion.div>
             
-            {/* Coluna de Demonstração Interativa */}
-            <motion.div 
-              initial={{ opacity: 0, x: 20 }}
-              whileInView={{ opacity: 1, x: 0 }}
-              transition={{ duration: 0.6 }}
-              viewport={{ once: true }}
-              className="bg-background border border-foreground/10 rounded-xl p-6 shadow-lg relative overflow-hidden"
-            >
-              {/* Efeito de brilho no canto */}
-              <div className="absolute -top-10 -right-10 w-40 h-40 bg-primary/20 rounded-full blur-3xl opacity-50"></div>
-              
-              {/* Cabeçalho da tabela */}
-              <div className="mb-4 flex items-center justify-between">
-                <h3 className="text-xl font-semibold">Caderno de Erros</h3>
-                <Button variant="outline" size="sm" className="text-xs">
-                  <PlusCircle className="w-3 h-3 mr-1" /> Adicionar questão
-                </Button>
-              </div>
-              
-              {/* Tabela de exemplo */}
-              <div className="rounded-lg border overflow-hidden">
-                <table className="w-full">
-                  <thead>
-                    <tr className="bg-muted/50">
-                      <th className="text-left p-2 text-xs font-medium">Questão</th>
-                      <th className="text-left p-2 text-xs font-medium">Matéria</th>
-                      <th className="text-left p-2 text-xs font-medium">Dificuldade</th>
-                    </tr>
-                  </thead>
-                  <tbody>
-                    <tr className="border-t border-foreground/10 hover:bg-muted/30 transition-colors">
-                      <td className="p-2 text-sm">Questão 12 - Cálculo da integral</td>
-                      <td className="p-2 text-sm">Matemática</td>
-                      <td className="p-2 text-sm"><Badge variant="outline" className="bg-yellow-500/10 text-yellow-600 hover:bg-yellow-500/10 border-yellow-500/20">Média</Badge></td>
-                    </tr>
-                    <tr className="border-t border-foreground/10 hover:bg-muted/30 transition-colors">
-                      <td className="p-2 text-sm">Qustão 36 - Fotossíntese</td>
-                      <td className="p-2 text-sm">Biologia</td>
-                      <td className="p-2 text-sm"><Badge variant="outline" className="bg-green-500/10 text-green-600 hover:bg-green-500/10 border-green-500/20">Fácil</Badge></td>
-                    </tr>
-                    <tr className="border-t border-foreground/10 hover:bg-muted/30 transition-colors">
-                      <td className="p-2 text-sm">Questão 45 - Revolução Francesa</td>
-                      <td className="p-2 text-sm">História</td>
-                      <td className="p-2 text-sm"><Badge variant="outline" className="bg-red-500/10 text-red-600 hover:bg-red-500/10 border-red-500/20">Difícil</Badge></td>
-                    </tr>
-                  </tbody>
-                </table>
-              </div>
-              
-              {/* Estatísticas */}
-              <div className="grid grid-cols-3 gap-4 mt-6">
-                <div className="bg-muted/30 p-3 rounded-lg text-center">
-                  <p className="text-xs text-foreground/70 mb-1">Questões</p>
-                  <div className="flex items-center">
-                    <p className="text-2xl font-bold text-foreground">72</p>
-                  </div>
+            {/* Funcionalidades em Cards */}
+            <div className="grid md:grid-cols-3 gap-6 mt-12">
+              <motion.div 
+                initial={{ opacity: 0, y: 20 }}
+                whileInView={{ opacity: 1, y: 0 }}
+                transition={{ duration: 0.5 }}
+                viewport={{ once: true }}
+                className="bg-background border border-foreground/10 rounded-2xl p-6 hover:shadow-lg transition-all group"
+              >
+                <div className="w-12 h-12 rounded-2xl bg-gradient-to-br from-blue-500/20 to-blue-600/10 flex items-center justify-center mb-4 group-hover:scale-110 transition-transform">
+                  <Filter className="w-6 h-6 text-blue-500" />
                 </div>
-                <div className="bg-muted/30 p-3 rounded-lg text-center">
-                  <p className="text-xs text-foreground/70 mb-1">Matérias</p>
-                  <div className="flex items-center">
-                    <p className="text-2xl font-bold text-foreground">8</p>
-                  </div>
+                <h3 className="text-xl font-semibold mb-2">Filtros Avançados</h3>
+                <p className="text-foreground/70 mb-4">Filtre seus erros por matéria, conteúdo, origem ou nível de dificuldade para uma revisão mais eficiente.</p>
+                <div className="pt-2">
+                  <Link href="/dashboard/grades" className="text-sm font-medium text-primary flex items-center">
+                    Explorar filtros
+                    <ChevronRight className="w-4 h-4 ml-1" />
+                  </Link>
                 </div>
-                <div className="bg-muted/30 p-3 rounded-lg text-center">
-                  <p className="text-xs text-foreground/70 mb-1">Revisadas</p>
-                  <div className="flex items-center">
-                    <p className="text-2xl font-bold text-foreground">67%</p>
-                  </div>
+              </motion.div>
+              
+              <motion.div 
+                initial={{ opacity: 0, y: 20 }}
+                whileInView={{ opacity: 1, y: 0 }}
+                transition={{ duration: 0.5, delay: 0.2 }}
+                viewport={{ once: true }}
+                className="bg-background border border-foreground/10 rounded-2xl p-6 hover:shadow-lg transition-all group"
+              >
+                <div className="w-12 h-12 rounded-2xl bg-gradient-to-br from-purple-500/20 to-purple-600/10 flex items-center justify-center mb-4 group-hover:scale-110 transition-transform">
+                  <BookOpen className="w-6 h-6 text-purple-500" />
                 </div>
-              </div>
-            </motion.div>
-          </div>
-          
-          {/* Funcionalidades em Cards */}
-          <div className="grid md:grid-cols-3 gap-6 mt-12">
-            <motion.div 
-              initial={{ opacity: 0, y: 20 }}
-              whileInView={{ opacity: 1, y: 0 }}
-              transition={{ duration: 0.5 }}
-              viewport={{ once: true }}
-              className="bg-background border border-foreground/10 rounded-2xl p-6 hover:shadow-lg transition-all group"
-            >
-              <div className="w-12 h-12 rounded-2xl bg-gradient-to-br from-blue-500/20 to-blue-600/10 flex items-center justify-center mb-4 group-hover:scale-110 transition-transform">
-                <Filter className="w-6 h-6 text-blue-500" />
-              </div>
-              <h3 className="text-xl font-semibold mb-2">Filtros Avançados</h3>
-              <p className="text-foreground/70 mb-4">Filtre seus erros por matéria, conteúdo, origem ou nível de dificuldade para uma revisão mais eficiente.</p>
-              <div className="pt-2">
-                <Link href="/dashboard/grades" className="text-sm font-medium text-primary flex items-center">
-                  Explorar filtros
-                  <ChevronRight className="w-4 h-4 ml-1" />
-                </Link>
-              </div>
-            </motion.div>
+                <h3 className="text-xl font-semibold mb-2">Revisão Programada</h3>
+                <p className="text-foreground/70 mb-4">Crie ciclos de revisão baseados na curva do esquecimento para maximizar a retenção do conteúdo.</p>
+                <div className="pt-2">
+                  <Link href="/dashboard/grades" className="text-sm font-medium text-primary flex items-center">
+                    Ver revisões
+                    <ChevronRight className="w-4 h-4 ml-1" />
+                  </Link>
+                </div>
+              </motion.div>
+              
+              <motion.div 
+                initial={{ opacity: 0, y: 20 }}
+                whileInView={{ opacity: 1, y: 0 }}
+                transition={{ duration: 0.5, delay: 0.4 }}
+                viewport={{ once: true }}
+                className="bg-background border border-foreground/10 rounded-2xl p-6 hover:shadow-lg transition-all group"
+              >
+                <div className="w-12 h-12 rounded-2xl bg-gradient-to-br from-green-500/20 to-green-600/10 flex items-center justify-center mb-4 group-hover:scale-110 transition-transform">
+                  <FileText className="w-6 h-6 text-green-500" />
+                </div>
+                <h3 className="text-xl font-semibold mb-2">Anotações Detalhadas</h3>
+                <p className="text-foreground/70 mb-4">Adicione notas personalizadas a cada questão para registrar explicações e dicas para não cometer o mesmo erro.</p>
+                <div className="pt-2">
+                  <Link href="/dashboard/grades" className="text-sm font-medium text-primary flex items-center">
+                    Ver anotações
+                    <ChevronRight className="w-4 h-4 ml-1" />
+                  </Link>
+                </div>
+              </motion.div>
+            </div>
             
-            <motion.div 
-              initial={{ opacity: 0, y: 20 }}
-              whileInView={{ opacity: 1, y: 0 }}
-              transition={{ duration: 0.5, delay: 0.2 }}
-              viewport={{ once: true }}
-              className="bg-background border border-foreground/10 rounded-2xl p-6 hover:shadow-lg transition-all group"
-            >
-              <div className="w-12 h-12 rounded-2xl bg-gradient-to-br from-purple-500/20 to-purple-600/10 flex items-center justify-center mb-4 group-hover:scale-110 transition-transform">
-                <BookOpen className="w-6 h-6 text-purple-500" />
-              </div>
-              <h3 className="text-xl font-semibold mb-2">Revisão Programada</h3>
-              <p className="text-foreground/70 mb-4">Crie ciclos de revisão baseados na curva do esquecimento para maximizar a retenção do conteúdo.</p>
-              <div className="pt-2">
-                <Link href="/dashboard/grades" className="text-sm font-medium text-primary flex items-center">
-                  Ver revisões
-                  <ChevronRight className="w-4 h-4 ml-1" />
-                </Link>
-              </div>
-            </motion.div>
-            
-            <motion.div 
-              initial={{ opacity: 0, y: 20 }}
-              whileInView={{ opacity: 1, y: 0 }}
-              transition={{ duration: 0.5, delay: 0.4 }}
-              viewport={{ once: true }}
-              className="bg-background border border-foreground/10 rounded-2xl p-6 hover:shadow-lg transition-all group"
-            >
-              <div className="w-12 h-12 rounded-2xl bg-gradient-to-br from-green-500/20 to-green-600/10 flex items-center justify-center mb-4 group-hover:scale-110 transition-transform">
-                <FileText className="w-6 h-6 text-green-500" />
-              </div>
-              <h3 className="text-xl font-semibold mb-2">Anotações Detalhadas</h3>
-              <p className="text-foreground/70 mb-4">Adicione notas personalizadas a cada questão para registrar explicações e dicas para não cometer o mesmo erro.</p>
-              <div className="pt-2">
-                <Link href="/dashboard/grades" className="text-sm font-medium text-primary flex items-center">
-                  Ver anotações
-                  <ChevronRight className="w-4 h-4 ml-1" />
-                </Link>
-              </div>
-            </motion.div>
-          </div>
-          
-          {/* CTA */}
-          <div className="text-center mt-16">
-            <Button size="lg" className="bg-foreground hover:bg-primary/90 text-white">
-              Comece a usar o Caderno de Erros
-            </Button>
-            <p className="text-sm text-foreground/70 mt-4">
-              Somente no Studiefy
-            </p>
+            {/* CTA */}
+            <div className="text-center mt-16">
+              <Button size="lg" className="bg-foreground hover:bg-primary/90 text-white">
+                Comece a usar o Caderno de Erros
+              </Button>
+              <p className="text-sm text-foreground/70 mt-4">
+                Somente no Studiefy
+              </p>
+            </div>
           </div>
         </div>
       </section>
@@ -1804,7 +1817,7 @@ export default function Home() {
                   variant="outline"
                   className="w-full border-foreground/20 hover:bg-foreground hover:text-background transition-colors"
                 >
-                  Começar Gratuitamente
+                  Testar 15 dias Premium agora
                 </Button>
               </Link>
             </motion.div>
@@ -1893,8 +1906,10 @@ export default function Home() {
 
         </div>
       </section>
+      <AboutFounders />
       <FAQ />
       <Footer />
+      <WhatsAppButton />
     </div>
   )
 }
