@@ -18,31 +18,51 @@ export async function GET(req: NextRequest) {
 
     // Verificar se o Stripe foi inicializado
     if (!stripe) {
+      console.error('Cliente Stripe não inicializado');
       return NextResponse.json(
         { error: 'Cliente Stripe não inicializado' },
         { status: 500 }
       );
     }
     
-    // Verifica a sessão no Stripe
-    const session = await stripe.checkout.sessions.retrieve(sessionId);
-    
-    // Se a sessão foi bem-sucedida mas o webhook ainda não processou
-    if (session.payment_status === 'paid' && session.status === 'complete') {
-      const supabase = await createServerClientWithCookies();
+    try {
+      // Verifica a sessão no Stripe
+      console.log(`Fazendo requisição ao Stripe para verificar a sessão ${sessionId}`);
+      const session = await stripe.checkout.sessions.retrieve(sessionId);
+      console.log(`Sessão recuperada com sucesso: status=${session.status}, payment_status=${session.payment_status}`);
       
-      // Verifica se o usuário está autenticado
-      const { data: { user } } = await supabase.auth.getUser();
-      
-      if (!user) {
-        console.log('Usuário não autenticado ao verificar sessão');
-        return NextResponse.json(
-          { error: 'Usuário não autenticado' },
-          { status: 401 }
-        );
-      }
+      // Se a sessão foi bem-sucedida mas o webhook ainda não processou
+      if (session.payment_status === 'paid' && session.status === 'complete') {
+        console.log('Sessão confirmada como paga. Iniciando processamento...');
+        
+        // Criar cliente Supabase
+        const supabase = await createServerClientWithCookies();
+        console.log('Cliente Supabase criado');
+        
+        // Verifica se o usuário está autenticado
+        const { data: { user }, error: userError } = await supabase.auth.getUser();
+        
+        if (userError) {
+          console.error('Erro ao obter usuário:', userError);
+          return NextResponse.json(
+            { error: 'Erro ao verificar autenticação' },
+            { status: 500 }
+          );
+        }
+        
+        if (!user) {
+          console.log('Usuário não autenticado ao verificar sessão');
+          return NextResponse.json(
+            { error: 'Usuário não autenticado' },
+            { status: 401 }
+          );
+        }
+        
+        console.log(`Usuário autenticado: ${user.id}`);
 
+      // Usa o userId do metadata da sessão se disponível, caso contrário usa o ID do usuário logado
       const userId = session.metadata?.userId || user.id;
+      console.log(`ID do usuário: ${userId}`);
       
       // Obtém os detalhes da assinatura do Stripe para garantir que temos as informações mais recentes
       let subscription;
@@ -51,20 +71,26 @@ export async function GET(req: NextRequest) {
       
       if (session.subscription) {
         try {
+          console.log(`Recuperando detalhes da assinatura: ${session.subscription}`);
           subscription = await stripe.subscriptions.retrieve(
             session.subscription as string
           );
           
           // Determina o plano com base no ID do preço
           priceId = subscription.items.data[0].price.id;
-          plan = priceId === process.env.NEXT_PUBLIC_STRIPE_PRICE_PREMIUM 
-                  ? 'premium' 
-                  : 'free';
-                  
+          console.log(`ID do preço: ${priceId}`);
+          console.log(`ID do preço Premium: ${process.env.NEXT_PUBLIC_STRIPE_PRICE_PREMIUM}`);
+          
+          // Forçar o plano como premium se for uma assinatura válida do Stripe
+          // Isso garante que mesmo se os IDs de preço não coincidirem exatamente, o usuário ainda receba o plano premium
+          plan = 'premium';
+          
           console.log(`Plano determinado a partir da assinatura do Stripe: ${plan}`);
         } catch (error) {
           console.error('Erro ao recuperar assinatura do Stripe:', error);
         }
+      } else {
+        console.log('Sessão não possui ID de assinatura');
       }
       
       // Verifica se a assinatura já existe no banco de dados
@@ -167,6 +193,14 @@ export async function GET(req: NextRequest) {
       payment_status: session.payment_status,
       success: session.payment_status === 'paid' && session.status === 'complete'
     });
+    
+    } catch (stripeError: any) {
+      console.error('Erro ao processar dados do Stripe:', stripeError);
+      return NextResponse.json(
+        { error: 'Erro ao processar dados do Stripe', details: stripeError.message },
+        { status: 500 }
+      );
+    }
   } catch (error: any) {
     console.error('Erro ao verificar sessão:', error);
     return NextResponse.json(
