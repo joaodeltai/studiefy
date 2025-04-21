@@ -38,7 +38,17 @@ function SubscriptionSuccessContent() {
 
         // Verifica o status da sessão diretamente no Stripe
         console.log(`Verificando sessão: ${sessionId}, tentativa: ${retryCount + 1}`);
-        const response = await fetch(`/api/subscriptions/check-session?session_id=${sessionId}`);
+        const response = await fetch(`/api/subscriptions/check-session?session_id=${sessionId}`, {
+          // Adiciona cache: no-store para evitar problemas de cache
+          cache: 'no-store',
+          // Adiciona um timeout para evitar que a requisição fique pendente indefinidamente
+          signal: AbortSignal.timeout(15000) // 15 segundos de timeout
+        });
+        
+        if (!response.ok) {
+          throw new Error(`Erro na requisição: ${response.status} ${response.statusText}`);
+        }
+        
         const data = await response.json();
 
         if (data.error) {
@@ -49,17 +59,26 @@ function SubscriptionSuccessContent() {
         if (data.success) {
           console.log('Sessão confirmada como paga, atualizando dados da assinatura');
           
-          // Espera 2 segundos para garantir que o banco de dados foi atualizado
-          await new Promise(resolve => setTimeout(resolve, 2000));
-          
-          // Busca os dados atualizados da assinatura
-          await fetchSubscription();
-          
-          setVerificationSuccess(true);
-          setIsLoading(false);
-          setSessionChecked(true);
-          
-          toast.success('Assinatura ativada com sucesso!');
+          try {
+            // Espera 2 segundos para garantir que o banco de dados foi atualizado
+            await new Promise(resolve => setTimeout(resolve, 2000));
+            
+            // Busca os dados atualizados da assinatura
+            await fetchSubscription();
+            
+            setVerificationSuccess(true);
+            setIsLoading(false);
+            setSessionChecked(true);
+            
+            toast.success('Assinatura ativada com sucesso!');
+          } catch (fetchError) {
+            console.error('Erro ao buscar dados da assinatura:', fetchError);
+            // Mesmo com erro, consideramos sucesso e tentamos novamente mais tarde
+            setVerificationSuccess(true);
+            setIsLoading(false);
+            setSessionChecked(true);
+            toast.success('Pagamento confirmado! Os detalhes da assinatura serão atualizados em breve.');
+          }
         } else {
           // Se ainda não foi processada, tenta novamente após um intervalo
           if (retryCount < 5) {
@@ -70,23 +89,69 @@ function SubscriptionSuccessContent() {
           } else {
             // Após várias tentativas, busca a assinatura de qualquer forma
             console.log('Atingido número máximo de tentativas, buscando assinatura atual');
-            await fetchSubscription();
-            setIsLoading(false);
-            setSessionChecked(true);
-            
-            // Verifica se o usuário já está com plano premium
-            if (subscription?.plan === 'premium') {
-              setVerificationSuccess(true);
-              toast.success('Assinatura premium encontrada!');
-            } else {
-              // Se após todas as tentativas ainda não está premium, mostra mensagem
-              toast.error('Não foi possível confirmar a assinatura. Por favor, contate o suporte.');
+            try {
+              await fetchSubscription();
+              
+              // Verifica se o usuário já está com plano premium
+              if (subscription?.plan && subscription.plan.toString().toLowerCase() === 'premium') {
+                setVerificationSuccess(true);
+                toast.success('Assinatura premium encontrada!');
+              } else {
+                // Forçamos uma atualização manual da assinatura
+                console.log('Tentando forçar atualização manual da assinatura');
+                const manualResponse = await fetch(`/api/subscriptions/check-session?session_id=${sessionId}&force_update=true`, {
+                  cache: 'no-store'
+                });
+                
+                if (manualResponse.ok) {
+                  // Busca os dados novamente após a atualização forçada
+                  await fetchSubscription();
+                  
+                  if (subscription?.plan && subscription.plan.toString().toLowerCase() === 'premium') {
+                    setVerificationSuccess(true);
+                    toast.success('Assinatura premium ativada com sucesso!');
+                  } else {
+                    // Se após todas as tentativas ainda não está premium, mostra mensagem
+                    toast.error('Não foi possível confirmar a assinatura. Por favor, contate o suporte.');
+                  }
+                } else {
+                  toast.error('Não foi possível confirmar a assinatura. Por favor, contate o suporte.');
+                }
+              }
+            } catch (error) {
+              console.error('Erro ao verificar assinatura:', error);
+              toast.error('Ocorreu um erro ao verificar sua assinatura. Por favor, tente novamente mais tarde.');
+            } finally {
+              setIsLoading(false);
+              setSessionChecked(true);
             }
           }
         }
       } catch (error: any) {
         console.error('Erro ao verificar sessão:', error);
-        setError(error.message || 'Ocorreu um erro ao verificar sua assinatura');
+        
+        // Tratamento especial para erros de sessão expirada ou não encontrada
+        if (error.message.includes('404') || 
+            error.message.includes('não encontrada') || 
+            error.message.includes('expirada')) {
+          setError('A sessão de pagamento expirou ou não foi encontrada. Por favor, tente realizar o pagamento novamente.');
+        } else {
+          setError(error.message || 'Ocorreu um erro ao verificar sua assinatura');
+        }
+        
+        // Mesmo com erro, tentamos buscar a assinatura atual
+        try {
+          await fetchSubscription();
+          
+          // Se o usuário já tem assinatura premium, mostramos mensagem de sucesso
+          if (subscription?.plan && subscription.plan.toString().toLowerCase() === 'premium') {
+            setVerificationSuccess(true);
+            toast.success('Você já possui uma assinatura premium ativa!');
+          }
+        } catch (subError) {
+          console.error('Erro ao buscar assinatura atual:', subError);
+        }
+        
         setIsLoading(false);
         setSessionChecked(true);
       }

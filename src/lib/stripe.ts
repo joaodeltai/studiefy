@@ -10,7 +10,7 @@ export const PREMIUM_ANNUAL_PRICE_ID = process.env.NEXT_PUBLIC_STRIPE_PRICE_PREM
 let stripe: Stripe | null = null;
 if (typeof window === 'undefined' && process.env.STRIPE_SECRET_KEY) {
   stripe = new Stripe(process.env.STRIPE_SECRET_KEY, {
-    apiVersion: '2025-03-31.basil' as any, // Atualizado para a versão mais recente da API
+    apiVersion: '2025-03-31.basil' as any, // Versão mais recente da API do Stripe
     typescript: true,
   });
 }

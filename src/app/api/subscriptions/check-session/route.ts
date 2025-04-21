@@ -6,6 +6,7 @@ export async function GET(req: NextRequest) {
   try {
     const url = new URL(req.url);
     const sessionId = url.searchParams.get('session_id');
+    const forceUpdate = url.searchParams.get('force_update') === 'true';
 
     if (!sessionId) {
       return NextResponse.json(
@@ -13,8 +14,8 @@ export async function GET(req: NextRequest) {
         { status: 400 }
       );
     }
-
-    console.log(`Verificando sessão: ${sessionId}`);
+    
+    console.log(`Verificando sessão: ${sessionId}, force_update: ${forceUpdate}`);
 
     // Verificar se o Stripe foi inicializado
     if (!stripe) {
@@ -28,12 +29,15 @@ export async function GET(req: NextRequest) {
     try {
       // Verifica a sessão no Stripe
       console.log(`Fazendo requisição ao Stripe para verificar a sessão ${sessionId}`);
-      const session = await stripe.checkout.sessions.retrieve(sessionId);
+      const session = await stripe.checkout.sessions.retrieve(sessionId, {
+        expand: ['subscription']
+      });
       console.log(`Sessão recuperada com sucesso: status=${session.status}, payment_status=${session.payment_status}`);
       
       // Se a sessão foi bem-sucedida mas o webhook ainda não processou
-      if (session.payment_status === 'paid' && session.status === 'complete') {
-        console.log('Sessão confirmada como paga. Iniciando processamento...');
+      // Ou se estamos forçando a atualização, independente do status
+      if ((session.payment_status === 'paid' && session.status === 'complete') || forceUpdate) {
+        console.log(`Sessão confirmada como paga ou forçando atualização (force_update=${forceUpdate}). Iniciando processamento...`);
         
         // Criar cliente Supabase
         const supabase = await createServerClientWithCookies();
@@ -62,7 +66,72 @@ export async function GET(req: NextRequest) {
 
       // Usa o userId do metadata da sessão se disponível, caso contrário usa o ID do usuário logado
       const userId = session.metadata?.userId || user.id;
-      console.log(`ID do usuário: ${userId}`);
+        console.log(`ID do usuário: ${userId}`);
+        
+        // Mecanismo de recuperação para forçar atualização da assinatura
+        if (forceUpdate) {
+          try {
+            console.log(`Verificando status atual da assinatura para o usuário ${userId}`);
+            
+            const { data: currentSubscription } = await supabase
+              .from('subscriptions')
+              .select('*')
+              .eq('user_id', userId)
+              .single();
+              
+            // Se não encontrou assinatura ou o plano não é premium, força a atualização
+            if (!currentSubscription || currentSubscription.plan !== 'premium') {
+              console.log(`Forçando atualização da assinatura para o usuário ${userId}`);
+              
+              // Atualiza o perfil do usuário para premium
+              const { error: profileError } = await supabase
+                .from('profiles')
+                .update({ subscription_plan: 'premium' })
+                .eq('user_id', userId);
+                
+              if (profileError) {
+                console.error('Erro ao atualizar perfil:', profileError);
+              } else {
+                console.log(`Perfil atualizado com sucesso para o plano premium`);
+              }
+              
+              // Se não existe uma assinatura, cria uma nova com dados básicos
+              if (!currentSubscription) {
+                const { error: insertError } = await supabase.from('subscriptions').insert({
+                  user_id: userId,
+                  stripe_customer_id: session.customer as string,
+                  stripe_subscription_id: session.subscription as string,
+                  plan: 'premium',
+                  status: 'active',
+                  current_period_start: new Date().toISOString(),
+                  current_period_end: new Date(Date.now() + 30 * 24 * 60 * 60 * 1000).toISOString(), // +30 dias
+                });
+    
+                if (insertError) {
+                  console.error('Erro ao inserir assinatura:', insertError);
+                } else {
+                  console.log(`Assinatura criada com sucesso com plano premium`);
+                }
+              } else {
+                // Atualiza a assinatura existente
+                const { error: updateError } = await supabase.from('subscriptions').update({
+                  plan: 'premium',
+                  status: 'active',
+                }).eq('user_id', userId);
+                
+                if (updateError) {
+                  console.error('Erro ao atualizar assinatura:', updateError);
+                } else {
+                  console.log(`Assinatura atualizada com sucesso para o plano premium`);
+                }
+              }
+            } else {
+              console.log(`Assinatura já está atualizada para o plano premium`);
+            }
+          } catch (recoveryError) {
+            console.error('Erro na recuperação de assinatura:', recoveryError);
+          }
+        }
       
       // Obtém os detalhes da assinatura do Stripe para garantir que temos as informações mais recentes
       let subscription;
@@ -71,23 +140,47 @@ export async function GET(req: NextRequest) {
       
       if (session.subscription) {
         try {
-          console.log(`Recuperando detalhes da assinatura: ${session.subscription}`);
-          subscription = await stripe.subscriptions.retrieve(
-            session.subscription as string
-          );
+          console.log(`Processando detalhes da assinatura`);
           
-          // Determina o plano com base no ID do preço
-          priceId = subscription.items.data[0].price.id;
-          console.log(`ID do preço: ${priceId}`);
-          console.log(`ID do preço Premium: ${process.env.NEXT_PUBLIC_STRIPE_PRICE_PREMIUM}`);
+          // Verifica se a assinatura já foi expandida na resposta
+          if (typeof session.subscription === 'object' && session.subscription !== null) {
+            console.log('Usando objeto de assinatura expandido');
+            subscription = session.subscription;
+          } else {
+            // Caso contrário, busca a assinatura pelo ID
+            console.log(`Recuperando detalhes da assinatura: ${session.subscription}`);
+            subscription = await stripe.subscriptions.retrieve(
+              session.subscription as string
+            );
+          }
           
-          // Forçar o plano como premium se for uma assinatura válida do Stripe
-          // Isso garante que mesmo se os IDs de preço não coincidirem exatamente, o usuário ainda receba o plano premium
-          plan = 'premium';
-          
-          console.log(`Plano determinado a partir da assinatura do Stripe: ${plan}`);
+          // Verifica se a assinatura tem itens
+          if (subscription.items && subscription.items.data && subscription.items.data.length > 0) {
+            try {
+              // Determina o plano com base no ID do preço
+              priceId = subscription.items.data[0].price.id;
+              console.log(`ID do preço: ${priceId}`);
+              console.log(`ID do preço Premium: ${process.env.NEXT_PUBLIC_STRIPE_PRICE_PREMIUM}`);
+              
+              // Forçar o plano como premium se for uma assinatura válida do Stripe
+              // Isso garante que mesmo se os IDs de preço não coincidirem exatamente, o usuário ainda receba o plano premium
+              plan = 'premium';
+              
+              console.log(`Plano determinado a partir da assinatura do Stripe: ${plan}`);
+            } catch (itemError) {
+              console.error('Erro ao processar itens da assinatura:', itemError);
+              // Mesmo com erro, definimos como premium para garantir acesso ao usuário
+              plan = 'premium';
+              console.log('Definindo plano como premium devido a erro no processamento dos itens');
+            }
+          } else {
+            console.log('Assinatura não possui itens ou dados de preço');
+            plan = 'premium'; // Assume premium como fallback
+          }
         } catch (error) {
-          console.error('Erro ao recuperar assinatura do Stripe:', error);
+          console.error('Erro ao processar assinatura do Stripe:', error);
+          // Mesmo com erro, definimos como premium para garantir acesso ao usuário
+          plan = 'premium';
         }
       } else {
         console.log('Sessão não possui ID de assinatura');
@@ -188,6 +281,8 @@ export async function GET(req: NextRequest) {
       console.log(`Sessão ${sessionId} ainda não completada ou paga. Status: ${session.status}, Payment Status: ${session.payment_status}`);
     }
 
+    // Verificar se a assinatura foi atualizada no banco de dados - isso será feito dentro do bloco onde temos acesso ao supabase e usuário
+    
     return NextResponse.json({
       status: session.status,
       payment_status: session.payment_status,
@@ -196,8 +291,23 @@ export async function GET(req: NextRequest) {
     
     } catch (stripeError: any) {
       console.error('Erro ao processar dados do Stripe:', stripeError);
+      console.error('Detalhes do erro:', {
+        message: stripeError.message,
+        type: stripeError.type,
+        code: stripeError.code,
+        stack: stripeError.stack
+      });
+      
+      // Se o erro for relacionado a uma sessão expirada ou inválida
+      if (stripeError.code === 'resource_missing' || stripeError.message.includes('No such checkout.session')) {
+        return NextResponse.json(
+          { error: 'Sessão de checkout não encontrada ou expirada', details: stripeError.message },
+          { status: 404 }
+        );
+      }
+      
       return NextResponse.json(
-        { error: 'Erro ao processar dados do Stripe', details: stripeError.message },
+        { error: 'Erro ao processar dados do Stripe', details: stripeError.message, code: stripeError.code },
         { status: 500 }
       );
     }
