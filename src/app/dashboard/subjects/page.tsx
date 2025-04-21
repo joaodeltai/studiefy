@@ -8,14 +8,28 @@ import { Loader2, PanelLeft, Plus } from "lucide-react"
 import { Button } from "@/components/ui/button"
 import { useRouter } from "next/navigation"
 import { AddSubjectDialog } from "@/components/add-subject-dialog"
+import { Sheet, SheetContent, SheetTrigger } from "@/components/ui/sheet"
 
 export default function SubjectsPage() {
-  const { subjects, loading, addSubject } = useSubjects()
+  const { subjects, loading, addSubject, refreshSubjects } = useSubjects()
   const router = useRouter()
   const [isAddSubjectDialogOpen, setIsAddSubjectDialogOpen] = useState(false)
+  const [wasDialogOpen, setWasDialogOpen] = useState(false)
 
   // Define o título da página
   useSetPageTitle('Matérias')
+
+  // Efeito para recarregar as matérias quando o diálogo for fechado após estar aberto
+  useEffect(() => {
+    if (wasDialogOpen && !isAddSubjectDialogOpen) {
+      refreshSubjects()
+      setWasDialogOpen(false)
+    }
+
+    if (isAddSubjectDialogOpen) {
+      setWasDialogOpen(true)
+    }
+  }, [isAddSubjectDialogOpen, wasDialogOpen, refreshSubjects])
 
   if (loading) {
     return (
@@ -29,20 +43,29 @@ export default function SubjectsPage() {
     <div className="min-h-screen h-full p-4 space-y-4">
       {/* Botoões de navegação para mobile */}
       <div className="flex items-center justify-between md:hidden mb-4">
+        <Sheet>
+          <SheetTrigger asChild>
+            <Button 
+              variant="ghost" 
+              size="sm" 
+              className="p-2"
+            >
+              <PanelLeft className="w-5 h-5" />
+            </Button>
+          </SheetTrigger>
+          <SheetContent side="left" className="p-0">
+            {/* Conteúdo da sidebar mobile */}
+          </SheetContent>
+        </Sheet>
+        
         <Button 
-          variant="ghost" 
-          size="sm" 
-          className="p-2"
-          onClick={() => router.push("/dashboard")}
+          variant="outline" 
+          className="gap-2"
+          onClick={() => setIsAddSubjectDialogOpen(true)}
         >
-          <PanelLeft className="w-5 h-5" />
+          <Plus className="h-4 w-4" />
+          <span className="hidden sm:inline">Matéria</span>
         </Button>
-        <AddSubjectDialog 
-          onAddSubject={addSubject}
-          isOpenExternal={isAddSubjectDialogOpen}
-          onOpenChangeExternal={setIsAddSubjectDialogOpen}
-          showTriggerButton={true}
-        />
       </div>
       
       {subjects.length === 0 ? (
@@ -64,6 +87,13 @@ export default function SubjectsPage() {
           </div>
         </div>
       )}
+      
+      <AddSubjectDialog 
+        onAddSubject={addSubject} 
+        isOpenExternal={isAddSubjectDialogOpen}
+        onOpenChangeExternal={setIsAddSubjectDialogOpen}
+        showTriggerButton={false}
+      />
     </div>
   )
 }

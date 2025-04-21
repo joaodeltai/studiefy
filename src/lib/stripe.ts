@@ -10,7 +10,7 @@ export const PREMIUM_ANNUAL_PRICE_ID = process.env.NEXT_PUBLIC_STRIPE_PRICE_PREM
 let stripe: Stripe | null = null;
 if (typeof window === 'undefined' && process.env.STRIPE_SECRET_KEY) {
   stripe = new Stripe(process.env.STRIPE_SECRET_KEY, {
-    apiVersion: '2025-02-24.acacia', // Use a versão mais recente da API
+    apiVersion: '2025-03-31.basil' as any, // Atualizado para a versão mais recente da API
     typescript: true,
   });
 }
@@ -32,26 +32,44 @@ export async function createCheckoutSession({
     throw new Error('Stripe não foi inicializado. Esta função só pode ser chamada no servidor.');
   }
 
-  // Cria uma sessão de checkout com o cliente e preço especificados
-  const session = await stripe.checkout.sessions.create({
-    customer: customerId,
-    payment_method_types: ['card'],
-    line_items: [
-      {
-        price: priceId,
-        quantity: 1,
-      },
-    ],
-    mode: 'subscription',
-    allow_promotion_codes: true,
-    success_url: `${process.env.NEXT_PUBLIC_APP_URL}/dashboard/subscription/success?session_id={CHECKOUT_SESSION_ID}`,
-    cancel_url: `${process.env.NEXT_PUBLIC_APP_URL}/dashboard/subscription`,
-    metadata: {
-      userId,
-    },
-  });
+  // Verifica se o customerId é válido
+  if (!customerId || customerId.trim() === '') {
+    throw new Error('ID do cliente inválido ou vazio');
+  }
 
-  return session;
+  // Verifica se o priceId é válido
+  if (!priceId || priceId.trim() === '') {
+    throw new Error('ID do preço inválido ou vazio');
+  }
+
+  try {
+    console.log(`Criando sessão de checkout para cliente ${customerId} com preço ${priceId}`);
+    
+    // Cria uma sessão de checkout com o cliente e preço especificados
+    const session = await stripe.checkout.sessions.create({
+      customer: customerId,
+      payment_method_types: ['card'],
+      line_items: [
+        {
+          price: priceId,
+          quantity: 1,
+        },
+      ],
+      mode: 'subscription',
+      allow_promotion_codes: true,
+      success_url: `${process.env.NEXT_PUBLIC_APP_URL}/dashboard/subscription/success?session_id={CHECKOUT_SESSION_ID}`,
+      cancel_url: `${process.env.NEXT_PUBLIC_APP_URL}/dashboard/subscription`,
+      metadata: {
+        userId,
+      },
+    });
+
+    console.log(`Sessão de checkout criada com sucesso: ${session.id}`);
+    return session;
+  } catch (error: any) {
+    console.error('Erro ao criar sessão de checkout:', error);
+    throw new Error(`Erro ao criar sessão de checkout: ${error.message}`);
+  }
 }
 
 /**

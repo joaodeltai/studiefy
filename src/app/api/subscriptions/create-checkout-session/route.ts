@@ -23,36 +23,103 @@ export async function POST(req: NextRequest) {
     console.log(`User ID: ${user.id}, Price ID: ${priceId}`);
 
     // Verifica se o usuário já tem um ID de cliente no Stripe
-    const { data: subscription } = await supabase
+    const { data: subscription, error: subscriptionError } = await supabase
       .from('subscriptions')
       .select('stripe_customer_id')
       .eq('user_id', user.id)
-      .single();
+      .maybeSingle();
 
-    let customerId: string;
+    if (subscriptionError) {
+      console.error('Erro ao buscar assinatura:', subscriptionError);
+    }
+
+    let customerId: string | undefined;
     
-    // Se o usuário já tem um ID de cliente, usa ele
+    // Se o usuário já tem um ID de cliente válido, usa ele
     if (subscription?.stripe_customer_id) {
       customerId = subscription.stripe_customer_id;
       console.log(`Cliente existente: ${customerId}`);
-    } else {
-      // Se não, cria um novo cliente no Stripe
-      const { data: profile } = await supabase
+      
+      // Verifica se o cliente existe no Stripe
+      try {
+        if (!stripe) {
+          throw new Error('Cliente Stripe não inicializado');
+        }
+        
+        // Garantimos que customerId não seja undefined neste ponto
+        if (customerId) {
+          const existingCustomer = await stripe.customers.retrieve(customerId);
+          
+          if (existingCustomer.deleted) {
+            console.log(`Cliente ${customerId} foi excluído no Stripe, criando um novo...`);
+            customerId = undefined; // Força a criação de um novo cliente
+          }
+        }
+      } catch (error: any) {
+        console.error(`Erro ao verificar cliente ${customerId}:`, error.message);
+        customerId = undefined; // Força a criação de um novo cliente
+      }
+    }
+    
+    // Se não tem um ID válido, cria um novo cliente no Stripe
+    if (!customerId) {
+      // Busca o perfil do usuário
+      const { data: profile, error: profileError } = await supabase
         .from('profiles')
         .select('email, name')
         .eq('user_id', user.id)
-        .single();
+        .maybeSingle();
 
-      const customer = await stripe.customers.create({
-        email: profile?.email || user.email || '',
-        name: profile?.name || '',
-        metadata: {
-          userId: user.id,
-        },
-      });
+      if (profileError) {
+        console.error('Erro ao buscar perfil:', profileError);
+      }
+
+      const email = profile?.email || user.email || 'usuario@exemplo.com';
+      const name = profile?.name || email.split('@')[0];
       
-      customerId = customer.id;
-      console.log(`Novo cliente criado: ${customerId}`);
+      console.log(`Criando novo cliente para ${email}`);
+      
+      try {
+        if (!stripe) {
+          throw new Error('Cliente Stripe não inicializado');
+        }
+        
+        const customer = await stripe.customers.create({
+          email: email,
+          name: name,
+          metadata: {
+            userId: user.id,
+          },
+        });
+        
+        customerId = customer.id;
+        console.log(`Novo cliente criado: ${customerId}`);
+        
+        // Salva o ID do cliente no banco de dados para uso futuro
+        const { error: updateError } = await supabase
+          .from('subscriptions')
+          .upsert({
+            user_id: user.id,
+            stripe_customer_id: customerId,
+            // Garantir que o status seja definido para evitar erro de restrição de não nulo
+            status: 'pending', // Status inicial antes da confirmação do pagamento
+            plan: 'free', // Plano padrão até a confirmação da assinatura premium
+            period: 'monthly', // Período padrão
+            created_at: new Date().toISOString(),
+            updated_at: new Date().toISOString()
+          }, { onConflict: 'user_id' });
+          
+        if (updateError) {
+          console.error('Erro ao salvar ID do cliente:', updateError);
+        }
+      } catch (error: any) {
+        console.error('Erro ao criar cliente no Stripe:', error);
+        throw new Error(`Erro ao criar cliente no Stripe: ${error.message}`);
+      }
+    }
+    
+    if (!customerId) {
+      throw new Error('Não foi possível obter ou criar um ID de cliente válido');
     }
 
     // Cria uma sessão de checkout

@@ -1,4 +1,4 @@
-﻿"table_name","column_name","data_type"
+"table_name","column_name","data_type"
 "payment_history","updated_at","timestamp with time zone"
 "subject_categories","subject_id","uuid"
 "onboarding","id","uuid"

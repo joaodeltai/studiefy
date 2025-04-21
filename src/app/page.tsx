@@ -492,20 +492,17 @@ export default function Home() {
           <div className="grid md:grid-cols-2">
             {/* Coluna da esquerda */}
             <div className="w-full">
-              <p className="text-sm font-medium text-foreground/70 uppercase tracking-wider md:pr-16">
-                De vestibulandos para vestibulandos.
-              </p>
-              <h1 className="text-4xl md:text-4xl font-medium">
+              <h1 className="text-2xl md:text-4xl font-medium">
                 Menos apps, mais aprovação.
                 <br />
                 <span className="leading-loose inline-block space-y-2">
-                  <span className="box-decoration-clone bg-[#C8FF29] font-extrabold text-black px-2 py-2 rounded-md">
+                  <span className="box-decoration-clone bg-[#C8FF29] font-extrabold text-black px-2 py-2 rounded-md ">
                     Tudo pra passar em Medicina num só lugar.
                   </span>
                 </span>
               </h1>
               
-              <p className="text-sm md:text-base text-foreground/70 mt-6 font-light">
+              <p className="text-2x1 md:text-base text-foreground/70 mt-6 font-light">
               Chega de mil apps para estudar e se organizar. Aqui seu estudo vira sistema: mais controle, menos stress e revisão do jeito certo.
               </p>
               <ul className="space-y-3 mt-6">
@@ -515,7 +512,7 @@ export default function Home() {
                       <path fillRule="evenodd" d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z" clipRule="evenodd" />
                     </svg>
                   </div>
-                  <span className="text-sm">Integra matérias, conteúdos e provas em um só lugar</span>
+                  <span className="text-sm">Matérias, conteúdos e provas em um só lugar</span>
                 </li>
                 <li className="flex items-center gap-2">
                   <div className="flex-shrink-0 w-5 h-5 rounded-full bg-[#C8FF29] flex items-center justify-center">
@@ -575,7 +572,7 @@ export default function Home() {
       <div className="w-full bg-background py-12">
         <div className="container mx-auto px-8 max-w-6xl">
           <div className="flex flex-col items-center">
-            <div className="flex justify-center gap-8 md:gap-32 items-center">
+            <div className="flex flex-col md:flex-row justify-center gap-8 md:gap-32 items-center">
               {/* Desktop Tooltip */}
               <div className="hidden md:block">
                 <TooltipProvider>
@@ -885,7 +882,7 @@ export default function Home() {
       <div className="container mx-auto px-8 max-w-6xl py-16">
         {/* Header */}
         <div className="mb-16">
-          <div className="flex items-start gap-4 md:gap-8">
+          <div className="flex flex-col items-start gap-4 md:gap-8">
             <h2 className="text-3xl md:text-4xl lg:text-5xl font-bold space-y-2 md:space-y-4">
               <div>Algoritmo</div>
               <div className="inline-block bg-foreground rounded-2xl px-4 py-1.5">

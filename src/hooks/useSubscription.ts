@@ -18,6 +18,20 @@ interface SubscriptionCache {
   timestamp: number;
 }
 
+// Interface para log de assinatura
+interface SubscriptionLog {
+  id: string;
+  user_id: string;
+  subscription_id: string;
+  old_status: string | null;
+  new_status: string;
+  old_plan: string | null;
+  new_plan: string;
+  changed_at: string;
+  reason: string | null;
+  processed_by: string;
+}
+
 export function useSubscription() {
   const { profile } = useProfile();
   const [subscription, setSubscription] = useState<Subscription | null>(null);
@@ -81,6 +95,30 @@ export function useSubscription() {
     }
   };
 
+  // Função para buscar logs recentes de assinatura
+  const fetchRecentSubscriptionLogs = async (): Promise<SubscriptionLog | null> => {
+    if (!profile?.user_id) return null;
+    
+    try {
+      const { data, error } = await supabase
+        .from('subscription_logs')
+        .select('*')
+        .eq('user_id', profile.user_id)
+        .order('changed_at', { ascending: false })
+        .limit(1);
+        
+      if (error) {
+        console.error('Erro ao buscar logs de assinatura:', error);
+        return null;
+      }
+      
+      return data.length > 0 ? data[0] as SubscriptionLog : null;
+    } catch (error) {
+      console.error('Erro ao buscar logs de assinatura:', error);
+      return null;
+    }
+  };
+
   const fetchSubscription = async (forceRefresh = false) => {
     if (!profile?.user_id) return;
 
@@ -131,59 +169,233 @@ export function useSubscription() {
     try {
       setIsLoading(true);
       
-      // Usando maybeSingle() em vez de single() para evitar o erro 406
-      const { data, error } = await supabase
-        .from('subscriptions')
-        .select('*')
-        .eq('user_id', profile.user_id)
-        .maybeSingle();
-
-      if (error) {
-        console.log('Erro ao buscar assinatura:', error);
+      // Primeiro, verificar se há logs recentes que indicam uma mudança de status/plano
+      const recentLog = await fetchRecentSubscriptionLogs();
+      let shouldCheckDatabase = true;
+      
+      // Se encontrou um log recente (nas últimas 6 horas) que indica alteração para free
+      if (recentLog && 
+          new Date(recentLog.changed_at) > new Date(Date.now() - 6 * 60 * 60 * 1000) &&
+          recentLog.new_plan === 'free') {
         
-        if (error.code === '406') {
-          // Erro 406 Not Acceptable - problema com headers ou formato de resposta
-          console.error('Erro 406 ao buscar assinatura. Possível problema com headers ou formato de resposta:', error);
-          // Definir subscription como null e continuar sem mostrar erro para o usuário
-          setSubscription(null);
-          saveSubscriptionCache(null);
-        } else {
-          console.error('Erro ao buscar assinatura:', error);
-          // Quando há erro, definimos como null para não bloquear a aplicação
-          setSubscription(null);
-          saveSubscriptionCache(null);
+        console.log('Log recente encontrado indicando mudança para plano free');
+        
+        // Se a assinatura atual for diferente do que está no log, atualize
+        if (subscription?.plan !== SubscriptionPlan.FREE) {
+          setSubscription({
+            ...subscription as Subscription,
+            plan: SubscriptionPlan.FREE,
+            status: SubscriptionStatus.EXPIRED
+          });
+          setIsPremium(false);
+          
+          // Ainda fazemos a verificação no banco para garantir dados atualizados
+          // mas não precisamos atualizar o estado novamente se já encontramos logs recentes
+          shouldCheckDatabase = true;
         }
-      } else {
-        // data pode ser null quando não encontra uma assinatura
-        setSubscription(data as Subscription | null);
-        
-        // Reforçar a verificação de premium - se data for null,
-        // explicitamente define isPremium como false
-        const isPremiumValue = Boolean(
-          data && 
-          data.plan === SubscriptionPlan.PREMIUM && 
-          (data.status === SubscriptionStatus.ACTIVE || data.status === SubscriptionStatus.TRIALING)
-        );
-        
-        // Define explicitamente o isPremium baseado na verificação
-        setIsPremium(isPremiumValue);
-        
-        // Salva no cache
-        saveSubscriptionCache(data as Subscription | null);
-        
-        // Também atualiza o perfil se necessário e se tiver dados
-        if (data && profile?.subscription_plan !== data.plan) {
-          try {
-            const { error: profileError } = await supabase
-              .from('profiles')
-              .update({ subscription_plan: data.plan })
-              .eq('user_id', profile.user_id);
-              
-            if (profileError) {
-              console.error('Erro ao atualizar perfil:', profileError);
+      }
+      
+      // Continuar com a verificação no banco de dados
+      if (shouldCheckDatabase) {
+        // Usando maybeSingle() em vez de single() para evitar o erro 406
+        const { data, error } = await supabase
+          .from('subscriptions')
+          .select('*')
+          .eq('user_id', profile.user_id)
+          .maybeSingle();
+
+        if (error) {
+          console.log('Erro ao buscar assinatura:', error);
+          
+          if (error.code === '406') {
+            // Erro 406 Not Acceptable - problema com headers ou formato de resposta
+            console.error('Erro 406 ao buscar assinatura. Possível problema com headers ou formato de resposta:', error);
+            // Definir subscription como null e continuar sem mostrar erro para o usuário
+            setSubscription(null);
+            saveSubscriptionCache(null);
+          } else {
+            console.error('Erro ao buscar assinatura:', error);
+            // Quando há erro, definimos como null para não bloquear a aplicação
+            setSubscription(null);
+            saveSubscriptionCache(null);
+          }
+        } else if (data) {
+          // Verificar se é uma assinatura premium ativa com ID do Stripe
+          if (data.plan === SubscriptionPlan.PREMIUM && 
+              (data.status === SubscriptionStatus.ACTIVE || data.status === SubscriptionStatus.TRIALING) &&
+              data.stripe_subscription_id) {
+            
+            // Verificar se a assinatura está prestes a expirar ou se os campos do Stripe estão vazios
+            const endDate = data.current_period_end ? new Date(data.current_period_end) : null;
+            const now = new Date();
+            const daysUntilExpiration = endDate ? Math.floor((endDate.getTime() - now.getTime()) / (1000 * 60 * 60 * 24)) : -1;
+            const hasEmptyStripeFields = !data.stripe_customer_id || data.stripe_customer_id === '' || 
+                                       !data.stripe_subscription_id || data.stripe_subscription_id === '' || 
+                                       !data.stripe_price_id || data.stripe_price_id === '';
+            
+            // Se estiver a menos de 3 dias da expiração ou se os campos do Stripe estiverem vazios, verificar com o Stripe
+            if (daysUntilExpiration <= 3 || hasEmptyStripeFields) {
+              try {
+                // Verificar com o Stripe via API
+                console.log('Verificando assinatura com o Stripe:', data.stripe_subscription_id);
+                const response = await fetch(`/api/subscriptions/check-subscription?subscriptionId=${data.stripe_subscription_id}`);
+                
+                if (response.ok) {
+                  const stripeData = await response.json();
+                  
+                  if (stripeData.success && stripeData.subscription) {
+                    console.log('Dados atualizados do Stripe:', stripeData.subscription);
+                    
+                    // Atualizar com os dados do Stripe
+                    const updatedSubscription = {
+                      ...data,
+                      status: stripeData.subscription.status as SubscriptionStatus,
+                      current_period_start: stripeData.subscription.current_period_start,
+                      current_period_end: stripeData.subscription.current_period_end,
+                      cancel_at_period_end: stripeData.subscription.cancel_at_period_end,
+                      updated_at: new Date().toISOString()
+                    };
+                    
+                    // Atualizar o estado
+                    setSubscription(updatedSubscription);
+                    
+                    // Verificar se o status premium mudou
+                    const isPremiumValue = Boolean(
+                      updatedSubscription.plan === SubscriptionPlan.PREMIUM && 
+                      (updatedSubscription.status === SubscriptionStatus.ACTIVE || updatedSubscription.status === SubscriptionStatus.TRIALING)
+                    );
+                    setIsPremium(isPremiumValue);
+                    
+                    // Salvar no cache
+                    saveSubscriptionCache(updatedSubscription);
+                    
+                    // Salvar os dados atualizados no banco
+                    const { error: updateError } = await supabase
+                      .from('subscriptions')
+                      .update({
+                        status: updatedSubscription.status,
+                        current_period_start: updatedSubscription.current_period_start,
+                        current_period_end: updatedSubscription.current_period_end,
+                        cancel_at_period_end: updatedSubscription.cancel_at_period_end,
+                        updated_at: updatedSubscription.updated_at
+                      })
+                      .eq('id', data.id);
+                      
+                    if (updateError) {
+                      console.error('Erro ao atualizar assinatura no banco:', updateError);
+                    }
+                    
+                    // Se o status mudou para não-premium, atualizar o perfil
+                    if (!isPremiumValue && profile?.subscription_plan === SubscriptionPlan.PREMIUM) {
+                      try {
+                        const { error: profileError } = await supabase
+                          .from('profiles')
+                          .update({ subscription_plan: SubscriptionPlan.FREE })
+                          .eq('user_id', profile.user_id);
+                          
+                        if (profileError) {
+                          console.error('Erro ao atualizar perfil:', profileError);
+                        }
+                      } catch (err) {
+                        console.error('Erro inesperado ao atualizar perfil:', err);
+                      }
+                    }
+                    
+                    return;
+                  }
+                } else {
+                  console.error('Erro ao verificar assinatura no Stripe:', await response.text());
+                }
+              } catch (error) {
+                console.error('Erro ao verificar assinatura no Stripe:', error);
+              }
             }
-          } catch (err) {
-            console.error('Erro inesperado:', err);
+          }
+          
+          // Se não verificou com o Stripe ou se a verificação falhou, continuar com os dados do banco
+          setSubscription(data);
+          
+          // Reforçar a verificação de premium
+          const isPremiumValue = Boolean(
+            data.plan === SubscriptionPlan.PREMIUM && 
+            (data.status === SubscriptionStatus.ACTIVE || data.status === SubscriptionStatus.TRIALING)
+          );
+          
+          // Define explicitamente o isPremium baseado na verificação
+          setIsPremium(isPremiumValue);
+          
+          // Salva no cache
+          saveSubscriptionCache(data);
+          
+          // Também atualiza o perfil se necessário
+          if (profile?.subscription_plan !== data.plan) {
+            try {
+              const { error: profileError } = await supabase
+                .from('profiles')
+                .update({ subscription_plan: data.plan })
+                .eq('user_id', profile.user_id);
+                
+              if (profileError) {
+                console.error('Erro ao atualizar perfil:', profileError);
+              }
+            } catch (err) {
+              console.error('Erro inesperado:', err);
+            }
+          }
+        } else {
+          // Se não encontrou uma assinatura, criar uma assinatura gratuita
+          try {
+            const newSubscription = {
+              user_id: profile.user_id,
+              profile_id: profile.id,
+              plan: SubscriptionPlan.FREE,
+              status: SubscriptionStatus.ACTIVE,
+              period: 'monthly',
+              stripe_customer_id: null,
+              stripe_subscription_id: null,
+              stripe_price_id: null,
+              current_period_start: null,
+              current_period_end: null,
+              cancel_at_period_end: false,
+              created_at: new Date().toISOString(),
+              updated_at: new Date().toISOString()
+            };
+            
+            const { data: insertedData, error: insertError } = await supabase
+              .from('subscriptions')
+              .insert(newSubscription)
+              .select()
+              .single();
+              
+            if (insertError) {
+              console.error('Erro ao criar assinatura gratuita:', insertError);
+              setSubscription(null);
+            } else {
+              console.log('Assinatura gratuita criada com sucesso:', insertedData);
+              setSubscription(insertedData);
+              setIsPremium(false);
+              saveSubscriptionCache(insertedData);
+              
+              // Atualizar o perfil se necessário
+              if (profile?.subscription_plan !== SubscriptionPlan.FREE) {
+                try {
+                  const { error: profileError } = await supabase
+                    .from('profiles')
+                    .update({ subscription_plan: SubscriptionPlan.FREE })
+                    .eq('user_id', profile.user_id);
+                    
+                  if (profileError) {
+                    console.error('Erro ao atualizar perfil:', profileError);
+                  }
+                } catch (err) {
+                  console.error('Erro inesperado ao atualizar perfil:', err);
+                }
+              }
+            }
+          } catch (error) {
+            console.error('Erro ao criar assinatura gratuita:', error);
+            setSubscription(null);
+            saveSubscriptionCache(null);
           }
         }
       }
