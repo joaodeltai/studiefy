@@ -1,6 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { createServerClientWithCookies } from '../../../../lib/supabase/server';
-import { stripe } from '../../../../lib/stripe';
+import { createServerClientWithCookies } from '@/lib/supabase/server';
+import { stripe } from '@/lib/stripe';
 
 export async function GET(req: NextRequest) {
   try {
@@ -16,6 +16,14 @@ export async function GET(req: NextRequest) {
 
     console.log(`Verificando sessão: ${sessionId}`);
 
+    // Verificar se o Stripe foi inicializado
+    if (!stripe) {
+      return NextResponse.json(
+        { error: 'Cliente Stripe não inicializado' },
+        { status: 500 }
+      );
+    }
+    
     // Verifica a sessão no Stripe
     const session = await stripe.checkout.sessions.retrieve(sessionId);
     

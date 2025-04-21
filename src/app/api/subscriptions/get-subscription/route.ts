@@ -1,5 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { createServerClientWithCookies } from '../../../../lib/supabase/server';
+import { createServerClientWithCookies } from '@/lib/supabase/server';
 
 export async function GET(req: NextRequest) {
   try {

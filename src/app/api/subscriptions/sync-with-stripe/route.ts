@@ -63,13 +63,6 @@ export async function POST(req: NextRequest) {
     }
 
     // Buscar a assinatura no Stripe
-    if (!stripe) {
-      return NextResponse.json(
-        { error: 'Erro na configuração do Stripe' },
-        { status: 500 }
-      );
-    }
-    
     const subscription = await stripe.subscriptions.retrieve(stripeSubscriptionId);
     
     if (!subscription) {

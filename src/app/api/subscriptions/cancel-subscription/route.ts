@@ -1,7 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { createServerClientWithCookies } from '../../../../lib/supabase/server';
-import { stripe } from '../../../../lib/stripe';
-import { SubscriptionStatus } from '../../../../types/subscription';
+import { createServerClientWithCookies } from '@/lib/supabase/server';
+import { stripe } from '@/lib/stripe';
+import { SubscriptionStatus } from '@/types/subscription';
 
 export async function POST(req: NextRequest) {
   try {
@@ -50,6 +50,14 @@ export async function POST(req: NextRequest) {
       );
     }
 
+    // Verificar se o Stripe foi inicializado
+    if (!stripe) {
+      return NextResponse.json(
+        { error: 'Cliente Stripe não inicializado' },
+        { status: 500 }
+      );
+    }
+    
     // Cancela a assinatura no final do período atual
     await stripe.subscriptions.update(subscription.stripe_subscription_id, {
       cancel_at_period_end: true,

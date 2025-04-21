@@ -1,7 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { createClient } from '../../../../../lib/supabase/server';
-import { stripe } from '../../../../../lib/stripe';
-import { SubscriptionStatus } from '../../../../../types/subscription';
+import { createServerClientWithCookies } from '@/lib/supabase/server';
+import { stripe } from '@/lib/stripe';
+import { SubscriptionStatus } from '@/types/subscription';
 
 /**
  * API para verificar o status de uma assinatura no Stripe
@@ -12,7 +12,7 @@ import { SubscriptionStatus } from '../../../../../types/subscription';
 export async function GET(request: NextRequest) {
   try {
     // Verificar se o usuário está autenticado
-    const supabase = createClient();
+    const supabase = await createServerClientWithCookies();
     const { data: { session } } = await supabase.auth.getSession();
     
     if (!session) {
@@ -30,6 +30,14 @@ export async function GET(request: NextRequest) {
       return NextResponse.json(
         { error: 'ID da assinatura não fornecido' },
         { status: 400 }
+      );
+    }
+    
+    // Verificar se o Stripe foi inicializado
+    if (!stripe) {
+      return NextResponse.json(
+        { error: 'Stripe nu00e3o foi inicializado. Esta funu00e7u00e3o su00f3 pode ser chamada no servidor.' },
+        { status: 500 }
       );
     }
     
