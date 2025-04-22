@@ -21,13 +21,24 @@ export default function SubjectsPage() {
 
   // Efeito para recarregar as matérias quando o diálogo for fechado após estar aberto
   useEffect(() => {
-    if (wasDialogOpen && !isAddSubjectDialogOpen) {
-      refreshSubjects()
-      setWasDialogOpen(false)
-    }
-
+    // Quando o diálogo é aberto, marcamos que ele estava aberto
     if (isAddSubjectDialogOpen) {
-      setWasDialogOpen(true)
+      setWasDialogOpen(true);
+      return;
+    }
+    
+    // Quando o diálogo é fechado e estava aberto anteriormente
+    if (wasDialogOpen && !isAddSubjectDialogOpen) {
+      // Adicionando um pequeno atraso para garantir que a operação de banco de dados seja concluída
+      const timer = setTimeout(async () => {
+        await refreshSubjects();
+        console.log('Matérias atualizadas após fechar o diálogo');
+      }, 500);
+      
+      setWasDialogOpen(false);
+      
+      // Limpeza do timeout se o componente for desmontado
+      return () => clearTimeout(timer);
     }
   }, [isAddSubjectDialogOpen, wasDialogOpen, refreshSubjects])
 
@@ -41,32 +52,6 @@ export default function SubjectsPage() {
 
   return (
     <div className="min-h-screen h-full p-4 space-y-4">
-      {/* Botoões de navegação para mobile */}
-      <div className="flex items-center justify-between md:hidden mb-4">
-        <Sheet>
-          <SheetTrigger asChild>
-            <Button 
-              variant="ghost" 
-              size="sm" 
-              className="p-2"
-            >
-              <PanelLeft className="w-5 h-5" />
-            </Button>
-          </SheetTrigger>
-          <SheetContent side="left" className="p-0">
-            {/* Conteúdo da sidebar mobile */}
-          </SheetContent>
-        </Sheet>
-        
-        <Button 
-          variant="outline" 
-          className="gap-2"
-          onClick={() => setIsAddSubjectDialogOpen(true)}
-        >
-          <Plus className="h-4 w-4" />
-          <span className="hidden sm:inline">Matéria</span>
-        </Button>
-      </div>
       
       {subjects.length === 0 ? (
         <div className="flex flex-col items-center justify-center h-[calc(100vh-200px)] text-studiefy-gray">

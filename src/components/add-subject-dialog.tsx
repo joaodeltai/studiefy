@@ -82,17 +82,6 @@ export function AddSubjectDialog({
 
   return (
     <Dialog open={open} onOpenChange={handleOpenChange}>
-      {showTriggerButton && (
-        <DialogTrigger asChild>
-          <Button
-            variant="outline"
-            className="gap-2"
-          >
-            <Plus className="h-4 w-4" />
-            <span className="hidden sm:inline">Matéria</span>
-          </Button>
-        </DialogTrigger>
-      )}
       <DialogContent>
         <DialogHeader>
           <DialogTitle>Adicionar Matéria</DialogTitle>

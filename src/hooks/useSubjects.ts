@@ -78,8 +78,15 @@ export function useSubjects() {
         throw error
       }
 
-      const updatedSubjects = [data, ...subjects];
-      setSubjects(updatedSubjects);
+      // Atualiza o estado local com a nova matéria
+      // Importante: Criamos um novo array em vez de modificar o existente
+      setSubjects(prevSubjects => [data, ...prevSubjects]);
+      
+      // Força uma nova busca das matérias do banco de dados para garantir sincronização
+      setTimeout(() => {
+        fetchSubjects();
+      }, 300);
+      
       return data
     } catch (error: any) {
       console.error("Error adding subject:", error)
@@ -155,7 +162,11 @@ export function useSubjects() {
     addSubject,
     deleteSubject,
     updateSubject,
-    refreshSubjects: () => fetchSubjects(),
+    refreshSubjects: async () => {
+      // Aguarda um pequeno intervalo para garantir que as operações de banco de dados sejam concluídas
+      await new Promise(resolve => setTimeout(resolve, 300));
+      return fetchSubjects();
+    },
     hasReachedLimit,
     remainingSubjects: remainingSubjectsCount
   }

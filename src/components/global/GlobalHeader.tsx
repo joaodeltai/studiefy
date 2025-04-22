@@ -51,6 +51,7 @@ export function GlobalHeader({ isSidebarCollapsed }: { isSidebarCollapsed?: bool
   const [showSubjectContentInfo, setShowSubjectContentInfo] = useState(false)
   const [showFlashcardsInfo, setShowFlashcardsInfo] = useState(false)
   const [showNewsDialog, setShowNewsDialog] = useState(false)
+  const [showAddSubjectDialog, setShowAddSubjectDialog] = useState(false)
   const infoRef = useRef<HTMLDivElement>(null)
   const btnInfoRef = useRef<HTMLButtonElement>(null)
   const subjectContentInfoRef = useRef<HTMLDivElement>(null)
@@ -59,6 +60,7 @@ export function GlobalHeader({ isSidebarCollapsed }: { isSidebarCollapsed?: bool
   const btnFlashcardsInfoRef = useRef<HTMLButtonElement>(null)
   const router = useRouter()
   const { addEvent } = useAllEvents()
+  const { addSubject } = useSubjects()
   
   // Verificar se estamos na página principal do dashboard (progresso)
   const isDashboardMainPage = pathname === '/dashboard'
@@ -94,25 +96,36 @@ export function GlobalHeader({ isSidebarCollapsed }: { isSidebarCollapsed?: bool
   // Fechar ao clicar fora
   useEffect(() => {
     function handleClickOutside(event: MouseEvent) {
-      if (showInfo && 
-          infoRef.current && 
-          btnInfoRef.current && 
-          !infoRef.current.contains(event.target as Node) &&
-          !btnInfoRef.current.contains(event.target as Node)) {
+      // Verificar se o clique foi fora do popover de informações
+      if (
+        showInfo && 
+        infoRef.current && 
+        btnInfoRef.current && 
+        !infoRef.current.contains(event.target as Node) && 
+        !btnInfoRef.current.contains(event.target as Node)
+      ) {
         setShowInfo(false)
       }
-      if (showSubjectContentInfo && 
-          subjectContentInfoRef.current && 
-          btnSubjectContentInfoRef.current && 
-          !subjectContentInfoRef.current.contains(event.target as Node) &&
-          !btnSubjectContentInfoRef.current.contains(event.target as Node)) {
+      
+      // Verificar se o clique foi fora do popover de informações de conteúdo
+      if (
+        showSubjectContentInfo && 
+        subjectContentInfoRef.current && 
+        btnSubjectContentInfoRef.current && 
+        !subjectContentInfoRef.current.contains(event.target as Node) && 
+        !btnSubjectContentInfoRef.current.contains(event.target as Node)
+      ) {
         setShowSubjectContentInfo(false)
       }
-      if (showFlashcardsInfo && 
-          flashcardsInfoRef.current && 
-          btnFlashcardsInfoRef.current && 
-          !flashcardsInfoRef.current.contains(event.target as Node) &&
-          !btnFlashcardsInfoRef.current.contains(event.target as Node)) {
+      
+      // Verificar se o clique foi fora do popover de informações de flashcards
+      if (
+        showFlashcardsInfo && 
+        flashcardsInfoRef.current && 
+        btnFlashcardsInfoRef.current && 
+        !flashcardsInfoRef.current.contains(event.target as Node) && 
+        !btnFlashcardsInfoRef.current.contains(event.target as Node)
+      ) {
         setShowFlashcardsInfo(false)
       }
     }
@@ -124,78 +137,69 @@ export function GlobalHeader({ isSidebarCollapsed }: { isSidebarCollapsed?: bool
   }, [showInfo, showSubjectContentInfo, showFlashcardsInfo])
   
   return (
-    <header className="bg-white h-20 px-8">
-      <div className="flex items-center justify-between h-full">
-        {/* Título da página - com margem à esquerda para não sobrepor o botão da sidebar */}
+    <header className="bg-white h-20 px-8 flex items-center fixed top-0 right-0 left-[80px] z-50">
+      {/* Espaço vazio à esquerda */}
+      <div className="flex-1"></div>
+      
+      {/* Retângulo central flutuante */}
+      <div className="absolute left-1/2 transform -translate-x-1/2 bg-black text-white rounded-full px-6 py-2 shadow-md flex items-center justify-center">
+        {/* Página principal do dashboard - mostra apenas nível, ofensiva e novidades */}
+        {isDashboardMainPage && (
+          <div className="flex items-center gap-4">
+            {/* Nível do usuário */}
+            <div className="flex items-center gap-1">
+              <Medal className="h-4 w-4" />
+              <span className="text-sm font-medium">Nível {profile?.level || 1}</span>
+            </div>
+            
+            {/* Ofensiva */}
+            <div className="flex items-center gap-1">
+              <Flame className="h-4 w-4 text-orange-500" />
+              <span className="text-sm font-medium">{streak?.streak || 0} dias</span>
+            </div>
+            
+
+          </div>
+        )}
+        
+        {/* Título da página */}
         {pageTitle && !isDashboardMainPage && (
           <div className="flex items-center">
             {/* Botão de ação do título (como voltar) - exceto para a página de flashcards */}
             {titleActions && !isFlashcardsPageOrDeck && titleActions}
             
-            <h1 className={cn(
-              "text-xl font-semibold text-studiefy-black flex items-center gap-2",
-              // Remover margem esquerda para a página de flashcards
-              isFlashcardsPageOrDeck ? "ml-0" : (isSidebarCollapsed ? "ml-10" : "ml-16"),
-              // Remover margem se houver ações de título (como botão voltar)
-              titleActions && !isFlashcardsPageOrDeck ? "ml-0" : ""
-            )}>
+            <h1 className="text-xl font-semibold ml-2">
               {titleElement || pageTitle}
               
               {/* Ícone de informação para a página de flashcards */}
               {isFlashcardsPage && (
-                <div className="relative">
+                <div className="relative inline-block ml-2">
                   <Button 
                     variant="ghost" 
                     size="icon" 
-                    className="h-8 w-8 rounded-full hover:bg-studiefy-black/10"
+                    className="h-8 w-8 rounded-full hover:bg-white/20"
                     onClick={() => setShowFlashcardsInfo(!showFlashcardsInfo)}
                     ref={btnFlashcardsInfoRef}
                   >
-                    <Info className="h-4 w-4 text-studiefy-black/70 hover:text-studiefy-black" />
+                    <Info className="h-4 w-4 text-white hover:text-white/80" />
                     <span className="sr-only">Informações sobre Flashcards</span>
                   </Button>
                   
                   {showFlashcardsInfo && (
                     <div 
                       ref={flashcardsInfoRef}
-                      className="absolute top-full left-0 mt-2 p-4 bg-white rounded-lg shadow-lg z-50 w-72"
+                      className="absolute top-full left-0 mt-2 p-4 bg-white rounded-lg shadow-lg z-50 w-72 text-black"
                     >
-                      <p className="text-sm text-studiefy-black/80">
-                        Os <span className="font-medium">Flashcards</span> utilizam o algoritmo FSRS de repetição espaçada para otimizar seu aprendizado. 
+                      <h3 className="font-semibold mb-2">Sobre os Flashcards</h3>
+                      <p className="text-sm text-studiefy-black/70 mb-2">
+                        Flashcards são cartões de estudo que ajudam na memorização através da repetição espaçada.
                       </p>
-                      <ul className="mt-2 space-y-1 text-sm text-studiefy-black/80">
-                        <li>• Crie decks para diferentes matérias</li>
-                        <li>• Adicione cartões com perguntas e respostas</li>
-                        <li>• Estude no momento ideal para memorização de longo prazo</li>
-                        <li>• Acompanhe sua constância pelo mapa de calor</li>
+                      <h4 className="font-medium mt-3 mb-1">Como usar:</h4>
+                      <ul className="text-sm text-studiefy-black/70 list-disc pl-5 space-y-1">
+                        <li>Crie decks para organizar seus flashcards por assunto</li>
+                        <li>Adicione cartões com perguntas e respostas</li>
+                        <li>Estude regularmente para fixar o conteúdo</li>
                       </ul>
-                    </div>
-                  )}
-                </div>
-              )}
-              
-              {/* Ícone de informação para a página de matérias */}
-              {isSubjectsPage && (
-                <div className="relative">
-                  <Button 
-                    variant="ghost" 
-                    size="icon" 
-                    className="ml-2 h-8 w-8 rounded-full hover:bg-studiefy-black/10"
-                    onClick={() => setShowInfo(!showInfo)}
-                    ref={btnInfoRef}
-                  >
-                    <Info className="h-4 w-4 text-studiefy-black/70 hover:text-studiefy-black" />
-                    <span className="sr-only">Informações sobre Matérias</span>
-                  </Button>
-                  
-                  {showInfo && (
-                    <div 
-                      ref={infoRef}
-                      className="absolute top-full left-0 mt-2 p-4 bg-white rounded-lg shadow-lg z-50 w-64"
-                    >
-                      <p className="text-sm text-studiefy-black/80">
-                        Aqui você encontra todas as suas matérias cadastradas. Clique em uma matéria para ver seus conteúdos e eventos.
-                      </p>
                     </div>
                   )}
                 </div>
@@ -203,26 +207,33 @@ export function GlobalHeader({ isSidebarCollapsed }: { isSidebarCollapsed?: bool
               
               {/* Ícone de informação para a página de conteúdos de uma matéria */}
               {isSubjectContentPage && (
-                <div className="relative">
+                <div className="relative inline-block ml-2">
                   <Button 
                     variant="ghost" 
                     size="icon" 
-                    className="ml-2 h-8 w-8 rounded-full hover:bg-studiefy-black/10"
+                    className="h-8 w-8 rounded-full hover:bg-white/20"
                     onClick={() => setShowSubjectContentInfo(!showSubjectContentInfo)}
                     ref={btnSubjectContentInfoRef}
                   >
-                    <Info className="h-4 w-4 text-studiefy-black/70 hover:text-studiefy-black" />
+                    <Info className="h-4 w-4 text-white hover:text-white/80" />
                     <span className="sr-only">Informações sobre Conteúdos</span>
                   </Button>
                   
                   {showSubjectContentInfo && (
                     <div 
                       ref={subjectContentInfoRef}
-                      className="absolute top-full left-0 mt-2 p-4 bg-white rounded-lg shadow-lg z-50 w-64"
+                      className="absolute top-full left-0 mt-2 p-4 bg-white rounded-lg shadow-lg z-50 w-72 text-black"
                     >
-                      <p className="text-sm text-studiefy-black/80">
-                        Aqui você encontra todos os conteúdos da matéria selecionada. Você pode adicionar novos conteúdos, marcar como concluídos, definir prioridades e datas de entrega.
+                      <h3 className="font-semibold mb-2">Sobre os Conteúdos</h3>
+                      <p className="text-sm text-studiefy-black/70 mb-2">
+                        Conteúdos são os assuntos que você está estudando em cada matéria.
                       </p>
+                      <h4 className="font-medium mt-3 mb-1">Como usar:</h4>
+                      <ul className="text-sm text-studiefy-black/70 list-disc pl-5 space-y-1">
+                        <li>Adicione conteúdos para cada matéria</li>
+                        <li>Vincule eventos (provas, trabalhos) aos conteúdos</li>
+                        <li>Acompanhe seu progresso em cada conteúdo</li>
+                      </ul>
                     </div>
                   )}
                 </div>
@@ -230,104 +241,23 @@ export function GlobalHeader({ isSidebarCollapsed }: { isSidebarCollapsed?: bool
             </h1>
           </div>
         )}
-
-        {/* Exibição de nível, XP e ofensiva na página principal */}
-        {isDashboardMainPage && profile && streak && (
-          <div className="flex items-center ml-16">
-            <div className="flex items-center gap-2">
-              <Medal className="h-6 w-6 text-yellow-500" />
-              <span className="text-lg font-semibold">
-                Nível {profile.level}
-              </span>
-              <span className="text-sm text-studiefy-black/60">
-                ({profile.xp}/{getXPForLevel(profile.level)} XP)
-              </span>
-            </div>
-          </div>
-        )}
         
-        <div className="flex items-center gap-3">
-          {/* Botão de Novo Deck - apenas na página de flashcards */}
-          {isFlashcardsPage && titleActions && (
-            <div className="mr-1">
-              {titleActions}
-            </div>
-          )}
-          
-          {/* Botões de ação na página de um deck específico */}
-          {isFlashcardDeckPage && titleActions && (
-            <div className="mr-1">
-              {titleActions}
-            </div>
-          )}
-          
-          {/* Ofensiva - exibida apenas na página principal (ao lado do botão de feedback) */}
-          {isDashboardMainPage && profile && streak && (
-            <div 
-              className={cn(
-                "flex items-center gap-2 px-4 py-1 rounded-full",
-                streak.streak > 0 
-                  ? "bg-gradient-to-r from-orange-500 to-red-500 text-white" 
-                  : "bg-zinc-100 text-zinc-600"
-              )}
-            >
-              <Flame className={cn(
-                "h-5 w-5",
-                streak.streak > 0 ? "text-white" : ""
-              )} />
-              <span className="font-medium">
-                {streak.streak} {streak.streak === 1 ? 'dia' : 'dias'}
-              </span>
-            </div>
-          )}
-          
-          {/* Botão de adicionar matéria - apenas na página de matérias */}
-          {isSubjectsPage && (
-            <AddSubjectDialog 
-              onAddSubject={async (name, color) => {
-                try {
-                  // Redirecionar para a página de matérias para adicionar
-                  router.push('/dashboard/subjects')
-                  toast.success("Redirecionando para adicionar matéria...")
-                  return true
-                } catch (error) {
-                  toast.error("Erro ao redirecionar")
-                  return false
-                }
-              }}
-            />
-          )}
-          
-          {/* Botão de adicionar evento - apenas na página de conteúdos */}
-          {isSubjectContentPage && (
+        {/* Botões de ação dentro do retângulo */}
+        <div className="flex items-center space-x-2 ml-4">
+          {/* Botão de adicionar evento - apenas na página de conteúdos de uma matéria */}
+          {isSubjectContentPage && subjectId && (
             <AddEventDialog 
-              subjectId={subjectId} 
-              onAddEvent={async (title, type, date) => {
+              subjectId={subjectId}
+              showSubjectSelector={false}
+              onAddEvent={async (title, type, date, subjectId) => {
                 try {
-                  // Importar o hook useEvents
-                  const { useEvents } = await import('@/hooks/useEvents');
-                  const { data: { user } } = await supabase.auth.getUser();
-                  
-                  if (!user) {
-                    throw new Error('Usuário não autenticado');
-                  }
-                  
-                  // Verificar se subjectId é definido
-                  if (!subjectId) {
-                    throw new Error('ID da matéria não definido');
-                  }
-                  
-                  // Usar o hook para obter a função addEvent
-                  const { addEvent } = useEvents(subjectId);
-                  
-                  // Chamar a função addEvent
-                  await addEvent(title, type, new Date(date));
-                  
+                  await addEvent(title, type, date, subjectId);
                   toast.success("Evento adicionado com sucesso");
-                  router.refresh(); // Atualizar a página para mostrar o novo evento
+                  router.refresh();
                 } catch (error: any) {
-                  console.error('Erro ao adicionar evento:', error);
-                  toast.error("Erro ao adicionar evento");
+                  if (!error.code || error.code !== 'PLAN_LIMIT_REACHED') {
+                    toast.error("Erro ao adicionar evento");
+                  }
                   throw error;
                 }
               }}
@@ -342,7 +272,7 @@ export function GlobalHeader({ isSidebarCollapsed }: { isSidebarCollapsed?: bool
                 try {
                   await addEvent(title, type, date, subjectId);
                   toast.success("Evento adicionado com sucesso");
-                  router.refresh(); // Atualizar a página para mostrar o novo evento
+                  router.refresh();
                 } catch (error: any) {
                   if (!error.code || error.code !== 'PLAN_LIMIT_REACHED') {
                     toast.error("Erro ao adicionar evento");
@@ -353,59 +283,98 @@ export function GlobalHeader({ isSidebarCollapsed }: { isSidebarCollapsed?: bool
             />
           )}
           
-          {/* Botão de Novidades */}
-          <Button 
-            variant="ghost" 
-            size="icon"
-            onClick={() => setShowNewsDialog(true)}
-            className="flex items-center justify-center hover:bg-transparent"
-          >
-            <div className="relative h-8 w-8">
-              <Image 
-                src="https://uwemjaqphbytkkhalqge.supabase.co/storage/v1/object/public/images//star.webp" 
-                alt="Novidades" 
-                fill
-                style={{ objectFit: 'contain' }}
-              />
-            </div>
-          </Button>
+          {/* Botão de adicionar matéria - apenas na página de matérias */}
+          {isSubjectsPage && (
+            <Button
+              variant="ghost"
+              className="gap-2 text-white hover:bg-white/20"
+              onClick={() => setShowAddSubjectDialog(true)}
+            >
+              <Plus className="h-4 w-4" />
+              <span className="hidden sm:inline">Matéria</span>
+            </Button>
+          )}
           
-          {/* Ícone de Feedback e Suporte */}
-          <Button 
-            variant="ghost" 
-            size="icon"
-            asChild
-            className="bg-primary text- hover:text-white rounded-full h-10 w-10 flex items-center justify-center"
-          >
-            <Link href="/dashboard/feedback">
-              <MessageSquareHeart className="h-5 w-5" />
-            </Link>
-          </Button>
-          
-          {/* Avatar do usuário - link direto para Minha Conta */}
-          <Button 
-            variant="ghost" 
-            size="icon" 
-            asChild
-            className="p-0 hover:bg-studiefy-black/5 rounded-full"
-          >
-            <Link href="/dashboard/profile">
-              <Avatar className="h-12 w-12 shadow-md">
-                {profile?.avatar_url ? (
-                  <AvatarImage src={profile.avatar_url} alt={profile.name || 'Avatar'} />
-                ) : (
-                  <AvatarFallback className="bg-studiefy-black/20 text-studiefy-white text-sm">
-                    {userInitials}
-                  </AvatarFallback>
-                )}
-              </Avatar>
-            </Link>
-          </Button>
+
         </div>
+      </div>
+      
+      {/* Elementos fora do retângulo (lado direito) */}
+      <div className="flex items-center space-x-3">
+        {/* Botão de Novidades */}
+        <Button 
+          variant="ghost" 
+          size="icon"
+          onClick={() => setShowNewsDialog(true)}
+          className="flex items-center justify-center hover:bg-white/20 text-white"
+        >
+          <div className="relative h-8 w-8">
+            <Image 
+              src="https://uwemjaqphbytkkhalqge.supabase.co/storage/v1/object/public/images//star.webp" 
+              alt="Novidades" 
+              fill
+              style={{ objectFit: 'contain' }}
+            />
+          </div>
+        </Button>
+        
+        {/* Ícone de Feedback e Suporte */}
+        <Button 
+          variant="ghost" 
+          size="icon"
+          asChild
+          className="hover:bg-white/10 rounded-full h-10 w-10 flex items-center justify-center"
+        >
+          <Link href="/dashboard/feedback">
+            <MessageSquareHeart className="h-24 w-24 text-black" />
+          </Link>
+        </Button>
+        
+        {/* Avatar do usuário - link direto para Minha Conta */}
+        <Button 
+          variant="ghost" 
+          size="icon" 
+          asChild
+          className="p-0 hover:bg-studiefy-black/5 rounded-full"
+        >
+          <Link href="/dashboard/profile">
+            <Avatar className="h-12 w-12 shadow-md">
+              {profile?.avatar_url ? (
+                <AvatarImage src={profile.avatar_url} alt={profile.name || 'Avatar'} />
+              ) : (
+                <AvatarFallback className="bg-studiefy-black/20 text-studiefy-white text-sm">
+                  {userInitials}
+                </AvatarFallback>
+              )}
+            </Avatar>
+          </Link>
+        </Button>
       </div>
       
       {/* Diálogo de Novidades */}
       <NewsDialog open={showNewsDialog} onOpenChange={setShowNewsDialog} />
+      
+      {/* Diálogo de Adicionar Matéria */}
+      <AddSubjectDialog 
+        onAddSubject={async (name, color) => {
+          try {
+            await addSubject(name, color);
+            toast.success("Matéria adicionada com sucesso");
+            // Atualizar a página para mostrar a nova matéria
+            setTimeout(() => {
+              router.refresh();
+            }, 500);
+          } catch (error: any) {
+            if (!error.code || error.code !== 'PLAN_LIMIT_REACHED') {
+              toast.error("Erro ao adicionar matéria");
+            }
+            throw error;
+          }
+        }}
+        isOpenExternal={showAddSubjectDialog}
+        onOpenChangeExternal={setShowAddSubjectDialog}
+        showTriggerButton={false}
+      />
     </header>
   )
 }
