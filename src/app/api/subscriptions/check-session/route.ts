@@ -29,9 +29,20 @@ export async function GET(req: NextRequest) {
     try {
       // Verifica a sessão no Stripe
       console.log(`Fazendo requisição ao Stripe para verificar a sessão ${sessionId}`);
-      const session = await stripe.checkout.sessions.retrieve(sessionId, {
-        expand: ['subscription']
-      });
+      
+      // Adiciona tratamento de erro mais robusto
+      let session;
+      try {
+        session = await stripe.checkout.sessions.retrieve(sessionId, {
+          expand: ['subscription', 'subscription.items.data.price']
+        });
+      } catch (stripeError: any) {
+        console.error('Erro ao recuperar sessão do Stripe:', stripeError);
+        return NextResponse.json(
+          { error: `Erro ao recuperar sessão: ${stripeError.message}` },
+          { status: 400 }
+        );
+      }
       console.log(`Sessão recuperada com sucesso: status=${session.status}, payment_status=${session.payment_status}`);
       
       // Se a sessão foi bem-sucedida mas o webhook ainda não processou
@@ -73,56 +84,115 @@ export async function GET(req: NextRequest) {
           try {
             console.log(`Verificando status atual da assinatura para o usuário ${userId}`);
             
-            const { data: currentSubscription } = await supabase
+            const { data: currentSubscription, error: subscriptionError } = await supabase
               .from('subscriptions')
               .select('*')
               .eq('user_id', userId)
               .single();
+              
+            if (subscriptionError && subscriptionError.code !== 'PGRST116') { // PGRST116 é o código para 'no rows returned'
+              console.error('Erro ao buscar assinatura atual:', subscriptionError);
+              // Continuamos mesmo com erro, para tentar criar uma nova assinatura
+            }
               
             // Se não encontrou assinatura ou o plano não é premium, força a atualização
             if (!currentSubscription || currentSubscription.plan !== 'premium') {
               console.log(`Forçando atualização da assinatura para o usuário ${userId}`);
               
               // Atualiza o perfil do usuário para premium
-              const { error: profileError } = await supabase
-                .from('profiles')
-                .update({ subscription_plan: 'premium' })
-                .eq('user_id', userId);
-                
-              if (profileError) {
-                console.error('Erro ao atualizar perfil:', profileError);
-              } else {
-                console.log(`Perfil atualizado com sucesso para o plano premium`);
+              try {
+                const { error: profileError } = await supabase
+                  .from('profiles')
+                  .update({ subscription_plan: 'premium' })
+                  .eq('user_id', userId);
+                  
+                if (profileError) {
+                  console.error('Erro ao atualizar perfil:', profileError);
+                  // Continuamos mesmo com erro para tentar atualizar a assinatura
+                } else {
+                  console.log(`Perfil atualizado com sucesso para o plano premium`);
+                }
+              } catch (profileUpdateError) {
+                console.error('Exceção ao atualizar perfil:', profileUpdateError);
+                // Continuamos mesmo com erro para tentar atualizar a assinatura
               }
               
               // Se não existe uma assinatura, cria uma nova com dados básicos
               if (!currentSubscription) {
-                const { error: insertError } = await supabase.from('subscriptions').insert({
-                  user_id: userId,
-                  stripe_customer_id: session.customer as string,
-                  stripe_subscription_id: session.subscription as string,
-                  plan: 'premium',
-                  status: 'active',
-                  current_period_start: new Date().toISOString(),
-                  current_period_end: new Date(Date.now() + 30 * 24 * 60 * 60 * 1000).toISOString(), // +30 dias
-                });
-    
-                if (insertError) {
-                  console.error('Erro ao inserir assinatura:', insertError);
-                } else {
-                  console.log(`Assinatura criada com sucesso com plano premium`);
+                try {
+                  console.log('Criando nova assinatura com dados básicos...');
+                  const { error: insertError } = await supabase.from('subscriptions').insert({
+                    user_id: userId,
+                    stripe_customer_id: session.customer as string,
+                    stripe_subscription_id: session.subscription as string,
+                    plan: 'premium',
+                    status: 'active',
+                    current_period_start: new Date().toISOString(),
+                    current_period_end: new Date(Date.now() + 30 * 24 * 60 * 60 * 1000).toISOString(), // +30 dias
+                  });
+      
+                  if (insertError) {
+                    console.error('Erro ao inserir assinatura:', insertError);
+                    // Tentamos novamente com upsert em vez de insert
+                    console.log('Tentando upsert em vez de insert...');
+                    const { error: upsertError } = await supabase.from('subscriptions').upsert({
+                      user_id: userId,
+                      stripe_customer_id: session.customer as string,
+                      stripe_subscription_id: session.subscription as string,
+                      plan: 'premium',
+                      status: 'active',
+                      current_period_start: new Date().toISOString(),
+                      current_period_end: new Date(Date.now() + 30 * 24 * 60 * 60 * 1000).toISOString(), // +30 dias
+                    });
+                    
+                    if (upsertError) {
+                      console.error('Erro ao fazer upsert da assinatura:', upsertError);
+                    } else {
+                      console.log(`Assinatura criada com sucesso via upsert com plano premium`);
+                    }
+                  } else {
+                    console.log(`Assinatura criada com sucesso com plano premium`);
+                  }
+                } catch (subscriptionCreateError) {
+                  console.error('Exceção ao criar assinatura:', subscriptionCreateError);
                 }
               } else {
                 // Atualiza a assinatura existente
-                const { error: updateError } = await supabase.from('subscriptions').update({
-                  plan: 'premium',
-                  status: 'active',
-                }).eq('user_id', userId);
-                
-                if (updateError) {
-                  console.error('Erro ao atualizar assinatura:', updateError);
-                } else {
-                  console.log(`Assinatura atualizada com sucesso para o plano premium`);
+                try {
+                  console.log('Atualizando assinatura existente...');
+                  const { error: updateError } = await supabase.from('subscriptions').update({
+                    plan: 'premium',
+                    status: 'active',
+                    stripe_customer_id: session.customer as string,
+                    stripe_subscription_id: session.subscription as string,
+                    current_period_start: new Date().toISOString(),
+                    current_period_end: new Date(Date.now() + 30 * 24 * 60 * 60 * 1000).toISOString(), // +30 dias
+                  }).eq('user_id', userId);
+                  
+                  if (updateError) {
+                    console.error('Erro ao atualizar assinatura:', updateError);
+                    // Tentamos novamente com upsert em vez de update
+                    console.log('Tentando upsert em vez de update...');
+                    const { error: upsertError } = await supabase.from('subscriptions').upsert({
+                      user_id: userId,
+                      plan: 'premium',
+                      status: 'active',
+                      stripe_customer_id: session.customer as string,
+                      stripe_subscription_id: session.subscription as string,
+                      current_period_start: new Date().toISOString(),
+                      current_period_end: new Date(Date.now() + 30 * 24 * 60 * 60 * 1000).toISOString(), // +30 dias
+                    });
+                    
+                    if (upsertError) {
+                      console.error('Erro ao fazer upsert da assinatura:', upsertError);
+                    } else {
+                      console.log(`Assinatura atualizada com sucesso via upsert para o plano premium`);
+                    }
+                  } else {
+                    console.log(`Assinatura atualizada com sucesso para o plano premium`);
+                  }
+                } catch (subscriptionUpdateError) {
+                  console.error('Exceção ao atualizar assinatura:', subscriptionUpdateError);
                 }
               }
             } else {
@@ -148,34 +218,58 @@ export async function GET(req: NextRequest) {
             subscription = session.subscription;
           } else {
             // Caso contrário, busca a assinatura pelo ID
-            console.log(`Recuperando detalhes da assinatura: ${session.subscription}`);
-            subscription = await stripe.subscriptions.retrieve(
-              session.subscription as string
-            );
+            try {
+              console.log(`Recuperando detalhes da assinatura: ${session.subscription}`);
+              subscription = await stripe.subscriptions.retrieve(
+                session.subscription as string,
+                { expand: ['items.data.price'] }
+              );
+            } catch (stripeSubscriptionError: any) {
+              console.error('Erro ao recuperar detalhes da assinatura do Stripe:', stripeSubscriptionError);
+              
+              // Mesmo com erro, continuamos o processamento com dados básicos
+              console.log('Continuando com dados básicos da assinatura...');
+              subscription = {
+                id: session.subscription as string,
+                status: 'active',
+                current_period_start: Math.floor(Date.now() / 1000),
+                current_period_end: Math.floor((Date.now() + 30 * 24 * 60 * 60 * 1000) / 1000),
+                cancel_at_period_end: false,
+                items: { data: [{ price: { id: process.env.NEXT_PUBLIC_STRIPE_PRICE_PREMIUM } }] }
+              };
+            }
           }
           
           // Verifica se a assinatura tem itens
-          if (subscription.items && subscription.items.data && subscription.items.data.length > 0) {
-            try {
-              // Determina o plano com base no ID do preço
-              priceId = subscription.items.data[0].price.id;
-              console.log(`ID do preço: ${priceId}`);
-              console.log(`ID do preço Premium: ${process.env.NEXT_PUBLIC_STRIPE_PRICE_PREMIUM}`);
-              
-              // Forçar o plano como premium se for uma assinatura válida do Stripe
-              // Isso garante que mesmo se os IDs de preço não coincidirem exatamente, o usuário ainda receba o plano premium
+          try {
+            if (subscription.items && subscription.items.data && subscription.items.data.length > 0) {
+              try {
+                // Verifica se o objeto price está disponível
+                if (subscription.items.data[0].price && subscription.items.data[0].price.id) {
+                  priceId = subscription.items.data[0].price.id;
+                  plan = 'premium'; // Sempre definimos como premium para garantir o acesso
+                  console.log(`Plano definido como premium, baseado no preço: ${priceId}`);
+                } else {
+                  console.warn('Objeto price não encontrado na resposta do Stripe, usando plano padrão');
+                  plan = 'premium';
+                  priceId = process.env.NEXT_PUBLIC_STRIPE_PRICE_PREMIUM || '';
+                }
+              } catch (priceError) {
+                console.error('Erro ao determinar plano:', priceError);
+                // Assume plano premium em caso de erro
+                plan = 'premium';
+                priceId = process.env.NEXT_PUBLIC_STRIPE_PRICE_PREMIUM || '';
+              }
+            } else {
+              console.warn('Assinatura não tem itens ou dados de preço, usando plano padrão');
               plan = 'premium';
-              
-              console.log(`Plano determinado a partir da assinatura do Stripe: ${plan}`);
-            } catch (itemError) {
-              console.error('Erro ao processar itens da assinatura:', itemError);
-              // Mesmo com erro, definimos como premium para garantir acesso ao usuário
-              plan = 'premium';
-              console.log('Definindo plano como premium devido a erro no processamento dos itens');
+              priceId = process.env.NEXT_PUBLIC_STRIPE_PRICE_PREMIUM || '';
             }
-          } else {
-            console.log('Assinatura não possui itens ou dados de preço');
-            plan = 'premium'; // Assume premium como fallback
+          } catch (itemsError) {
+            console.error('Erro ao acessar itens da assinatura:', itemsError);
+            // Assume plano premium em caso de erro
+            plan = 'premium';
+            priceId = process.env.NEXT_PUBLIC_STRIPE_PRICE_PREMIUM || '';
           }
         } catch (error) {
           console.error('Erro ao processar assinatura do Stripe:', error);
