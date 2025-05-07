@@ -189,15 +189,37 @@ export default function DeckPage({ params }: DeckPageProps) {
         </div>
       </div>
       
-      {/* Busca */}
-      <div className="relative">
-        <Search className="absolute left-2 top-2.5 h-4 w-4 text-muted-foreground" />
-        <Input
-          placeholder="Buscar flashcards..."
-          className="pl-8"
-          value={searchTerm}
-          onChange={(e) => setSearchTerm(e.target.value)}
-        />
+      {/* Busca e botões de ação */}
+      <div className="flex items-center gap-3 mb-4">
+        <div className="relative flex-1">
+          <Search className="absolute left-3 top-2.5 h-4 w-4 text-muted-foreground" />
+          <Input
+            placeholder="Buscar flashcards..."
+            className="pl-9 rounded-full border-zinc-300"
+            value={searchTerm}
+            onChange={(e) => setSearchTerm(e.target.value)}
+          />
+        </div>
+        
+        <Button 
+          onClick={() => router.push(`/dashboard/flashcards/${deckId}/study`)} 
+          variant="outline" 
+          size="sm" 
+          className="gap-1 rounded-full border-zinc-900 hover:bg-zinc-100"
+        >
+          <BookOpen className="h-4 w-4 text-zinc-900" />
+          <span className="hidden sm:inline">Estudar</span>
+        </Button>
+        
+        <Button 
+          onClick={() => setIsAddFlashcardOpen(true)} 
+          variant="outline" 
+          size="sm" 
+          className="gap-1 rounded-full border-zinc-900 hover:bg-zinc-100"
+        >
+          <Plus className="h-4 w-4 text-zinc-900" />
+          <span className="hidden sm:inline">Adicionar</span>
+        </Button>
       </div>
       
       {/* Lista de flashcards */}

@@ -5,7 +5,7 @@ import { useProfile } from '@/hooks/useProfile'
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar"
 import { Button } from "@/components/ui/button"
 import { usePathname, useRouter } from 'next/navigation'
-import { MessageSquareHeart, Info, Plus, Medal, Flame } from 'lucide-react'
+import { MessageSquareHeart, Info, Plus, Medal, Flame, Calendar } from 'lucide-react'
 import { cn } from "@/lib/utils"
 import { usePageTitle } from "@/contexts/PageTitleContext"
 import { AddEventDialog } from "@/components/add-event-dialog"
@@ -19,6 +19,8 @@ import { useStreak } from "@/hooks/useStreak"
 import Link from 'next/link'
 import { NewsDialog } from '@/components/news-dialog'
 import Image from 'next/image'
+import { format } from 'date-fns'
+import { ptBR } from 'date-fns/locale'
 
 function getInitials(name: string): string {
   if (!name) return ''
@@ -49,15 +51,12 @@ export function GlobalHeader({ isSidebarCollapsed }: { isSidebarCollapsed?: bool
   const { streak, loading: loadingStreak } = useStreak()
   const [showInfo, setShowInfo] = useState(false)
   const [showSubjectContentInfo, setShowSubjectContentInfo] = useState(false)
-  const [showFlashcardsInfo, setShowFlashcardsInfo] = useState(false)
   const [showNewsDialog, setShowNewsDialog] = useState(false)
   const [showAddSubjectDialog, setShowAddSubjectDialog] = useState(false)
   const infoRef = useRef<HTMLDivElement>(null)
   const btnInfoRef = useRef<HTMLButtonElement>(null)
   const subjectContentInfoRef = useRef<HTMLDivElement>(null)
   const btnSubjectContentInfoRef = useRef<HTMLButtonElement>(null)
-  const flashcardsInfoRef = useRef<HTMLDivElement>(null)
-  const btnFlashcardsInfoRef = useRef<HTMLButtonElement>(null)
   const router = useRouter()
   const { addEvent } = useAllEvents()
   const { addSubject } = useSubjects()
@@ -118,34 +117,38 @@ export function GlobalHeader({ isSidebarCollapsed }: { isSidebarCollapsed?: bool
         setShowSubjectContentInfo(false)
       }
       
-      // Verificar se o clique foi fora do popover de informações de flashcards
-      if (
-        showFlashcardsInfo && 
-        flashcardsInfoRef.current && 
-        btnFlashcardsInfoRef.current && 
-        !flashcardsInfoRef.current.contains(event.target as Node) && 
-        !btnFlashcardsInfoRef.current.contains(event.target as Node)
-      ) {
-        setShowFlashcardsInfo(false)
-      }
+
     }
     
     document.addEventListener("mousedown", handleClickOutside)
     return () => {
       document.removeEventListener("mousedown", handleClickOutside)
     }
-  }, [showInfo, showSubjectContentInfo, showFlashcardsInfo])
+  }, [showInfo, showSubjectContentInfo])
   
   return (
-    <header className="bg-white h-20 px-8 flex items-center fixed top-0 right-0 left-[80px] z-50">
+    <header className="bg-white h-20 px-8 flex items-center fixed top-0 right-0 left-[80px] z-50 mt-1">
       {/* Espaço vazio à esquerda */}
       <div className="flex-1"></div>
       
       {/* Retângulo central flutuante */}
-      <div className="absolute left-1/2 transform -translate-x-1/2 bg-black text-white rounded-full px-6 py-2 shadow-md flex items-center justify-center">
+      <div className="absolute left-1/2 transform -translate-x-1/2 bg-black text-white rounded-full px-6 py-4 shadow-md flex items-center justify-center">
         {/* Página principal do dashboard - mostra apenas nível, ofensiva e novidades */}
         {isDashboardMainPage && (
           <div className="flex items-center gap-4">
+            {/* Texto 'Seu Progresso' */}
+            <span className="text-base font-light mr-2">Seu Progresso</span>
+            
+            {/* Data atual - clicu00e1vel para ir para o calendu00e1rio */}
+            <Link href="/dashboard/calendar" className="bg-zinc-800 rounded-full pl-1 pr-4 py-1 flex items-center mr-4 hover:bg-zinc-700 transition-colors cursor-pointer">
+              <div className="bg-zinc-700 w-6 h-6 rounded-full flex items-center justify-center mr-2">
+                <Calendar className="h-4 w-4 text-gray-400" />
+              </div>
+              <span className="text-sm font-medium text-gray-400">
+                {format(new Date(), "d MMMM", { locale: ptBR })}
+              </span>
+            </Link>
+            
             {/* Nível do usuário */}
             <div className="flex items-center gap-1">
               <Medal className="h-4 w-4" />
@@ -171,39 +174,7 @@ export function GlobalHeader({ isSidebarCollapsed }: { isSidebarCollapsed?: bool
             <h1 className="text-xl font-semibold ml-2">
               {titleElement || pageTitle}
               
-              {/* Ícone de informação para a página de flashcards */}
-              {isFlashcardsPage && (
-                <div className="relative inline-block ml-2">
-                  <Button 
-                    variant="ghost" 
-                    size="icon" 
-                    className="h-8 w-8 rounded-full hover:bg-white/20"
-                    onClick={() => setShowFlashcardsInfo(!showFlashcardsInfo)}
-                    ref={btnFlashcardsInfoRef}
-                  >
-                    <Info className="h-4 w-4 text-white hover:text-white/80" />
-                    <span className="sr-only">Informações sobre Flashcards</span>
-                  </Button>
-                  
-                  {showFlashcardsInfo && (
-                    <div 
-                      ref={flashcardsInfoRef}
-                      className="absolute top-full left-0 mt-2 p-4 bg-white rounded-lg shadow-lg z-50 w-72 text-black"
-                    >
-                      <h3 className="font-semibold mb-2">Sobre os Flashcards</h3>
-                      <p className="text-sm text-studiefy-black/70 mb-2">
-                        Flashcards são cartões de estudo que ajudam na memorização através da repetição espaçada.
-                      </p>
-                      <h4 className="font-medium mt-3 mb-1">Como usar:</h4>
-                      <ul className="text-sm text-studiefy-black/70 list-disc pl-5 space-y-1">
-                        <li>Crie decks para organizar seus flashcards por assunto</li>
-                        <li>Adicione cartões com perguntas e respostas</li>
-                        <li>Estude regularmente para fixar o conteúdo</li>
-                      </ul>
-                    </div>
-                  )}
-                </div>
-              )}
+
               
               {/* Ícone de informação para a página de conteúdos de uma matéria */}
               {isSubjectContentPage && (
